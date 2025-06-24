@@ -11,36 +11,35 @@ document.addEventListener('DOMContentLoaded', () => {
     const stopAllSoundsBtn = document.getElementById('stop-all-sounds');
     const loadSoundsButtonGeneral = document.getElementById('load-sounds-button-general');
     const fadeOutDisplay = document.getElementById('fadeout-display');
-    const fadeInDisplay = document.getElementById('fadein-display'); // NOVO: Elemento para o display do fade in
+    const fadeInDisplay = document.getElementById('fadein-display'); 
     const langButtons = document.querySelectorAll('.lang-button');
 
     let audioContext;
-    const soundData = []; // { name, key, audioBuffer, audioDataUrl, activeGainNodes: Set, color }
-    const globalActiveGainNodes = new Set();
+    // MODIFICADO: soundData agora inclui isLooping e activePlayingInstances
+    const soundData = []; // { name, key, audioBuffer, audioDataUrl, activePlayingInstances: Set<{source: AudioBufferSourceNode, gain: GainNode}>, color, isLooping }
+    // MODIFICADO: globalActivePlayingInstances agora armazena {source, gain}
+    const globalActivePlayingInstances = new Set(); // Armazena {source, gainNode} de todas as instâncias a tocar
     let lastPlayedSoundIndex = null;
-    let currentFadeOutDuration = 0; // Default para paragem imediata (0 segundos)
-    let currentFadeInDuration = 0;  // NOVO: Default para início imediato (0 segundos)
+    let currentFadeOutDuration = 0; 
+    let currentFadeInDuration = 0;  
 
-    let translations = {}; // Objeto para armazenar as traduções carregadas
-    let currentLanguage = 'pt'; // Idioma padrão
+    let translations = {}; 
+    let currentLanguage = 'pt'; 
 
-    // Teclas organizadas pela lógica QWERTY (top row, home row, bottom row)
     const defaultKeys = [
-        'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', // Top row (10 keys)
-        'a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l',      // Home row (9 keys)
-        'z', 'x', 'c', 'v', 'b', 'n', 'm'                 // Bottom row (7 keys)
+        'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', 
+        'a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l',      
+        'z', 'x', 'c', 'v', 'b', 'n', 'm'                 
     ];
-    const NUM_CELLS = defaultKeys.length; // Número de células é agora o número de teclas QWERTY
+    const NUM_CELLS = defaultKeys.length;
 
     // --- Funções de Idioma ---
 
-    // Carrega as traduções do ficheiro JSON
     async function loadTranslations() {
         try {
             const response = await fetch('translations.json');
             translations = await response.json();
             console.log('Traduções carregadas:', translations);
-            // Definir idioma inicial e aplicar
             const savedLang = localStorage.getItem('soundboardLanguage') || 'pt';
             setLanguage(savedLang);
         } catch (error) {
@@ -48,110 +47,19 @@ document.addEventListener('DOMContentLoaded', () => {
             // Fallback para um objeto de tradução mínimo ou alertar o utilizador
             translations = {
                 pt: {
-                    title: "Erro de Carregamento",
-                    mainTitle: "Erro de Carregamento",
-                    volumeLabel: "Volume:",
-                    playMultipleLabel: "Erro Trad.",
-                    autokillLabel: "Erro Trad.",
-                    loadMultipleSoundsButton: "Erro Trad.",
-                    stopAllSoundsButton: "Erro Trad.",
-                    fadeInLabel: "Fade In:", // NOVO: Tradução para Fade In
-                    immediateStart: " (Início Imediato)", // NOVO: Tradução para Início Imediato
-                    fadeOutLabel: "Fade Out:",
-                    immediateStop: " (Paragem Imediata)",
-                    howToUseTitle: "Erro!",
-                    dragDropHelp: "Erro de tradução.",
-                    clickHelp: "Erro de tradução.",
-                    shortcutsHelp: "Erro de tradução.",
-                    stopAllHelp: "Erro de tradução.",
-                    volumeHelp: "Erro de tradução.",
-                    deleteSoundHelp: "Erro de tradução.",
-                    replaceSoundHelp: "Erro de tradução.",
-                    renameHelp: "Erro de tradução.",
-                    fadeInHelp: "Erro de tradução.", // NOVO: Tradução para ajuda do Fade In
-                    fadeOutControlHelp: "Erro de tradução.",
-                    playMultipleModeHelp: "Erro de tradução.",
-                    autokillModeHelp: "Erro de tradução.",
-                    alertInvalidFile: "Invalid file type.",
-                    alertLoadError: "Could not load audio.",
-                    alertDecodeError: "Error decoding audio.",
-                    alertNoEmptyCells: "No more empty cells.",
-                    cellEmptyText: "Click to load sound",
-                    cellNoName: "No Name",
-                    cellEmptyDefault: "Empty"
+                    title: "Erro de Carregamento", mainTitle: "Erro de Carregamento", volumeLabel: "Volume:", playMultipleLabel: "Erro Trad.", autokillLabel: "Erro Trad.", loadMultipleSoundsButton: "Erro Trad.", stopAllSoundsButton: "Erro Trad.", fadeInLabel: "Fade In:", immediateStart: " (Início Imediato)", fadeOutLabel: "Fade Out:", immediateStop: " (Paragem Imediata)", howToUseTitle: "Erro!", dragDropHelp: "Erro de tradução.", clickHelp: "Erro de tradução.", shortcutsHelp: "Erro de tradução.", stopAllHelp: "Erro de tradução.", volumeHelp: "Erro de tradução.", deleteSoundHelp: "Erro de tradução.", replaceSoundHelp: "Erro de tradução.", renameHelp: "Erro de tradução.", fadeInHelp: "Erro de tradução.", fadeOutControlHelp: "Erro de tradução.", playMultipleModeHelp: "Erro de tradução.", autokillModeHelp: "Erro de tradução.", alertInvalidFile: "Invalid file type.", alertLoadError: "Could not load audio.", alertDecodeError: "Error decoding audio.", alertNoEmptyCells: "No more empty cells.", cellEmptyText: "Click to load sound", cellNoName: "No Name", cellEmptyDefault: "Empty", loopButtonTitle: "Erro Trad."
                 },
-                en: { // Adicionar um fallback mínimo para EN e IT também, se não existirem
-                    title: "Loading Error",
-                    mainTitle: "Loading Error",
-                    volumeLabel: "Volume:",
-                    playMultipleLabel: "Trad. Error",
-                    autokillLabel: "Trad. Error",
-                    loadMultipleSoundsButton: "Trad. Error",
-                    stopAllSoundsButton: "Trad. Error",
-                    fadeInLabel: "Fade In:",
-                    immediateStart: " (Immediate Start)",
-                    fadeOutLabel: "Fade Out:",
-                    immediateStop: " (Immediate Stop)",
-                    howToUseTitle: "Error!",
-                    dragDropHelp: "Translation error.",
-                    clickHelp: "Translation error.",
-                    shortcutsHelp: "Translation error.",
-                    stopAllHelp: "Translation error.",
-                    volumeHelp: "Translation error.",
-                    deleteSoundHelp: "Translation error.",
-                    replaceSoundHelp: "Translation error.",
-                    renameHelp: "Translation error.",
-                    fadeInHelp: "Translation error.",
-                    fadeOutControlHelp: "Translation error.",
-                    playMultipleModeHelp: "Translation error.",
-                    autokillModeHelp: "Translation error.",
-                    alertInvalidFile: "Invalid file type.",
-                    alertLoadError: "Could not load audio.",
-                    alertDecodeError: "Error decoding audio.",
-                    alertNoEmptyCells: "No more empty cells.",
-                    cellEmptyText: "Click to load sound",
-                    cellNoName: "No Name",
-                    cellEmptyDefault: "Empty"
+                en: {
+                    title: "Loading Error", mainTitle: "Loading Error", volumeLabel: "Volume:", playMultipleLabel: "Trad. Error", autokillLabel: "Trad. Error", loadMultipleSoundsButton: "Trad. Error", stopAllSoundsButton: "Trad. Error", fadeInLabel: "Fade In:", immediateStart: " (Immediate Start)", fadeOutLabel: "Fade Out:", immediateStop: " (Immediate Stop)", howToUseTitle: "Error!", dragDropHelp: "Translation error.", clickHelp: "Translation error.", shortcutsHelp: "Translation error.", stopAllHelp: "Translation error.", volumeHelp: "Translation error.", deleteSoundHelp: "Translation error.", replaceSoundHelp: "Translation error.", renameHelp: "Translation error.", fadeInHelp: "Translation error.", fadeOutControlHelp: "Translation error.", playMultipleModeHelp: "Translation error.", autokillModeHelp: "Translation error.", alertInvalidFile: "Invalid file type.", alertLoadError: "Could not load audio.", alertDecodeError: "Error decoding audio.", alertNoEmptyCells: "No more empty cells.", cellEmptyText: "Click to load sound", cellNoName: "No Name", cellEmptyDefault: "Empty", loopButtonTitle: "Trad. Error"
                 },
                 it: {
-                    title: "Errore di Caricamento",
-                    mainTitle: "Errore di Caricamento",
-                    volumeLabel: "Volume:",
-                    playMultipleLabel: "Errore Trad.",
-                    autokillLabel: "Errore Trad.",
-                    loadMultipleSoundsButton: "Errore Trad.",
-                    stopAllSoundsButton: "Errore Trad.",
-                    fadeInLabel: "Fade In:",
-                    immediateStart: " (Avvio Immediato)",
-                    fadeOutLabel: "Fade Out:",
-                    immediateStop: " (Arresto Immediato)",
-                    howToUseTitle: "Errore!",
-                    dragDropHelp: "Errore di traduzione.",
-                    clickHelp: "Errore di traduzione.",
-                    shortcutsHelp: "Errore di traduzione.",
-                    stopAllHelp: "Errore di traduzione.",
-                    volumeHelp: "Errore di traduzione.",
-                    deleteSoundHelp: "Errore di traduzione.",
-                    replaceSoundHelp: "Errore di traduzione.",
-                    renameHelp: "Errore di traduzione.",
-                    fadeInHelp: "Errore di traduzione.",
-                    fadeOutControlHelp: "Errore di traduzione.",
-                    playMultipleModeHelp: "Errore di traduzione.",
-                    autokillModeHelp: "Errore di traduzione.",
-                    alertInvalidFile: "Invalid file type.",
-                    alertLoadError: "Could not load audio.",
-                    alertDecodeError: "Error decoding audio.",
-                    alertNoEmptyCells: "No more empty cells.",
-                    cellEmptyText: "Click to load sound",
-                    cellNoName: "No Name",
-                    cellEmptyDefault: "Empty"
+                    title: "Errore di Caricamento", mainTitle: "Errore di Caricamento", volumeLabel: "Volume:", playMultipleLabel: "Errore Trad.", autokillLabel: "Errore Trad.", loadMultipleSoundsButton: "Errore Trad.", stopAllSoundsButton: "Errore Trad.", fadeInLabel: "Fade In:", immediateStart: " (Avvio Immediato)", fadeOutLabel: "Fade Out:", immediateStop: " (Arresto Immediato)", howToUseTitle: "Errore!", dragDropHelp: "Errore di traduzione.", clickHelp: "Errore di traduzione.", shortcutsHelp: "Errore di traduzione.", stopAllHelp: "Errore di traduzione.", volumeHelp: "Errore di traduzione.", deleteSoundHelp: "Errore di traduzione.", replaceSoundHelp: "Errore di traduzione.", renameHelp: "Errore de traduzione.", fadeInHelp: "Errore de traduzione.", fadeOutControlHelp: "Errore de traduzione.", playMultipleModeHelp: "Errore de traduzione.", autokillModeHelp: "Errore de traduzione.", alertInvalidFile: "Invalid file type.", alertLoadError: "Could not load audio.", alertDecodeError: "Error decoding audio.", alertNoEmptyCells: "No more empty cells.", cellEmptyText: "Clicca per caricare il suono", cellNoName: "Senza Nome", cellEmptyDefault: "Vuoto", loopButtonTitle: "Errore Trad."
                 }
             };
-            setLanguage('pt'); // Tenta definir PT como fallback
+            setLanguage('pt'); 
         }
     }
 
-    // Aplica as traduções à página
     function setLanguage(lang) {
         if (!translations[lang]) {
             console.warn(`Idioma ${lang} não encontrado. Usando PT como fallback.`);
@@ -162,44 +70,60 @@ document.addEventListener('DOMContentLoaded', () => {
 
         document.querySelector('title').textContent = translations[lang].title;
 
-        // Traduzir elementos com data-key
         document.querySelectorAll('[data-key]').forEach(element => {
             const key = element.dataset.key;
             if (translations[lang][key]) {
                 if (element.tagName === 'INPUT' && element.type === 'range') {
-                    // Range inputs não têm textContent
                 } else if (element.tagName === 'INPUT' && (element.type === 'checkbox' || element.type === 'radio')) {
-                    // Checkboxes/radios não têm textContent, a label associada é que tem
                 } else if (element.tagName === 'BUTTON') {
                     element.textContent = translations[lang][key];
                 } else if (element.tagName === 'LABEL') {
                     element.textContent = translations[lang][key];
                 } else if (element.tagName === 'LI') {
-                    element.innerHTML = translations[lang][key]; // Usar innerHTML para manter <kbd> e <strong>
+                    element.innerHTML = translations[lang][key]; 
                 } else {
                     element.textContent = translations[lang][key];
                 }
             }
         });
 
-        // Atualizar display de fade out e fade in com texto traduzido
         updateFadeOutDisplay();
-        updateFadeInDisplay(); // NOVO: Atualiza o display do fade in
+        updateFadeInDisplay(); 
         
-        // Atualizar texto das células vazias
-        document.querySelectorAll('.sound-cell.empty').forEach(cell => {
-            const emptyTextElement = cell.querySelector('.sound-name');
-            if (emptyTextElement) {
-                emptyTextElement.textContent = translations[currentLanguage].cellEmptyDefault;
+        // Atualizar texto das células vazias e tooltips dos botões
+        document.querySelectorAll('.sound-cell').forEach(cell => { // Itera todas as células
+            const index = parseInt(cell.dataset.index);
+            const data = soundData[index];
+            
+            const nameDisplay = cell.querySelector('.sound-name');
+            if (nameDisplay) {
+                nameDisplay.textContent = data && data.name ? data.name : translations[currentLanguage].cellEmptyDefault;
+                nameDisplay.title = translations[currentLanguage].renameHelp.replace(/<[^>]*>/g, '');
             }
-            // Para o pseudo-elemento ::before, não podemos mudar diretamente via JS.
-            // Isso requer uma pequena adição ao CSS ou uma solução JS mais complexa.
-            // Por enquanto, o 'Clique para carregar som' no :before não será traduzido diretamente.
-            // Se for essencial, podemos substituir o :before por um span dentro da célula.
+
+            const deleteButton = cell.querySelector('.delete-button');
+            if (deleteButton) {
+                deleteButton.title = translations[currentLanguage].deleteSoundHelp.replace(/<[^>]*>/g, '');
+            }
+            const replaceButton = cell.querySelector('.replace-sound-button');
+            if (replaceButton) {
+                replaceButton.title = translations[currentLanguage].replaceSoundHelp.replace(/<[^>]*>/g, '');
+            }
+            // NOVO: Atualiza a tooltip do botão de loop
+            const loopButton = cell.querySelector('.loop-button');
+            if (loopButton) {
+                loopButton.title = translations[currentLanguage].loopButtonTitle || 'Loop (Toggle)';
+            }
+
+            // Garante que o estado visual do loop é atualizado na mudança de idioma
+            if (data && data.isLooping) {
+                loopButton.classList.add('active');
+            } else if (loopButton) {
+                loopButton.classList.remove('active');
+            }
         });
 
 
-        // Atualizar botões de idioma
         langButtons.forEach(button => {
             if (button.dataset.lang === lang) {
                 button.classList.add('active');
@@ -211,17 +135,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Fim das Funções de Idioma ---
 
-    // Resto do código existente...
-
-    // Função para gerar uma cor de fundo aleatória em HSL para harmonia
     function getRandomHSLColor() {
         const hue = Math.floor(Math.random() * 360);
-        const saturation = Math.floor(Math.random() * 20) + 70; // 70-90%
-        const lightness = Math.floor(Math.random() * 20) + 40; // 40-60%
+        const saturation = Math.floor(Math.random() * 20) + 70; 
+        const lightness = Math.floor(Math.random() * 20) + 40; 
         return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
     }
 
-    // Inicializa o AudioContext
     function initAudioContext() {
         if (!audioContext) {
             audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -231,7 +151,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Carregar configurações do localStorage
     function loadSettings() {
         const savedSettings = JSON.parse(localStorage.getItem('soundboardSettings')) || {};
         const savedSounds = savedSettings.sounds || [];
@@ -240,11 +159,11 @@ document.addEventListener('DOMContentLoaded', () => {
         playMultipleCheckbox.checked = savedSettings.playMultiple !== undefined ? savedSettings.playMultiple : false;
         autokillModeCheckbox.checked = savedSettings.autokillMode !== undefined ? savedSettings.autokillMode : false;
         currentFadeOutDuration = savedSettings.currentFadeOutDuration !== undefined ? savedSettings.currentFadeOutDuration : 0;
-        currentFadeInDuration = savedSettings.currentFadeInDuration !== undefined ? savedSettings.currentFadeInDuration : 0; // NOVO: Carrega a duração do fade in
+        currentFadeInDuration = savedSettings.currentFadeInDuration !== undefined ? savedSettings.currentFadeInDuration : 0;
         
         updateVolumeDisplay();
-        updateFadeOutDisplay(); // Chama após carregar settings
-        updateFadeInDisplay();  // NOVO: Chama após carregar settings
+        updateFadeOutDisplay();
+        updateFadeInDisplay();
 
         for (let i = 0; i < NUM_CELLS; i++) {
             const cellData = savedSounds[i];
@@ -254,45 +173,44 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (cellData && cellData.audioDataUrl) {
                 const color = cellData.color || getRandomHSLColor();
-                loadSoundFromDataURL(cellData.audioDataUrl, cell, i, cellData.name, fixedKey, color);
+                // MODIFICADO: Passa isLooping para loadSoundFromDataURL
+                const isLooping = cellData.isLooping !== undefined ? cellData.isLooping : false;
+                loadSoundFromDataURL(cellData.audioDataUrl, cell, i, cellData.name, fixedKey, color, isLooping);
             } else {
-                updateCellDisplay(cell, { name: translations[currentLanguage].cellEmptyDefault, key: fixedKey || '' }, true);
+                updateCellDisplay(cell, { name: translations[currentLanguage].cellEmptyDefault, key: fixedKey || '', isLooping: false }, true);
             }
         }
     }
 
-    // Guardar configurações no localStorage
     function saveSettings() {
         const settingsToSave = {
             volume: parseFloat(volumeRange.value),
             playMultiple: playMultipleCheckbox.checked,
             autokillMode: autokillModeCheckbox.checked,
             currentFadeOutDuration: currentFadeOutDuration, 
-            currentFadeInDuration: currentFadeInDuration, // NOVO: Salva a duração do fade in
+            currentFadeInDuration: currentFadeInDuration, 
             sounds: soundData.map(data => ({
                 name: data ? data.name : null,
                 key: data ? data.key : null, 
                 audioDataUrl: data ? data.audioDataUrl : null,
-                color: data ? data.color : null
+                color: data ? data.color : null,
+                isLooping: data ? data.isLooping : false // NOVO: Salva o estado de loop
             }))
         };
         localStorage.setItem('soundboardSettings', JSON.stringify(settingsToSave));
     }
 
- // No seu script.js, localize esta função e substitua o seu conteúdo:
     function createSoundCell(index) {
         const cell = document.createElement('div');
         cell.classList.add('sound-cell', 'empty');
         cell.dataset.index = index;
 
-        // Botão de Substituir Som
         const replaceButton = document.createElement('button');
         replaceButton.classList.add('replace-sound-button');
         replaceButton.innerHTML = '<span class="material-symbols-outlined">upload_file</span>';
-        replaceButton.title = translations[currentLanguage].replaceSoundHelp.replace(/<[^>]*>/g, '');
+        replaceButton.title = translations[currentLanguage].replaceSoundHelp.replace(/<[^>]*>/g, ''); 
         cell.appendChild(replaceButton);
 
-        // Botão de Apagar
         const deleteButton = document.createElement('button');
         deleteButton.classList.add('delete-button');
         deleteButton.textContent = '❌'; 
@@ -302,25 +220,23 @@ document.addEventListener('DOMContentLoaded', () => {
         // NOVO: Botão de Loop
         const loopButton = document.createElement('button');
         loopButton.classList.add('loop-button');
-        loopButton.innerHTML = '<span class="material-symbols-outlined">loop</span>'; // Ícone de loop
-        loopButton.title = translations[currentLanguage].loopButtonTitle || 'Loop (Toggle)'; // Adicionado fallback para a tradução
+        loopButton.innerHTML = '<span class="material-symbols-outlined">loop</span>';
+        loopButton.title = translations[currentLanguage].loopButtonTitle || 'Loop (Toggle)'; 
         cell.appendChild(loopButton);
 
         const nameDisplay = document.createElement('div');
         nameDisplay.classList.add('sound-name');
         nameDisplay.contentEditable = true;
         nameDisplay.spellcheck = false;
-        nameDisplay.textContent = translations[currentLanguage].cellEmptyDefault;
+        nameDisplay.textContent = translations[currentLanguage].cellEmptyDefault; 
         nameDisplay.title = translations[currentLanguage].renameHelp.replace(/<[^>]*>/g, '');
         cell.appendChild(nameDisplay);
 
-        // Elemento para exibir a tecla no rodapé da célula
         const keyDisplayBottom = document.createElement('div');
         keyDisplayBottom.classList.add('key-display-bottom');
         keyDisplayBottom.textContent = defaultKeys[index] ? defaultKeys[index].toUpperCase() : '';
         cell.appendChild(keyDisplayBottom);
 
-        // Adiciona a célula à linha QWERTY correta
         if (index >= 0 && index < 10) { 
             rowTop.appendChild(cell);
         } else if (index >= 10 && index < 19) { 
@@ -339,9 +255,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return cell;
     }
 
-    // Configura os eventos para uma célula
     function setupCellEvents(cell, index) {
-        // Drag and Drop
         cell.addEventListener('dragover', (e) => {
             e.preventDefault();
             cell.classList.add('drag-over');
@@ -358,14 +272,15 @@ document.addEventListener('DOMContentLoaded', () => {
             if (file && (file.type === 'audio/wav' || file.type === 'audio/mp3' || file.type === 'audio/ogg')) {
                 loadFileIntoCell(file, cell, index);
             } else {
-                alert(translations[currentLanguage].alertInvalidFile); // Usa tradução
+                alert(translations[currentLanguage].alertInvalidFile); 
             }
         });
 
-        // Click para tocar ou carregar som
         cell.addEventListener('click', (e) => {
+            // MODIFICADO: Incluir loop-button no stopPropagation
             if (e.target.closest('.delete-button') || 
                 e.target.closest('.replace-sound-button') ||
+                e.target.closest('.loop-button') || // NOVO: Não tocar som ao clicar no botão de loop
                 e.target.closest('.sound-name')) {
                 e.stopPropagation(); 
                 return;
@@ -387,11 +302,10 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // Edição do nome
         const nameDisplay = cell.querySelector('.sound-name');
         nameDisplay.addEventListener('blur', () => {
             if (soundData[index]) {
-                soundData[index].name = nameDisplay.textContent.trim() || translations[currentLanguage].cellNoName; // Usa tradução
+                soundData[index].name = nameDisplay.textContent.trim() || translations[currentLanguage].cellNoName; 
                 nameDisplay.textContent = soundData[index].name;
                 saveSettings();
             }
@@ -403,16 +317,15 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // Lógica para o botão de apagar (click curto vs. click longo para fade out)
         const deleteButton = cell.querySelector('.delete-button');
         let pressTimer;
-        const longPressDuration = 500; // 0.5 segundos
+        const longPressDuration = 500; 
 
         deleteButton.addEventListener('mousedown', (e) => {
             e.stopPropagation();
             pressTimer = setTimeout(() => {
                 if (soundData[index] && soundData[index].audioBuffer) {
-                    fadeoutSound(index, currentFadeOutDuration); // Agora usa currentFadeOutDuration
+                    fadeoutSound(index, currentFadeOutDuration); 
                 }
                 pressTimer = null; 
             }, longPressDuration);
@@ -423,7 +336,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (pressTimer !== null) { 
                 clearTimeout(pressTimer);
                 if (e.button === 0 && !cell.classList.contains('empty')) { 
-                    clearSoundCell(index, 0.1); // Clique curto apaga com fade out rápido
+                    clearSoundCell(index, 0.1); 
                 }
             }
             pressTimer = null; 
@@ -438,7 +351,6 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
         });
 
-        // Lógica para o botão de substituir som
         const replaceButton = cell.querySelector('.replace-sound-button');
         replaceButton.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -453,9 +365,32 @@ document.addEventListener('DOMContentLoaded', () => {
             };
             input.click();
         });
+
+        // NOVO: Event listener para o botão de loop
+        const loopButton = cell.querySelector('.loop-button');
+        loopButton.addEventListener('click', (e) => {
+            e.stopPropagation(); // Previne que o clique ative o som da célula
+            if (soundData[index]) {
+                soundData[index].isLooping = !soundData[index].isLooping; // Alterna o estado de loop
+                loopButton.classList.toggle('active', soundData[index].isLooping); // Atualiza a classe visual
+                saveSettings(); // Salva o novo estado de loop
+
+                // Se o som estiver a tocar, atualiza a propriedade loop das instâncias ativas
+                soundData[index].activePlayingInstances.forEach(instance => {
+                    instance.source.loop = soundData[index].isLooping;
+                });
+                
+                // Se o som estiver a tocar e o loop for desativado, e for modo single,
+                // pode-se querer parar a reprodução imediatamente para evitar que continue
+                // a tocar indefinidamente se o loop foi a única razão para continuar.
+                // No entanto, o comportamento padrão é simplesmente parar de loopar no final da faixa.
+                // A implementação atual permite que a faixa termine naturalmente se o loop for desativado.
+                // Se quiser que pare imediatamente, teria que chamar fadeoutSound(index, 0);
+                // mas isso interromperia a faixa, o que pode não ser desejado.
+            }
+        });
     }
 
-    // Carrega um ficheiro de audio numa célula específica
     async function loadFileIntoCell(file, cell, index, nameOverride = null) {
         initAudioContext();
 
@@ -471,8 +406,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const fixedKey = defaultKeys[index]; 
 
                 const cellColor = getRandomHSLColor();
-                cell.style.backgroundColor = cellColor; 
-
+                
                 if (soundData[index]) {
                     clearSoundData(index);
                 }
@@ -482,15 +416,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     key: fixedKey, 
                     audioBuffer: audioBuffer,
                     audioDataUrl: audioDataUrl,
-                    activeGainNodes: new Set(),
-                    color: cellColor 
+                    activePlayingInstances: new Set(), // MODIFICADO: Set para instâncias {source, gain}
+                    color: cellColor,
+                    isLooping: false // NOVO: Default para não loop
                 };
                 updateCellDisplay(cell, soundData[index], false);
                 saveSettings();
             } catch (error) {
                 console.error(`Erro ao decodificar o áudio para célula ${index}:`, error);
-                alert(translations[currentLanguage].alertLoadError.replace('{fileName}', file.name)); // Usa tradução
-                updateCellDisplay(cell, { name: translations[currentLanguage].cellEmptyDefault, key: defaultKeys[index] || '' }, true);
+                alert(translations[currentLanguage].alertLoadError.replace('{fileName}', file.name));
+                updateCellDisplay(cell, { name: translations[currentLanguage].cellEmptyDefault, key: fixedKey || '', isLooping: false }, true);
                 soundData[index] = null;
                 saveSettings();
             }
@@ -498,8 +433,7 @@ document.addEventListener('DOMContentLoaded', () => {
         reader.readAsArrayBuffer(file);
     }
 
-    // Carrega um som a partir de um Data URL (usado ao carregar do localStorage)
-    async function loadSoundFromDataURL(dataUrl, cell, index, name, key, color) {
+    async function loadSoundFromDataURL(dataUrl, cell, index, name, key, color, isLoopingState) { // MODIFICADO: Recebe isLoopingState
         initAudioContext();
 
         try {
@@ -510,25 +444,24 @@ document.addEventListener('DOMContentLoaded', () => {
             const fixedKey = defaultKeys[index];
 
             soundData[index] = {
-                name: name || translations[currentLanguage].cellNoName, // Usa tradução
+                name: name || translations[currentLanguage].cellNoName, 
                 key: fixedKey, 
                 audioBuffer: audioBuffer,
                 audioDataUrl: dataUrl,
-                activeGainNodes: new Set(),
-                color: color 
+                activePlayingInstances: new Set(), // MODIFICADO: Set para instâncias {source, gain}
+                color: color,
+                isLooping: isLoopingState // NOVO: Carrega o estado de loop
             };
-            cell.style.backgroundColor = color; 
             updateCellDisplay(cell, soundData[index], false);
         } catch (error) {
             console.error('Erro ao decodificar áudio do Data URL:', error);
-            alert(translations[currentLanguage].alertDecodeError.replace('{soundName}', name || '')); // Usa tradução
-            updateCellDisplay(cell, { name: translations[currentLanguage].cellEmptyDefault, key: defaultKeys[index] || '' }, true);
+            alert(translations[currentLanguage].alertDecodeError.replace('{soundName}', name || '')); 
+            updateCellDisplay(cell, { name: translations[currentLanguage].cellEmptyDefault, key: fixedKey || '', isLooping: false }, true);
             soundData[index] = null;
             saveSettings();
         }
     }
 
-    // Converte Base64 para ArrayBuffer
     function base64ToArrayBuffer(base64) {
         const binaryString = window.atob(base64);
         const len = binaryString.length;
@@ -539,32 +472,35 @@ document.addEventListener('DOMContentLoaded', () => {
         return bytes.buffer;
     }
 
-    // Atualiza a exibição da célula com o nome e a tecla
     function updateCellDisplay(cell, data, isEmpty) {
         const nameDisplay = cell.querySelector('.sound-name');
         const keyDisplayBottom = cell.querySelector('.key-display-bottom');
         const deleteButton = cell.querySelector('.delete-button');
         const replaceButton = cell.querySelector('.replace-sound-button'); 
+        const loopButton = cell.querySelector('.loop-button'); // NOVO: Obter o botão de loop
 
         if (isEmpty) {
             cell.classList.add('empty');
-            nameDisplay.textContent = translations[currentLanguage].cellEmptyDefault; // Usa tradução
+            nameDisplay.textContent = translations[currentLanguage].cellEmptyDefault; 
             nameDisplay.contentEditable = false;
             deleteButton.style.display = 'none'; 
             replaceButton.style.display = 'none'; 
+            loopButton.style.display = 'none'; // NOVO: Esconde o botão de loop
             cell.style.backgroundColor = 'transparent'; 
         } else {
             cell.classList.remove('empty');
-            nameDisplay.textContent = data.name || translations[currentLanguage].cellNoName; // Usa tradução
+            nameDisplay.textContent = data.name || translations[currentLanguage].cellNoName; 
             nameDisplay.contentEditable = true;
             deleteButton.style.display = 'flex'; 
             replaceButton.style.display = 'flex'; 
+            loopButton.style.display = 'flex'; // NOVO: Mostra o botão de loop
             cell.style.backgroundColor = data.color; 
+            // NOVO: Define o estado visual do botão de loop com base nos dados
+            loopButton.classList.toggle('active', data.isLooping); 
         }
         keyDisplayBottom.textContent = defaultKeys[cell.dataset.index] ? defaultKeys[cell.dataset.index].toUpperCase() : '';
     }
 
-    // Reproduz um som
     function playSound(index) {
         const sound = soundData[index];
         if (!sound || !sound.audioBuffer) {
@@ -573,80 +509,134 @@ document.addEventListener('DOMContentLoaded', () => {
 
         initAudioContext();
 
+        // MODIFICADO: auto-kill agora aplica-se a todas as instâncias do *último som*, não só a primeira.
         if (autokillModeCheckbox.checked && lastPlayedSoundIndex !== null && lastPlayedSoundIndex !== index) {
-            const lastCell = document.querySelector(`.sound-cell[data-index="${lastPlayedSoundIndex}"]`);
-            if (lastCell) lastCell.classList.remove('active'); 
-            fadeoutSound(lastPlayedSoundIndex, currentFadeOutDuration); 
+            const lastSound = soundData[lastPlayedSoundIndex];
+            if (lastSound) {
+                lastSound.activePlayingInstances.forEach(instance => {
+                    const cell = document.querySelector(`.sound-cell[data-index="${lastPlayedSoundIndex}"]`);
+                    if (cell) cell.classList.remove('active'); 
+                    fadeoutInstance(instance.source, instance.gain, 0.2); // Fade out rápido
+                });
+                lastSound.activePlayingInstances.clear();
+            }
         }
 
         if (audioContext.state === 'suspended') {
             audioContext.resume().then(() => {
                 console.log('AudioContext resumed successfully');
-                playActualSound(sound, index, currentFadeInDuration); // NOVO: Passa a duração do fade in
+                playActualSound(sound, index, currentFadeInDuration); 
                 lastPlayedSoundIndex = index;
             }).catch(e => console.error('Erro ao retomar AudioContext:', e));
         } else {
-            playActualSound(sound, index, currentFadeInDuration); // NOVO: Passa a duração do fade in
+            playActualSound(sound, index, currentFadeInDuration); 
             lastPlayedSoundIndex = index;
         }
     }
 
-    // Função que realmente toca o som, agora com fade-in
-    function playActualSound(sound, index, fadeInDuration = 0) { // NOVO: Adicionado fadeInDuration
+    // MODIFICADO: Função que realmente toca o som, com fade-in e loop
+    function playActualSound(sound, index, fadeInDuration = 0) {
         const source = audioContext.createBufferSource();
         source.buffer = sound.audioBuffer;
+        source.loop = sound.isLooping; // NOVO: Ativa/desativa o loop com base no estado do som
 
         const gainNode = audioContext.createGain();
         gainNode.connect(audioContext.masterGainNode);
         source.connect(gainNode);
 
-        // Aplica o fade-in
         const now = audioContext.currentTime;
         if (fadeInDuration > 0) {
             gainNode.gain.setValueAtTime(0, now);
-            gainNode.gain.linearRampToValueAtTime(1, now + fadeInDuration); // Vai de 0 ao volume máximo em fadeInDuration segundos
+            gainNode.gain.linearRampToValueAtTime(1, now + fadeInDuration);
         } else {
-            gainNode.gain.setValueAtTime(1, now); // Início imediato, volume máximo
+            gainNode.gain.setValueAtTime(1, now); 
         }
 
-
-        sound.activeGainNodes.add(gainNode);
-        globalActiveGainNodes.add(gainNode);
+        // MODIFICADO: Adiciona a instância {source, gainNode} aos Sets
+        const playingInstance = { source, gain: gainNode };
+        sound.activePlayingInstances.add(playingInstance);
+        globalActivePlayingInstances.add(playingInstance);
 
         const cell = document.querySelector(`.sound-cell[data-index="${index}"]`);
         if (cell) {
             cell.classList.add('active'); 
             source.onended = () => {
-                setTimeout(() => {
-                    cell.classList.remove('active'); 
-                    sound.activeGainNodes.delete(gainNode);
-                    globalActiveGainNodes.delete(gainNode);
-                    source.disconnect();
-                    gainNode.disconnect();
-                }, 50); 
+                // Se o loop estiver ativo, onended só é chamado se o loop for desativado em runtime,
+                // ou se a fonte for explicitamente parada.
+                // Limpeza da instância apenas se não estiver mais a tocar.
+                // MODIFICADO: Garante que a instância é removida apenas quando a reprodução termina ou é interrompida.
+                if (!source.loop) { // Se não estiver em loop, remove no final.
+                    setTimeout(() => {
+                        cell.classList.remove('active'); 
+                        sound.activePlayingInstances.delete(playingInstance);
+                        globalActivePlayingInstances.delete(playingInstance);
+                        source.disconnect();
+                        gainNode.disconnect();
+                        // Se não houver mais instâncias ativas para este som, remove a classe 'active' da célula
+                        if (sound.activePlayingInstances.size === 0) {
+                            cell.classList.remove('active');
+                        }
+                    }, 50); 
+                }
             };
         }
 
         if (playMultipleCheckbox.checked) {
             source.start(0);
         } else {
-            sound.activeGainNodes.forEach(gN => {
-                if (gN !== gainNode) {
-                    gN.gain.cancelScheduledValues(audioContext.currentTime);
-                    gN.gain.setValueAtTime(gN.gain.value, audioContext.currentTime);
-                    gN.gain.linearRampToValueAtTime(0.001, audioContext.currentTime + 0.1); 
-                    setTimeout(() => {
-                        gN.disconnect();
-                        globalActiveGainNodes.delete(gN);
-                    }, 150);
+            // Se playMultiple NÃO estiver marcado, para todas as outras instâncias ativas
+            // do *mesmo som* antes de iniciar uma nova, e também o som anterior.
+            sound.activePlayingInstances.forEach(instance => {
+                if (instance !== playingInstance) { // Não parar a instância atual que acabou de começar
+                    fadeoutInstance(instance.source, instance.gain, 0.1); // Fade out rápido
                 }
             });
-            sound.activeGainNodes.clear(); 
-            sound.activeGainNodes.add(gainNode);
+            // O set será limpo gradualmente à medida que as instâncias desaparecem
+            // ou instantaneamente se o fadeout for 0.
+
             source.start(0);
         }
     }
 
+    // NOVA FUNÇÃO: Para fazer fade out de uma instância específica de som
+    function fadeoutInstance(sourceNode, gainNode, duration) {
+        if (!audioContext || !sourceNode || !gainNode) return;
+
+        const now = audioContext.currentTime;
+        if (duration === 0) {
+            gainNode.gain.cancelScheduledValues(now);
+            gainNode.gain.setValueAtTime(0, now);
+            sourceNode.stop(); // Parar a fonte imediatamente
+            sourceNode.disconnect();
+            gainNode.disconnect();
+            // Nenhuma limpeza de Set aqui, será feita por quem chamou ou no onended
+        } else {
+            gainNode.gain.cancelScheduledValues(now); 
+            gainNode.gain.setValueAtTime(gainNode.gain.value, now);
+            gainNode.gain.linearRampToValueAtTime(0.001, now + duration); 
+            
+            // Usar onended para limpar após o fade, mesmo que a fonte possa continuar a tocar
+            // por um breve período ou estar em loop (que será ignorado após o ganho ser 0)
+            sourceNode.onended = () => {
+                // Se a fonte for parada explicitamente ou terminar naturalmente, limpamos
+                sourceNode.disconnect();
+                gainNode.disconnect();
+            };
+
+            setTimeout(() => {
+                if (gainNode.gain.value < 0.01) { // Só para se o fade tiver realmente chegado perto de zero
+                    try {
+                        sourceNode.stop(now + duration); // Parar a fonte após o fade
+                    } catch (e) {
+                        // Pode dar erro se já parou ou se a fonte é inválida. Ignorar.
+                    }
+                }
+            }, duration * 1000 + 100); // Dar um pouco mais de tempo para o fade
+        }
+    }
+
+
+    // MODIFICADO: A função fadeoutSound agora chama fadeoutInstance para todas as instâncias ativas do som
     function fadeoutSound(index, duration) {
         const sound = soundData[index];
         if (!sound || !sound.audioBuffer) {
@@ -654,58 +644,40 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         initAudioContext();
-        const now = audioContext.currentTime;
         const cell = document.querySelector(`.sound-cell[data-index="${index}"]`);
 
-        if (duration === 0) { 
-            sound.activeGainNodes.forEach(gainNode => {
-                if (gainNode) {
-                    gainNode.gain.cancelScheduledValues(now);
-                    gainNode.gain.setValueAtTime(0, now); 
-                    gainNode.disconnect();
-                    globalActiveGainNodes.delete(gainNode);
-                }
-            });
-            sound.activeGainNodes.clear();
-            if (cell) cell.classList.remove('active');
-            console.log(`Sound ${index} stopped immediately.`);
-        } else { 
-            sound.activeGainNodes.forEach(gainNode => {
-                gainNode.gain.cancelScheduledValues(now); 
-                gainNode.gain.setValueAtTime(gainNode.gain.value, now);
-                gainNode.gain.linearRampToValueAtTime(0.001, now + duration); 
-                
-                setTimeout(() => {
-                    if (gainNode) {
-                        gainNode.disconnect();
-                        globalActiveGainNodes.delete(gainNode);
-                    }
-                }, duration * 1000 + 50);
-            });
-            sound.activeGainNodes.clear(); 
-            if (cell) {
-                cell.classList.remove('active'); 
-            }
-            console.log(`Sound ${index} fading out over ${duration} seconds.`);
-        }
+        // NOVO: Coleta todas as instâncias ativas para este som para poder iterar sobre uma cópia
+        // e modificar o Set original enquanto itera.
+        const instancesToFade = new Set(sound.activePlayingInstances);
+
+        instancesToFade.forEach(instance => {
+            fadeoutInstance(instance.source, instance.gain, duration);
+            sound.activePlayingInstances.delete(instance); // Remove da lista de instâncias ativas do som
+            globalActivePlayingInstances.delete(instance); // Remove da lista global
+        });
+        
+        if (cell) cell.classList.remove('active'); // Remove a classe 'active' da célula
+        console.log(`Sound ${index} fading out over ${duration} seconds.`);
     }
 
+    // MODIFICADO: A função clearSoundCell agora usa fadeoutSound
     function clearSoundCell(index, fadeDuration = 0.1) { 
         const sound = soundData[index];
         if (!sound) { 
             return;
         }
 
-        initAudioContext(); 
-
+        // Primeiro, para todas as instâncias ativas deste som
         fadeoutSound(index, fadeDuration); 
 
+        // Em seguida, limpa os dados da célula após um pequeno atraso para o fade
         setTimeout(() => {
-            clearSoundData(index); 
+            clearSoundData(index); // Isso remove a referência, mas as instâncias já foram desativadas/desconectadas pelo fadeoutSound
 
             const cell = document.querySelector(`.sound-cell[data-index="${index}"]`);
             if (cell) {
-                updateCellDisplay(cell, { name: translations[currentLanguage].cellEmptyDefault, key: defaultKeys[index] || '' }, true); 
+                // MODIFICADO: O estado inicial de isLooping para células vazias é false
+                updateCellDisplay(cell, { name: translations[currentLanguage].cellEmptyDefault, key: defaultKeys[index] || '', isLooping: false }, true); 
                 cell.classList.remove('active'); 
             }
 
@@ -717,21 +689,25 @@ document.addEventListener('DOMContentLoaded', () => {
         }, fadeDuration * 1000 + 100); 
     }
 
+    // MODIFICADO: clearSoundData agora lida com activePlayingInstances
     function clearSoundData(index) {
         const sound = soundData[index];
-        if (sound && sound.activeGainNodes) {
-            sound.activeGainNodes.forEach(gainNode => {
-                gainNode.gain.cancelScheduledValues(audioContext.currentTime);
-                gainNode.gain.setValueAtTime(0, audioContext.currentTime);
-                gainNode.disconnect();
-                globalActiveGainNodes.delete(gainNode);
+        if (sound && sound.activePlayingInstances) {
+            sound.activePlayingInstances.forEach(instance => {
+                try {
+                    instance.source.stop(0); // Garante que a fonte pare
+                    instance.source.disconnect();
+                    instance.gain.disconnect();
+                } catch (e) {
+                    console.warn("Erro ao desconectar instância de áudio ao limpar dados:", e);
+                }
+                globalActivePlayingInstances.delete(instance);
             });
-            sound.activeGainNodes.clear();
+            sound.activePlayingInstances.clear();
         }
         soundData[index] = null;
     }
 
-    // Evento de teclado global
     document.addEventListener('keydown', (e) => {
         const pressedKey = e.key.toLowerCase();
 
@@ -757,13 +733,13 @@ document.addEventListener('DOMContentLoaded', () => {
             saveSettings();
         } else if (pressedKey === 'escape') {
             stopAllSounds();
-        } else if (e.ctrlKey && pressedKey >= '0' && pressedKey <= '9') { // NOVO: Ctrl + número para fade in
-            e.preventDefault(); // Evita comportamentos padrão do navegador
+        } else if (e.ctrlKey && pressedKey >= '0' && pressedKey <= '9') {
+            e.preventDefault();
             currentFadeInDuration = parseInt(pressedKey);
             updateFadeInDisplay();
             saveSettings();
-        } else if (pressedKey >= '0' && pressedKey <= '9') { // Número sozinho para fade out
-            e.preventDefault(); // Evita comportamentos padrão do navegador
+        } else if (pressedKey >= '0' && pressedKey <= '9') {
+            e.preventDefault();
             currentFadeOutDuration = parseInt(pressedKey);
             updateFadeOutDisplay();
             saveSettings();
@@ -776,7 +752,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Evento de alteração do volume via slider
     volumeRange.addEventListener('input', () => {
         updateVolumeDisplay();
         if (audioContext && audioContext.masterGainNode) {
@@ -785,14 +760,12 @@ document.addEventListener('DOMContentLoaded', () => {
         saveSettings();
     });
 
-    // Atualiza o display de volume
     function updateVolumeDisplay() {
         volumeDisplay.textContent = `${Math.round(volumeRange.value * 100)}%`;
     }
 
-    // Atualiza o display de fade in (com texto traduzido)
     function updateFadeInDisplay() {
-        if (!translations[currentLanguage]) { // Fallback se traduções ainda não carregaram
+        if (!translations[currentLanguage]) { 
             fadeInDisplay.textContent = `Loading...`;
             return;
         }
@@ -803,9 +776,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Atualiza o display de fade out (com texto traduzido)
     function updateFadeOutDisplay() {
-        if (!translations[currentLanguage]) { // Fallback se traduções ainda não carregaram
+        if (!translations[currentLanguage]) { 
             fadeOutDisplay.textContent = `Loading...`; 
             return;
         }
@@ -824,31 +796,40 @@ document.addEventListener('DOMContentLoaded', () => {
         saveSettings();
     });
 
+    // MODIFICADO: stopAllSounds agora itera globalActivePlayingInstances
     function stopAllSounds() {
         if (audioContext) {
             const now = audioContext.currentTime;
             const fadeDuration = 0.2; 
 
-            globalActiveGainNodes.forEach(gainNode => {
-                if (gainNode) {
-                    gainNode.gain.cancelScheduledValues(now);
-                    gainNode.gain.setValueAtTime(gainNode.gain.value, now);
-                    gainNode.gain.linearRampToValueAtTime(0.001, now + fadeDuration);
+            // NOVO: Itera sobre uma cópia do Set para permitir modificações durante a iteração
+            const instancesToStop = new Set(globalActivePlayingInstances);
+
+            instancesToStop.forEach(instance => {
+                if (instance && instance.gain) {
+                    instance.gain.cancelScheduledValues(now);
+                    instance.gain.setValueAtTime(instance.gain.value, now);
+                    instance.gain.linearRampToValueAtTime(0.001, now + fadeDuration);
                     
                     setTimeout(() => {
-                        if (gainNode) gainNode.disconnect();
+                        if (instance.source) instance.source.stop(0); // Para a fonte
+                        if (instance.source) instance.source.disconnect();
+                        if (instance.gain) instance.gain.disconnect();
                     }, fadeDuration * 1000 + 50);
                 }
+                globalActivePlayingInstances.delete(instance); // Remove do set global
             });
-            globalActiveGainNodes.clear();
+            // O set global é esvaziado aqui, pois todas as instâncias foram tratadas.
+            globalActivePlayingInstances.clear();
             
             document.querySelectorAll('.sound-cell.active').forEach(cell => {
                 cell.classList.remove('active');
             });
 
+            // Garante que cada som individual limpa suas instâncias
             soundData.forEach(sound => {
-                if (sound && sound.activeGainNodes) {
-                    sound.activeGainNodes.clear();
+                if (sound && sound.activePlayingInstances) {
+                    sound.activePlayingInstances.clear();
                 }
             });
             lastPlayedSoundIndex = null;
@@ -857,7 +838,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     stopAllSoundsBtn.addEventListener('click', stopAllSounds);
 
-    // Lógica de Carregamento de Múltiplos Sons Via Botão Geral
     loadSoundsButtonGeneral.addEventListener('click', () => {
         const input = document.createElement('input');
         input.type = 'file';
@@ -880,7 +860,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }
                 if (!foundEmptyCell) {
-                    alert(translations[currentLanguage].alertNoEmptyCells.replace('{fileName}', file.name)); // Usa tradução
+                    alert(translations[currentLanguage].alertNoEmptyCells.replace('{fileName}', file.name)); 
                     break;
                 }
             }
@@ -888,29 +868,17 @@ document.addEventListener('DOMContentLoaded', () => {
         input.click();
     });
 
-    // Adiciona event listeners para os botões de idioma
     langButtons.forEach(button => {
         button.addEventListener('click', () => {
             setLanguage(button.dataset.lang);
-            // Ao mudar de idioma, as células vazias precisam ser atualizadas
-            // pois o texto "Vazio" ou "Clique para carregar som" pode mudar.
-            document.querySelectorAll('.sound-cell.empty').forEach(cell => {
-                const nameDisplay = cell.querySelector('.sound-name');
-                if (nameDisplay) {
-                    nameDisplay.textContent = translations[currentLanguage].cellEmptyDefault;
-                }
-            });
         });
     });
 
-    // Inicialização: primeiro carrega as traduções, depois as configurações e cria as células
     loadTranslations().then(() => {
         loadSettings(); 
-        // Agora que as traduções e settings estão carregadas, garantimos que a UI está correta
-        setLanguage(currentLanguage); // Re-aplica a linguagem para ter certeza de que tudo foi traduzido
+        setLanguage(currentLanguage); 
     });
 
-    // Workaround para o Chrome: AudioContext precisa de uma interação do utilizador
     document.body.addEventListener('click', () => {
         if (audioContext && audioContext.state === 'suspended') {
             audioContext.resume().then(() => {
