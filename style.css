@@ -207,7 +207,7 @@ h1 {
 
 .sound-cell .sound-name {
     font-weight: bold;
-    font-size: 0.9em; /* REDUZIDO AQUI */ 
+    font-size: 0.7em; /* REDUZIDO AQUI */ 
     margin-bottom: 8px; 
     text-align: center;
     word-break: break-word; 
