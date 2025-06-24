@@ -3,15 +3,29 @@ document.addEventListener('DOMContentLoaded', () => {
     const volumeRange = document.getElementById('volume-range');
     const volumeDisplay = document.getElementById('volume-display');
     const playMultipleCheckbox = document.getElementById('play-multiple');
-    const autokillModeCheckbox = document.getElementById('autokill-mode'); // Nova checkbox
+    const autokillModeCheckbox = document.getElementById('autokill-mode');
     const stopAllSoundsBtn = document.getElementById('stop-all-sounds');
     const loadSoundsButtonGeneral = document.getElementById('load-sounds-button-general');
 
     const NUM_CELLS = 12;
     let audioContext;
-    const soundData = []; // { name, key, audioBuffer, audioDataUrl, activeGainNodes: Set }
-    const globalActiveGainNodes = new Set(); // Para controlar todos os sons a tocar globalmente
-    let lastPlayedSoundIndex = null; // Para o modo Autokill
+    const soundData = []; // { name, key, audioBuffer, audioDataUrl, activeGainNodes: Set, color }
+    const globalActiveGainNodes = new Set();
+    let lastPlayedSoundIndex = null;
+
+    // Caracteres para atribuição automática de teclas
+    const defaultKeys = 'qwertyuiopasdfghjklzxcvbnm'.split('');
+    let usedKeys = new Set(); // Para controlar as teclas já atribuídas
+
+    // Função para gerar uma cor de fundo aleatória e garantir que seja visível no localStorage
+    function getRandomColor() {
+        const letters = '0123456789ABCDEF';
+        let color = '#';
+        for (let i = 0; i < 6; i++) {
+            color += letters[Math.floor(Math.random() * 16)];
+        }
+        return color;
+    }
 
     // Inicializa o AudioContext
     function initAudioContext() {
@@ -30,16 +44,43 @@ document.addEventListener('DOMContentLoaded', () => {
         
         volumeRange.value = savedSettings.volume !== undefined ? savedSettings.volume : 0.75;
         playMultipleCheckbox.checked = savedSettings.playMultiple !== undefined ? savedSettings.playMultiple : false;
-        autokillModeCheckbox.checked = savedSettings.autokillMode !== undefined ? savedSettings.autokillMode : false; // Carrega estado do autokill
+        autokillModeCheckbox.checked = savedSettings.autokillMode !== undefined ? savedSettings.autokillMode : false;
         
         updateVolumeDisplay();
+
+        usedKeys.clear(); // Limpa as teclas usadas antes de carregar
+        let defaultKeyIndex = 0;
 
         for (let i = 0; i < NUM_CELLS; i++) {
             const cellData = savedSounds[i];
             const cell = createSoundCell(i);
+            
             if (cellData && cellData.audioDataUrl) {
-                loadSoundFromDataURL(cellData.audioDataUrl, cell, i, cellData.name, cellData.key);
+                // Se a cor já existe, usa-a; senão, gera uma nova
+                const color = cellData.color || getRandomColor();
+                cell.style.backgroundColor = color; // Aplica a cor de fundo
+                
+                // Atribui uma tecla padrão se não houver uma salva ou se a salva estiver vazia, e não estiver em uso
+                let assignedKey = cellData.key || '';
+                if (!assignedKey && defaultKeyIndex < defaultKeys.length) {
+                    let nextKey = defaultKeys[defaultKeyIndex];
+                    // Procura a próxima tecla disponível
+                    while (usedKeys.has(nextKey) && defaultKeyIndex < defaultKeys.length) {
+                        defaultKeyIndex++;
+                        nextKey = defaultKeys[defaultKeyIndex];
+                    }
+                    if (nextKey && !usedKeys.has(nextKey)) {
+                        assignedKey = nextKey;
+                        usedKeys.add(assignedKey);
+                        defaultKeyIndex++;
+                    }
+                } else if (assignedKey) {
+                    usedKeys.add(assignedKey); // Adiciona a tecla salva às usadas
+                }
+
+                loadSoundFromDataURL(cellData.audioDataUrl, cell, i, cellData.name, assignedKey, color);
             } else {
+                cell.style.backgroundColor = getRandomColor(); // Células vazias também têm cor
                 updateCellDisplay(cell, { name: 'Vazio', key: '' }, true);
             }
         }
@@ -50,11 +91,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const settingsToSave = {
             volume: parseFloat(volumeRange.value),
             playMultiple: playMultipleCheckbox.checked,
-            autokillMode: autokillModeCheckbox.checked, // Guarda estado do autokill
+            autokillMode: autokillModeCheckbox.checked,
             sounds: soundData.map(data => ({
                 name: data ? data.name : null,
                 key: data ? data.key : null,
-                audioDataUrl: data ? data.audioDataUrl : null
+                audioDataUrl: data ? data.audioDataUrl : null,
+                color: data ? data.color : null // Guarda a cor da célula
             }))
         };
         localStorage.setItem('soundboardSettings', JSON.stringify(settingsToSave));
@@ -90,16 +132,15 @@ document.addEventListener('DOMContentLoaded', () => {
         keyInfo.title = 'Clique para atribuir uma tecla';
         cellActions.appendChild(keyInfo);
 
-        // Novo botão de Fade Out de 5 segundos
         const fadeoutButton = document.createElement('div');
         fadeoutButton.classList.add('fadeout-button');
-        fadeoutButton.textContent = '🔽'; // Um ícone para fade out
+        fadeoutButton.textContent = '🔽';
         fadeoutButton.title = 'Fade Out (5s)';
         cellActions.appendChild(fadeoutButton);
 
         soundboardGrid.appendChild(cell);
 
-        setupCellEvents(cell, index);
+        setupCellEvents(cell, index); // Assegura que os eventos são configurados para cada nova célula
 
         soundData[index] = null;
 
@@ -108,6 +149,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Configura os eventos para uma célula
     function setupCellEvents(cell, index) {
+        // Remove listeners existentes para evitar duplicação (importante para o bug do '❌')
+        // Embora não esteja a remover os eventos da célula, mas sim a reassociá-los,
+        // o problema do '❌' pode ser mais relacionado com a forma como os elementos DOM são geridos.
+        // O código anterior já fazia a reatribuição, o problema pode estar noutro lugar,
+        // mas vale a pena garantir que não há conflitos.
+
+        // Limpar listeners antigos antes de adicionar novos (se a célula for reutilizada)
+        const oldCell = soundboardGrid.children[index];
+        if (oldCell) {
+            // Clonar e substituir para remover todos os event listeners de uma vez
+            const newCell = oldCell.cloneNode(true);
+            soundboardGrid.replaceChild(newCell, oldCell);
+            cell = newCell; // Atualiza a referência 'cell' para a nova célula clonada
+        }
+
+        // AGORA, adiciona os listeners à célula (ou à sua versão clonada)
         cell.addEventListener('dragover', (e) => {
             e.preventDefault();
             cell.classList.add('drag-over');
@@ -130,9 +187,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Click para tocar ou carregar som
         cell.addEventListener('click', (e) => {
-            // Verifica se o clique não foi nos botões de controlo da célula ou overlay
             if (e.target.closest('.delete-button') || 
-                e.target.closest('.fadeout-button') || // Novo botão fadeout
+                e.target.closest('.fadeout-button') || 
                 e.target.closest('.sound-name') || 
                 e.target.closest('.key-info') || 
                 cell.querySelector('.key-assign-overlay')) {
@@ -156,7 +212,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // Edição de nome
         const nameDisplay = cell.querySelector('.sound-name');
         nameDisplay.addEventListener('blur', () => {
             if (soundData[index]) {
@@ -172,21 +227,18 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // Atribuição de tecla
         const keyInfo = cell.querySelector('.key-info');
         keyInfo.addEventListener('click', (e) => {
             e.stopPropagation();
             assignKeyToCell(cell, index);
         });
 
-        // Apagar som (botão ❌)
         const deleteButton = cell.querySelector('.delete-button');
         deleteButton.addEventListener('click', (e) => {
             e.stopPropagation();
             clearSoundCell(index, 0.3); // Fade out rápido ao apagar (0.3s)
         });
 
-        // Novo: Fade Out de 5 segundos (botão 🔽)
         const fadeoutButton = cell.querySelector('.fadeout-button');
         fadeoutButton.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -209,19 +261,47 @@ document.addEventListener('DOMContentLoaded', () => {
                 const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
 
                 const defaultName = nameOverride || file.name.replace(/\.[^/.]+$/, "");
-                const key = keyOverride !== null ? keyOverride : (soundData[index] ? soundData[index].key : '');
                 
-                // Limpa quaisquer sons existentes nesta célula antes de carregar um novo
-                if (soundData[index]) {
-                    clearSoundData(index);
+                // Lógica de atribuição de tecla padrão
+                let assignedKey = keyOverride;
+                if (!assignedKey) { // Se não foi sobrescrito, tenta atribuir uma padrão
+                    let foundDefaultKey = false;
+                    for(let i = 0; i < defaultKeys.length; i++) {
+                        const potentialKey = defaultKeys[i];
+                        if (!usedKeys.has(potentialKey)) {
+                            assignedKey = potentialKey;
+                            usedKeys.add(assignedKey);
+                            foundDefaultKey = true;
+                            break;
+                        }
+                    }
+                    if (!foundDefaultKey) {
+                        console.warn("Todas as teclas padrão estão em uso. Nenhuma tecla atribuída automaticamente.");
+                    }
+                } else {
+                    usedKeys.add(assignedKey); // Se veio com um keyOverride, adiciona aos usados
                 }
 
+                // Gerar uma nova cor para o botão ao carregar um novo som
+                const cellColor = getRandomColor();
+                cell.style.backgroundColor = cellColor; // Aplica a cor de fundo
+
+                // Clear any existing sound in this cell before loading new one
+                if (soundData[index]) {
+                    clearSoundData(index);
+                    // Se havia uma tecla atribuída, remove-a do set de usadas
+                    if (soundData[index].key) {
+                        usedKeys.delete(soundData[index].key);
+                    }
+                }
+                
                 soundData[index] = {
                     name: defaultName,
-                    key: key,
+                    key: assignedKey || '', // Garante que a chave é uma string vazia se não for atribuída
                     audioBuffer: audioBuffer,
                     audioDataUrl: audioDataUrl,
-                    activeGainNodes: new Set()
+                    activeGainNodes: new Set(),
+                    color: cellColor // Guarda a cor gerada
                 };
                 updateCellDisplay(cell, soundData[index], false);
                 saveSettings();
@@ -237,7 +317,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Carrega um som a partir de um Data URL (usado ao carregar do localStorage)
-    async function loadSoundFromDataURL(dataUrl, cell, index, name, key) {
+    async function loadSoundFromDataURL(dataUrl, cell, index, name, key, color) {
         initAudioContext();
 
         try {
@@ -250,8 +330,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 key: key || '',
                 audioBuffer: audioBuffer,
                 audioDataUrl: dataUrl,
-                activeGainNodes: new Set()
+                activeGainNodes: new Set(),
+                color: color // Usa a cor carregada do localStorage
             };
+            cell.style.backgroundColor = color; // Aplica a cor
             updateCellDisplay(cell, soundData[index], false);
         } catch (error) {
             console.error('Erro ao decodificar áudio do Data URL:', error);
@@ -278,15 +360,15 @@ document.addEventListener('DOMContentLoaded', () => {
         const nameDisplay = cell.querySelector('.sound-name');
         const keyDisplay = cell.querySelector('.key-display');
         const deleteButton = cell.querySelector('.delete-button');
-        const keyInfo = cell.querySelector('.key-info'); // Para mostrar/esconder
-        const fadeoutButton = cell.querySelector('.fadeout-button'); // Para mostrar/esconder
+        const keyInfo = cell.querySelector('.key-info');
+        const fadeoutButton = cell.querySelector('.fadeout-button');
 
         if (isEmpty) {
             cell.classList.add('empty');
             nameDisplay.textContent = 'Vazio';
             keyDisplay.textContent = 'Sem Tecla';
             deleteButton.style.display = 'none';
-            fadeoutButton.style.display = 'none'; // Esconde o botão fadeout
+            fadeoutButton.style.display = 'none';
             nameDisplay.contentEditable = false;
             keyInfo.style.display = 'none'; 
         } else {
@@ -294,7 +376,7 @@ document.addEventListener('DOMContentLoaded', () => {
             nameDisplay.textContent = data.name || 'Sem Nome';
             keyDisplay.textContent = data.key ? data.key.toUpperCase() : 'Sem Tecla';
             deleteButton.style.display = 'flex';
-            fadeoutButton.style.display = 'flex'; // Mostra o botão fadeout
+            fadeoutButton.style.display = 'flex';
             nameDisplay.contentEditable = true;
             keyInfo.style.display = 'flex';
         }
@@ -309,21 +391,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
         initAudioContext();
 
-        // Lógica Autokill: Se ativado e um som anterior foi tocado, para-o
         if (autokillModeCheckbox.checked && lastPlayedSoundIndex !== null && lastPlayedSoundIndex !== index) {
             fadeoutSound(lastPlayedSoundIndex, 0.2); // Fade out rápido do som anterior (0.2s)
         }
 
-        // Se o contexto de áudio estiver suspenso (por exemplo, após inatividade do utilizador), tente retomá-lo.
         if (audioContext.state === 'suspended') {
             audioContext.resume().then(() => {
                 console.log('AudioContext resumed successfully');
                 playActualSound(sound, index);
-                lastPlayedSoundIndex = index; // Atualiza o último som tocado APENAS se iniciar
+                lastPlayedSoundIndex = index;
             }).catch(e => console.error('Erro ao retomar AudioContext:', e));
         } else {
             playActualSound(sound, index);
-            lastPlayedSoundIndex = index; // Atualiza o último som tocado
+            lastPlayedSoundIndex = index;
         }
     }
 
@@ -335,7 +415,6 @@ document.addEventListener('DOMContentLoaded', () => {
         gainNode.connect(audioContext.masterGainNode);
         source.connect(gainNode);
 
-        // Adiciona a referência do GainNode às listas de controlo
         sound.activeGainNodes.add(gainNode);
         globalActiveGainNodes.add(gainNode);
 
@@ -354,7 +433,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (playMultipleCheckbox.checked) {
             source.start(0);
         } else {
-            // Se não for para reproduzir múltiplas vezes, para todas as instâncias anteriores deste som
             sound.activeGainNodes.forEach(gN => {
                 if (gN !== gainNode) {
                     gN.gain.cancelScheduledValues(audioContext.currentTime);
@@ -372,7 +450,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Função para aplicar fade out a um som de uma célula específica
     function fadeoutSound(index, duration) {
         const sound = soundData[index];
         if (!sound || !sound.audioBuffer) {
@@ -383,45 +460,50 @@ document.addEventListener('DOMContentLoaded', () => {
         const now = audioContext.currentTime;
 
         sound.activeGainNodes.forEach(gainNode => {
-            gainNode.gain.cancelScheduledValues(now); // Limpa agendamentos anteriores
-            gainNode.gain.setValueAtTime(gainNode.gain.value, now); // Define o valor inicial para o fade
-            gainNode.gain.linearRampToValueAtTime(0.001, now + duration); // Fade out para quase zero
+            gainNode.gain.cancelScheduledValues(now); 
+            gainNode.gain.setValueAtTime(gainNode.gain.value, now);
+            gainNode.gain.linearRampToValueAtTime(0.001, now + duration); 
             
             setTimeout(() => {
                 if (gainNode) {
                     gainNode.disconnect();
                     globalActiveGainNodes.delete(gainNode);
                 }
-            }, duration * 1000 + 50); // Atraso para garantir o fim do fade
+            }, duration * 1000 + 50);
         });
-        sound.activeGainNodes.clear(); // Limpa as referências ativas para este som
+        sound.activeGainNodes.clear(); 
     }
 
-    // Apaga um som da célula com um fade out opcional
     function clearSoundCell(index, fadeDuration = 0.3) {
         const sound = soundData[index];
         if (!sound || !sound.audioBuffer) {
             return;
         }
 
-        initAudioContext(); // Garante o contexto
+        initAudioContext();
 
-        fadeoutSound(index, fadeDuration); // Usa a nova função de fade out
+        fadeoutSound(index, fadeDuration);
 
-        // Após o fade out (ou imediatamente se duration for 0), limpa os dados da célula
         setTimeout(() => {
+            // Se a célula tinha uma tecla atribuída, remove-a de usedKeys
+            if (soundData[index] && soundData[index].key) {
+                usedKeys.delete(soundData[index].key);
+            }
+
             clearSoundData(index);
             const cell = soundboardGrid.children[index];
             updateCellDisplay(cell, { name: 'Vazio', key: '' }, true);
+            
+            // Atribui uma nova cor aleatória à célula vazia
+            cell.style.backgroundColor = getRandomColor(); 
+
             saveSettings();
-            if (lastPlayedSoundIndex === index) { // Se a célula apagada era a última tocada no modo autokill
+            if (lastPlayedSoundIndex === index) {
                 lastPlayedSoundIndex = null;
             }
-        }, fadeDuration * 1000 + 100); // Um pouco mais de atraso para garantir o fade
+        }, fadeDuration * 1000 + 100);
     }
 
-
-    // Função auxiliar para limpar dados de som de uma célula e parar instâncias
     function clearSoundData(index) {
         const sound = soundData[index];
         if (sound && sound.activeGainNodes) {
@@ -436,7 +518,6 @@ document.addEventListener('DOMContentLoaded', () => {
         soundData[index] = null;
     }
 
-    // Atribui uma tecla a uma célula
     function assignKeyToCell(cell, index) {
         const existingOverlay = cell.querySelector('.key-assign-overlay');
         if (existingOverlay) return;
@@ -467,6 +548,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 setTimeout(() => assignedKeyDisplay.textContent = '...', 800);
                 return;
             }
+            
+            // Remove a tecla antiga do set de usadas, se houver
+            if (soundData[index] && soundData[index].key) {
+                usedKeys.delete(soundData[index].key);
+            }
 
             if (pressedKey === 'backspace' || pressedKey === 'delete') {
                 if (soundData[index]) {
@@ -477,6 +563,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 if (soundData[index]) {
                     soundData[index].key = pressedKey;
+                    usedKeys.add(pressedKey); // Adiciona a nova tecla ao set de usadas
                 }
                 const keyDisplay = cell.querySelector('.key-display');
                 keyDisplay.textContent = pressedKey.toUpperCase();
@@ -550,17 +637,14 @@ document.addEventListener('DOMContentLoaded', () => {
         volumeDisplay.textContent = `${Math.round(volumeRange.value * 100)}%`;
     }
 
-    // Evento para a checkbox de reproduzir múltiplas vezes
     playMultipleCheckbox.addEventListener('change', () => {
         saveSettings();
     });
 
-    // Novo: Evento para a checkbox do modo Autokill
     autokillModeCheckbox.addEventListener('change', () => {
         saveSettings();
     });
 
-    // Parar todos os sons (global)
     function stopAllSounds() {
         if (audioContext) {
             const now = audioContext.currentTime;
@@ -579,13 +663,12 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             globalActiveGainNodes.clear();
             
-            // Limpar também as referências nas células
             soundData.forEach(sound => {
                 if (sound && sound.activeGainNodes) {
                     sound.activeGainNodes.clear();
                 }
             });
-            lastPlayedSoundIndex = null; // Reseta o último som tocado no modo autokill
+            lastPlayedSoundIndex = null;
         }
     }
 
@@ -623,10 +706,16 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Inicialização: criar células e carregar configurações
+    // Criamos as células aqui para garantir que todas existem antes de carregar settings
+    // A função setupCellEvents é chamada dentro de createSoundCell
     for (let i = 0; i < NUM_CELLS; i++) {
-        createSoundCell(i);
+        const cell = document.createElement('div');
+        cell.classList.add('sound-cell');
+        cell.dataset.index = i;
+        soundboardGrid.appendChild(cell); // Adiciona ao DOM temporariamente
+        // O conteúdo e os event listeners serão adicionados/reconfigurados no loadSettings
     }
-    loadSettings();
+    loadSettings(); // Isso vai preencher e configurar as células existentes no DOM
 
     // Workaround para o Chrome: AudioContext precisa de uma interação do utilizador
     document.body.addEventListener('click', () => {
