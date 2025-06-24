@@ -11,6 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const stopAllSoundsBtn = document.getElementById('stop-all-sounds');
     const loadSoundsButtonGeneral = document.getElementById('load-sounds-button-general');
     const fadeOutDisplay = document.getElementById('fadeout-display');
+    const fadeInDisplay = document.getElementById('fadein-display'); // NOVO: Elemento para o display do fade in
     const langButtons = document.querySelectorAll('.lang-button');
 
     let audioContext;
@@ -18,6 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const globalActiveGainNodes = new Set();
     let lastPlayedSoundIndex = null;
     let currentFadeOutDuration = 0; // Default para paragem imediata (0 segundos)
+    let currentFadeInDuration = 0;  // NOVO: Default para início imediato (0 segundos)
 
     let translations = {}; // Objeto para armazenar as traduções carregadas
     let currentLanguage = 'pt'; // Idioma padrão
@@ -25,8 +27,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // Teclas organizadas pela lógica QWERTY (top row, home row, bottom row)
     const defaultKeys = [
         'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', // Top row (10 keys)
-        'a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l',     // Home row (9 keys)
-        'z', 'x', 'c', 'v', 'b', 'n', 'm'                // Bottom row (7 keys)
+        'a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l',      // Home row (9 keys)
+        'z', 'x', 'c', 'v', 'b', 'n', 'm'                 // Bottom row (7 keys)
     ];
     const NUM_CELLS = defaultKeys.length; // Número de células é agora o número de teclas QWERTY
 
@@ -53,8 +55,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     autokillLabel: "Erro Trad.",
                     loadMultipleSoundsButton: "Erro Trad.",
                     stopAllSoundsButton: "Erro Trad.",
+                    fadeInLabel: "Fade In:", // NOVO: Tradução para Fade In
+                    immediateStart: " (Início Imediato)", // NOVO: Tradução para Início Imediato
                     fadeOutLabel: "Fade Out:",
-                    immediateStop: " (Immediate Stop)",
+                    immediateStop: " (Paragem Imediata)",
                     howToUseTitle: "Erro!",
                     dragDropHelp: "Erro de tradução.",
                     clickHelp: "Erro de tradução.",
@@ -64,6 +68,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     deleteSoundHelp: "Erro de tradução.",
                     replaceSoundHelp: "Erro de tradução.",
                     renameHelp: "Erro de tradução.",
+                    fadeInHelp: "Erro de tradução.", // NOVO: Tradução para ajuda do Fade In
                     fadeOutControlHelp: "Erro de tradução.",
                     playMultipleModeHelp: "Erro de tradução.",
                     autokillModeHelp: "Erro de tradução.",
@@ -74,9 +79,75 @@ document.addEventListener('DOMContentLoaded', () => {
                     cellEmptyText: "Click to load sound",
                     cellNoName: "No Name",
                     cellEmptyDefault: "Empty"
+                },
+                en: { // Adicionar um fallback mínimo para EN e IT também, se não existirem
+                    title: "Loading Error",
+                    mainTitle: "Loading Error",
+                    volumeLabel: "Volume:",
+                    playMultipleLabel: "Trad. Error",
+                    autokillLabel: "Trad. Error",
+                    loadMultipleSoundsButton: "Trad. Error",
+                    stopAllSoundsButton: "Trad. Error",
+                    fadeInLabel: "Fade In:",
+                    immediateStart: " (Immediate Start)",
+                    fadeOutLabel: "Fade Out:",
+                    immediateStop: " (Immediate Stop)",
+                    howToUseTitle: "Error!",
+                    dragDropHelp: "Translation error.",
+                    clickHelp: "Translation error.",
+                    shortcutsHelp: "Translation error.",
+                    stopAllHelp: "Translation error.",
+                    volumeHelp: "Translation error.",
+                    deleteSoundHelp: "Translation error.",
+                    replaceSoundHelp: "Translation error.",
+                    renameHelp: "Translation error.",
+                    fadeInHelp: "Translation error.",
+                    fadeOutControlHelp: "Translation error.",
+                    playMultipleModeHelp: "Translation error.",
+                    autokillModeHelp: "Translation error.",
+                    alertInvalidFile: "Invalid file type.",
+                    alertLoadError: "Could not load audio.",
+                    alertDecodeError: "Error decoding audio.",
+                    alertNoEmptyCells: "No more empty cells.",
+                    cellEmptyText: "Click to load sound",
+                    cellNoName: "No Name",
+                    cellEmptyDefault: "Empty"
+                },
+                it: {
+                    title: "Errore di Caricamento",
+                    mainTitle: "Errore di Caricamento",
+                    volumeLabel: "Volume:",
+                    playMultipleLabel: "Errore Trad.",
+                    autokillLabel: "Errore Trad.",
+                    loadMultipleSoundsButton: "Errore Trad.",
+                    stopAllSoundsButton: "Errore Trad.",
+                    fadeInLabel: "Fade In:",
+                    immediateStart: " (Avvio Immediato)",
+                    fadeOutLabel: "Fade Out:",
+                    immediateStop: " (Arresto Immediato)",
+                    howToUseTitle: "Errore!",
+                    dragDropHelp: "Errore di traduzione.",
+                    clickHelp: "Errore di traduzione.",
+                    shortcutsHelp: "Errore di traduzione.",
+                    stopAllHelp: "Errore di traduzione.",
+                    volumeHelp: "Errore di traduzione.",
+                    deleteSoundHelp: "Errore di traduzione.",
+                    replaceSoundHelp: "Errore di traduzione.",
+                    renameHelp: "Errore di traduzione.",
+                    fadeInHelp: "Errore di traduzione.",
+                    fadeOutControlHelp: "Errore di traduzione.",
+                    playMultipleModeHelp: "Errore di traduzione.",
+                    autokillModeHelp: "Errore di traduzione.",
+                    alertInvalidFile: "Invalid file type.",
+                    alertLoadError: "Could not load audio.",
+                    alertDecodeError: "Error decoding audio.",
+                    alertNoEmptyCells: "No more empty cells.",
+                    cellEmptyText: "Click to load sound",
+                    cellNoName: "No Name",
+                    cellEmptyDefault: "Empty"
                 }
             };
-            setLanguage('pt');
+            setLanguage('pt'); // Tenta definir PT como fallback
         }
     }
 
@@ -97,7 +168,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (translations[lang][key]) {
                 if (element.tagName === 'INPUT' && element.type === 'range') {
                     // Range inputs não têm textContent
-                    // A label associada já é tratada pelo data-key
                 } else if (element.tagName === 'INPUT' && (element.type === 'checkbox' || element.type === 'radio')) {
                     // Checkboxes/radios não têm textContent, a label associada é que tem
                 } else if (element.tagName === 'BUTTON') {
@@ -112,8 +182,9 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // Atualizar display de fade out com texto traduzido
+        // Atualizar display de fade out e fade in com texto traduzido
         updateFadeOutDisplay();
+        updateFadeInDisplay(); // NOVO: Atualiza o display do fade in
         
         // Atualizar texto das células vazias
         document.querySelectorAll('.sound-cell.empty').forEach(cell => {
@@ -169,9 +240,11 @@ document.addEventListener('DOMContentLoaded', () => {
         playMultipleCheckbox.checked = savedSettings.playMultiple !== undefined ? savedSettings.playMultiple : false;
         autokillModeCheckbox.checked = savedSettings.autokillMode !== undefined ? savedSettings.autokillMode : false;
         currentFadeOutDuration = savedSettings.currentFadeOutDuration !== undefined ? savedSettings.currentFadeOutDuration : 0;
+        currentFadeInDuration = savedSettings.currentFadeInDuration !== undefined ? savedSettings.currentFadeInDuration : 0; // NOVO: Carrega a duração do fade in
         
         updateVolumeDisplay();
         updateFadeOutDisplay(); // Chama após carregar settings
+        updateFadeInDisplay();  // NOVO: Chama após carregar settings
 
         for (let i = 0; i < NUM_CELLS; i++) {
             const cellData = savedSounds[i];
@@ -195,6 +268,7 @@ document.addEventListener('DOMContentLoaded', () => {
             playMultiple: playMultipleCheckbox.checked,
             autokillMode: autokillModeCheckbox.checked,
             currentFadeOutDuration: currentFadeOutDuration, 
+            currentFadeInDuration: currentFadeInDuration, // NOVO: Salva a duração do fade in
             sounds: soundData.map(data => ({
                 name: data ? data.name : null,
                 key: data ? data.key : null, 
@@ -342,7 +416,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (pressTimer !== null) { 
                 clearTimeout(pressTimer);
                 if (e.button === 0 && !cell.classList.contains('empty')) { 
-                    clearSoundCell(index, 0.1); 
+                    clearSoundCell(index, 0.1); // Clique curto apaga com fade out rápido
                 }
             }
             pressTimer = null; 
@@ -501,22 +575,33 @@ document.addEventListener('DOMContentLoaded', () => {
         if (audioContext.state === 'suspended') {
             audioContext.resume().then(() => {
                 console.log('AudioContext resumed successfully');
-                playActualSound(sound, index);
+                playActualSound(sound, index, currentFadeInDuration); // NOVO: Passa a duração do fade in
                 lastPlayedSoundIndex = index;
             }).catch(e => console.error('Erro ao retomar AudioContext:', e));
         } else {
-            playActualSound(sound, index);
+            playActualSound(sound, index, currentFadeInDuration); // NOVO: Passa a duração do fade in
             lastPlayedSoundIndex = index;
         }
     }
 
-    function playActualSound(sound, index) {
+    // Função que realmente toca o som, agora com fade-in
+    function playActualSound(sound, index, fadeInDuration = 0) { // NOVO: Adicionado fadeInDuration
         const source = audioContext.createBufferSource();
         source.buffer = sound.audioBuffer;
 
         const gainNode = audioContext.createGain();
         gainNode.connect(audioContext.masterGainNode);
         source.connect(gainNode);
+
+        // Aplica o fade-in
+        const now = audioContext.currentTime;
+        if (fadeInDuration > 0) {
+            gainNode.gain.setValueAtTime(0, now);
+            gainNode.gain.linearRampToValueAtTime(1, now + fadeInDuration); // Vai de 0 ao volume máximo em fadeInDuration segundos
+        } else {
+            gainNode.gain.setValueAtTime(1, now); // Início imediato, volume máximo
+        }
+
 
         sound.activeGainNodes.add(gainNode);
         globalActiveGainNodes.add(gainNode);
@@ -665,11 +750,17 @@ document.addEventListener('DOMContentLoaded', () => {
             saveSettings();
         } else if (pressedKey === 'escape') {
             stopAllSounds();
-        } else if (pressedKey >= '0' && pressedKey <= '9') {
+        } else if (e.ctrlKey && pressedKey >= '0' && pressedKey <= '9') { // NOVO: Ctrl + número para fade in
+            e.preventDefault(); // Evita comportamentos padrão do navegador
+            currentFadeInDuration = parseInt(pressedKey);
+            updateFadeInDisplay();
+            saveSettings();
+        } else if (pressedKey >= '0' && pressedKey <= '9') { // Número sozinho para fade out
+            e.preventDefault(); // Evita comportamentos padrão do navegador
             currentFadeOutDuration = parseInt(pressedKey);
             updateFadeOutDisplay();
             saveSettings();
-        } 
+        }
         else {
             const indexToPlay = defaultKeys.indexOf(pressedKey);
             if (indexToPlay !== -1 && soundData[indexToPlay] && soundData[indexToPlay].audioBuffer) {
@@ -692,6 +783,19 @@ document.addEventListener('DOMContentLoaded', () => {
         volumeDisplay.textContent = `${Math.round(volumeRange.value * 100)}%`;
     }
 
+    // Atualiza o display de fade in (com texto traduzido)
+    function updateFadeInDisplay() {
+        if (!translations[currentLanguage]) { // Fallback se traduções ainda não carregaram
+            fadeInDisplay.textContent = `Loading...`;
+            return;
+        }
+        if (currentFadeInDuration === 0) {
+            fadeInDisplay.textContent = `${currentFadeInDuration}s${translations[currentLanguage].immediateStart || ' (Immediate Start)'}`;
+        } else {
+            fadeInDisplay.textContent = `${currentFadeInDuration}s`;
+        }
+    }
+
     // Atualiza o display de fade out (com texto traduzido)
     function updateFadeOutDisplay() {
         if (!translations[currentLanguage]) { // Fallback se traduções ainda não carregaram
@@ -699,7 +803,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         if (currentFadeOutDuration === 0) {
-            fadeOutDisplay.textContent = `${currentFadeOutDuration}s${translations[currentLanguage].immediateStop}`;
+            fadeOutDisplay.textContent = `${currentFadeOutDuration}s${translations[currentLanguage].immediateStop || ' (Immediate Stop)'}`;
         } else {
             fadeOutDisplay.textContent = `${currentFadeOutDuration}s`;
         }
