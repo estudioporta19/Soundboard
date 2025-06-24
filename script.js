@@ -11,12 +11,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const stopAllSoundsBtn = document.getElementById('stop-all-sounds');
     const loadSoundsButtonGeneral = document.getElementById('load-sounds-button-general');
     const fadeOutDisplay = document.getElementById('fadeout-display');
+    const langButtons = document.querySelectorAll('.lang-button');
 
     let audioContext;
     const soundData = []; // { name, key, audioBuffer, audioDataUrl, activeGainNodes: Set, color }
     const globalActiveGainNodes = new Set();
     let lastPlayedSoundIndex = null;
     let currentFadeOutDuration = 0; // Default para paragem imediata (0 segundos)
+
+    let translations = {}; // Objeto para armazenar as traduções carregadas
+    let currentLanguage = 'pt'; // Idioma padrão
 
     // Teclas organizadas pela lógica QWERTY (top row, home row, bottom row)
     const defaultKeys = [
@@ -25,6 +29,118 @@ document.addEventListener('DOMContentLoaded', () => {
         'z', 'x', 'c', 'v', 'b', 'n', 'm'                // Bottom row (7 keys)
     ];
     const NUM_CELLS = defaultKeys.length; // Número de células é agora o número de teclas QWERTY
+
+    // --- Funções de Idioma ---
+
+    // Carrega as traduções do ficheiro JSON
+    async function loadTranslations() {
+        try {
+            const response = await fetch('translations.json');
+            translations = await response.json();
+            console.log('Traduções carregadas:', translations);
+            // Definir idioma inicial e aplicar
+            const savedLang = localStorage.getItem('soundboardLanguage') || 'pt';
+            setLanguage(savedLang);
+        } catch (error) {
+            console.error('Erro ao carregar traduções:', error);
+            // Fallback para um objeto de tradução mínimo ou alertar o utilizador
+            translations = {
+                pt: {
+                    title: "Erro de Carregamento",
+                    mainTitle: "Erro de Carregamento",
+                    volumeLabel: "Volume:",
+                    playMultipleLabel: "Erro Trad.",
+                    autokillLabel: "Erro Trad.",
+                    loadMultipleSoundsButton: "Erro Trad.",
+                    stopAllSoundsButton: "Erro Trad.",
+                    fadeOutLabel: "Fade Out:",
+                    immediateStop: " (Immediate Stop)",
+                    howToUseTitle: "Erro!",
+                    dragDropHelp: "Erro de tradução.",
+                    clickHelp: "Erro de tradução.",
+                    shortcutsHelp: "Erro de tradução.",
+                    stopAllHelp: "Erro de tradução.",
+                    volumeHelp: "Erro de tradução.",
+                    deleteSoundHelp: "Erro de tradução.",
+                    replaceSoundHelp: "Erro de tradução.",
+                    renameHelp: "Erro de tradução.",
+                    fadeOutControlHelp: "Erro de tradução.",
+                    playMultipleModeHelp: "Erro de tradução.",
+                    autokillModeHelp: "Erro de tradução.",
+                    alertInvalidFile: "Invalid file type.",
+                    alertLoadError: "Could not load audio.",
+                    alertDecodeError: "Error decoding audio.",
+                    alertNoEmptyCells: "No more empty cells.",
+                    cellEmptyText: "Click to load sound",
+                    cellNoName: "No Name",
+                    cellEmptyDefault: "Empty"
+                }
+            };
+            setLanguage('pt');
+        }
+    }
+
+    // Aplica as traduções à página
+    function setLanguage(lang) {
+        if (!translations[lang]) {
+            console.warn(`Idioma ${lang} não encontrado. Usando PT como fallback.`);
+            lang = 'pt';
+        }
+        currentLanguage = lang;
+        localStorage.setItem('soundboardLanguage', lang);
+
+        document.querySelector('title').textContent = translations[lang].title;
+
+        // Traduzir elementos com data-key
+        document.querySelectorAll('[data-key]').forEach(element => {
+            const key = element.dataset.key;
+            if (translations[lang][key]) {
+                if (element.tagName === 'INPUT' && element.type === 'range') {
+                    // Range inputs não têm textContent
+                    // A label associada já é tratada pelo data-key
+                } else if (element.tagName === 'INPUT' && (element.type === 'checkbox' || element.type === 'radio')) {
+                    // Checkboxes/radios não têm textContent, a label associada é que tem
+                } else if (element.tagName === 'BUTTON') {
+                    element.textContent = translations[lang][key];
+                } else if (element.tagName === 'LABEL') {
+                    element.textContent = translations[lang][key];
+                } else if (element.tagName === 'LI') {
+                    element.innerHTML = translations[lang][key]; // Usar innerHTML para manter <kbd> e <strong>
+                } else {
+                    element.textContent = translations[lang][key];
+                }
+            }
+        });
+
+        // Atualizar display de fade out com texto traduzido
+        updateFadeOutDisplay();
+        
+        // Atualizar texto das células vazias
+        document.querySelectorAll('.sound-cell.empty').forEach(cell => {
+            const emptyTextElement = cell.querySelector('.sound-name');
+            if (emptyTextElement) {
+                emptyTextElement.textContent = translations[currentLanguage].cellEmptyDefault;
+            }
+            // Para o pseudo-elemento ::before, não podemos mudar diretamente via JS.
+            // Isso requer uma pequena adição ao CSS ou uma solução JS mais complexa.
+            // Por enquanto, o 'Clique para carregar som' no :before não será traduzido diretamente.
+            // Se for essencial, podemos substituir o :before por um span dentro da célula.
+        });
+
+
+        // Atualizar botões de idioma
+        langButtons.forEach(button => {
+            if (button.dataset.lang === lang) {
+                button.classList.add('active');
+            } else {
+                button.classList.remove('active');
+            }
+        });
+    }
+
+    // --- Fim das Funções de Idioma ---
+
+    // Resto do código existente...
 
     // Função para gerar uma cor de fundo aleatória em HSL para harmonia
     function getRandomHSLColor() {
@@ -55,7 +171,7 @@ document.addEventListener('DOMContentLoaded', () => {
         currentFadeOutDuration = savedSettings.currentFadeOutDuration !== undefined ? savedSettings.currentFadeOutDuration : 0;
         
         updateVolumeDisplay();
-        updateFadeOutDisplay();
+        updateFadeOutDisplay(); // Chama após carregar settings
 
         for (let i = 0; i < NUM_CELLS; i++) {
             const cellData = savedSounds[i];
@@ -67,7 +183,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const color = cellData.color || getRandomHSLColor();
                 loadSoundFromDataURL(cellData.audioDataUrl, cell, i, cellData.name, fixedKey, color);
             } else {
-                updateCellDisplay(cell, { name: "Vazio", key: fixedKey || '' }, true);
+                updateCellDisplay(cell, { name: translations[currentLanguage].cellEmptyDefault, key: fixedKey || '' }, true);
             }
         }
     }
@@ -99,22 +215,22 @@ document.addEventListener('DOMContentLoaded', () => {
         const replaceButton = document.createElement('button');
         replaceButton.classList.add('replace-sound-button');
         replaceButton.innerHTML = '<span class="material-symbols-outlined">upload_file</span>';
-        replaceButton.title = 'Carregar novo som para a célula';
+        replaceButton.title = translations[currentLanguage].replaceSoundHelp.replace(/<[^>]*>/g, ''); // Remover HTML da dica
         cell.appendChild(replaceButton);
 
         // Botão de Apagar
         const deleteButton = document.createElement('button');
         deleteButton.classList.add('delete-button');
         deleteButton.textContent = '❌'; 
-        deleteButton.title = 'Clique para limpar; clique longo para fade out';
+        deleteButton.title = translations[currentLanguage].deleteSoundHelp.replace(/<[^>]*>/g, ''); // Remover HTML da dica
         cell.appendChild(deleteButton);
 
         const nameDisplay = document.createElement('div');
         nameDisplay.classList.add('sound-name');
         nameDisplay.contentEditable = true;
         nameDisplay.spellcheck = false;
-        nameDisplay.textContent = 'Vazio';
-        nameDisplay.title = 'Clique para editar o nome';
+        nameDisplay.textContent = translations[currentLanguage].cellEmptyDefault; // Usa tradução
+        nameDisplay.title = translations[currentLanguage].renameHelp.replace(/<[^>]*>/g, ''); // Usa tradução
         cell.appendChild(nameDisplay);
 
         // Elemento para exibir a tecla no rodapé da célula
@@ -161,7 +277,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (file && (file.type === 'audio/wav' || file.type === 'audio/mp3' || file.type === 'audio/ogg')) {
                 loadFileIntoCell(file, cell, index);
             } else {
-                alert('Por favor, arraste um ficheiro de áudio válido (MP3, WAV, OGG).');
+                alert(translations[currentLanguage].alertInvalidFile); // Usa tradução
             }
         });
 
@@ -194,7 +310,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const nameDisplay = cell.querySelector('.sound-name');
         nameDisplay.addEventListener('blur', () => {
             if (soundData[index]) {
-                soundData[index].name = nameDisplay.textContent.trim() || 'Sem Nome';
+                soundData[index].name = nameDisplay.textContent.trim() || translations[currentLanguage].cellNoName; // Usa tradução
                 nameDisplay.textContent = soundData[index].name;
                 saveSettings();
             }
@@ -292,8 +408,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 saveSettings();
             } catch (error) {
                 console.error(`Erro ao decodificar o áudio para célula ${index}:`, error);
-                alert(`Não foi possível carregar o áudio "${file.name}". Verifique o formato do ficheiro e se não está corrompido.`);
-                updateCellDisplay(cell, { name: "Vazio", key: defaultKeys[index] || '' }, true);
+                alert(translations[currentLanguage].alertLoadError.replace('{fileName}', file.name)); // Usa tradução
+                updateCellDisplay(cell, { name: translations[currentLanguage].cellEmptyDefault, key: defaultKeys[index] || '' }, true);
                 soundData[index] = null;
                 saveSettings();
             }
@@ -313,7 +429,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const fixedKey = defaultKeys[index];
 
             soundData[index] = {
-                name: name || 'Sem Nome',
+                name: name || translations[currentLanguage].cellNoName, // Usa tradução
                 key: fixedKey, 
                 audioBuffer: audioBuffer,
                 audioDataUrl: dataUrl,
@@ -324,8 +440,8 @@ document.addEventListener('DOMContentLoaded', () => {
             updateCellDisplay(cell, soundData[index], false);
         } catch (error) {
             console.error('Erro ao decodificar áudio do Data URL:', error);
-            alert(`Erro ao carregar o som "${name}". Pode estar corrompido.`);
-            updateCellDisplay(cell, { name: "Vazio", key: defaultKeys[index] || '' }, true);
+            alert(translations[currentLanguage].alertDecodeError.replace('{soundName}', name || '')); // Usa tradução
+            updateCellDisplay(cell, { name: translations[currentLanguage].cellEmptyDefault, key: defaultKeys[index] || '' }, true);
             soundData[index] = null;
             saveSettings();
         }
@@ -351,14 +467,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (isEmpty) {
             cell.classList.add('empty');
-            nameDisplay.textContent = 'Vazio';
+            nameDisplay.textContent = translations[currentLanguage].cellEmptyDefault; // Usa tradução
             nameDisplay.contentEditable = false;
             deleteButton.style.display = 'none'; 
             replaceButton.style.display = 'none'; 
             cell.style.backgroundColor = 'transparent'; 
         } else {
             cell.classList.remove('empty');
-            nameDisplay.textContent = data.name || 'Sem Nome';
+            nameDisplay.textContent = data.name || translations[currentLanguage].cellNoName; // Usa tradução
             nameDisplay.contentEditable = true;
             deleteButton.style.display = 'flex'; 
             replaceButton.style.display = 'flex'; 
@@ -497,7 +613,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const cell = document.querySelector(`.sound-cell[data-index="${index}"]`);
             if (cell) {
-                updateCellDisplay(cell, { name: "Vazio", key: defaultKeys[index] || '' }, true); 
+                updateCellDisplay(cell, { name: translations[currentLanguage].cellEmptyDefault, key: defaultKeys[index] || '' }, true); 
                 cell.classList.remove('active'); 
             }
 
@@ -576,10 +692,14 @@ document.addEventListener('DOMContentLoaded', () => {
         volumeDisplay.textContent = `${Math.round(volumeRange.value * 100)}%`;
     }
 
-    // Atualiza o display de fade out
+    // Atualiza o display de fade out (com texto traduzido)
     function updateFadeOutDisplay() {
+        if (!translations[currentLanguage]) { // Fallback se traduções ainda não carregaram
+            fadeOutDisplay.textContent = `Loading...`; 
+            return;
+        }
         if (currentFadeOutDuration === 0) {
-            fadeOutDisplay.textContent = `0s (Paragem Imediata)`;
+            fadeOutDisplay.textContent = `${currentFadeOutDuration}s${translations[currentLanguage].immediateStop}`;
         } else {
             fadeOutDisplay.textContent = `${currentFadeOutDuration}s`;
         }
@@ -649,7 +769,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }
                 if (!foundEmptyCell) {
-                    alert(`Não há mais células vazias para carregar "${file.name}".`);
+                    alert(translations[currentLanguage].alertNoEmptyCells.replace('{fileName}', file.name)); // Usa tradução
                     break;
                 }
             }
@@ -657,8 +777,27 @@ document.addEventListener('DOMContentLoaded', () => {
         input.click();
     });
 
-    // Inicialização: carrega as configurações, que por sua vez criam as células
-    loadSettings(); 
+    // Adiciona event listeners para os botões de idioma
+    langButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            setLanguage(button.dataset.lang);
+            // Ao mudar de idioma, as células vazias precisam ser atualizadas
+            // pois o texto "Vazio" ou "Clique para carregar som" pode mudar.
+            document.querySelectorAll('.sound-cell.empty').forEach(cell => {
+                const nameDisplay = cell.querySelector('.sound-name');
+                if (nameDisplay) {
+                    nameDisplay.textContent = translations[currentLanguage].cellEmptyDefault;
+                }
+            });
+        });
+    });
+
+    // Inicialização: primeiro carrega as traduções, depois as configurações e cria as células
+    loadTranslations().then(() => {
+        loadSettings(); 
+        // Agora que as traduções e settings estão carregadas, garantimos que a UI está correta
+        setLanguage(currentLanguage); // Re-aplica a linguagem para ter certeza de que tudo foi traduzido
+    });
 
     // Workaround para o Chrome: AudioContext precisa de uma interação do utilizador
     document.body.addEventListener('click', () => {
