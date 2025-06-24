@@ -18,7 +18,7 @@ body {
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
     text-align: center;
     width: 100%;
-    max-width: 1000px;
+    max-width: 1200px; /* Aumentado para caber mais células */
 }
 
 h1 {
@@ -124,8 +124,9 @@ h1 {
 
 .soundboard-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-    gap: 20px;
+    /* Alterado para 8 colunas e células ligeiramente menores */
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); 
+    gap: 15px; /* Espaçamento entre as células */
     margin-bottom: 30px;
 }
 
@@ -133,22 +134,22 @@ h1 {
     background-color: #2c3e50;
     border: 3px solid #34495e;
     border-radius: 10px;
-    padding: 15px;
+    padding: 10px; /* Reduzido o padding */
     display: flex;
     flex-direction: column;
     justify-content: space-between;
     align-items: center;
-    min-height: 150px;
+    min-height: 120px; /* Altura mínima ligeiramente reduzida */
     cursor: pointer;
     transition: all 0.2s ease;
     position: relative;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-    overflow: hidden; /* Garante que elementos fora da célula são cortados */
+    overflow: hidden;
 }
 
 .sound-cell.empty {
     border-style: dashed;
-    border-color: #7f8c8d; /* Cinzento */
+    border-color: #7f8c8d;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -157,8 +158,9 @@ h1 {
     font-size: 0.9em;
 }
 
+/* Nova mensagem para célula vazia */
 .sound-cell.empty::before {
-    content: "Arraste um som ou carregue 📂";
+    content: "Clique para carregar som"; 
     text-align: center;
 }
 
@@ -169,7 +171,7 @@ h1 {
 }
 
 .sound-cell.active {
-    background-color: #f1c40f; /* Amarelo */
+    background-color: #f1c40f;
     color: #2c3e50;
     transform: scale(1.05);
     box-shadow: 0 0 20px rgba(241, 196, 15, 0.7);
@@ -177,15 +179,15 @@ h1 {
 
 .sound-cell .sound-name {
     font-weight: bold;
-    font-size: 1.2em;
-    margin-bottom: 10px;
+    font-size: 1.1em; /* Ligeiramente reduzido */
+    margin-bottom: 8px; /* Espaçamento reduzido */
     text-align: center;
-    word-break: break-word; /* Garante que o texto se ajusta à largura */
+    word-break: break-word;
     cursor: text;
-    padding: 5px;
+    padding: 4px; /* Padding reduzido */
     border-radius: 5px;
     transition: background-color 0.2s ease;
-    flex-grow: 1; /* Permite que o nome ocupe espaço */
+    flex-grow: 1;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -200,47 +202,38 @@ h1 {
     outline: none;
     background-color: #f1c40f;
     color: #2c3e50;
-    padding: 5px;
+    padding: 4px;
 }
 
 .sound-cell .cell-actions {
     display: flex;
-    justify-content: space-between;
+    justify-content: center; /* Centralizado, pois só terá o key-info */
     width: 100%;
-    margin-top: 10px; /* Espaçamento entre nome e ações */
+    margin-top: 8px; /* Espaçamento reduzido */
 }
 
-.sound-cell .key-info,
-.sound-cell .load-single-button { /* Estilo comum para os botões inferiores */
-    font-size: 0.9em;
+.sound-cell .key-info {
+    font-size: 0.85em; /* Ligeiramente reduzido */
     color: #bdc3c7;
     display: flex;
     align-items: center;
-    gap: 5px;
+    gap: 4px; /* Espaçamento reduzido */
     cursor: pointer;
     background-color: rgba(0,0,0,0.2);
-    padding: 5px 10px;
+    padding: 4px 8px; /* Padding reduzido */
     border-radius: 5px;
     transition: background-color 0.2s ease;
-    flex-grow: 1; /* Permite que ocupem o espaço disponível */
+    flex-grow: 0; /* Não ocupa todo o espaço, apenas o necessário */
     justify-content: center;
-}
-
-.sound-cell .load-single-button {
-    background-color: #3498db; /* Azul */
-    color: white;
+    white-space: nowrap; /* Evita quebra de linha na tecla */
 }
 
 .sound-cell .key-info:hover {
     background-color: rgba(0,0,0,0.3);
 }
 
-.sound-cell .load-single-button:hover {
-    background-color: #2980b9;
-}
-
-.key-info .key-icon, .load-single-button .folder-icon {
-    font-size: 1.1em;
+.key-info .key-icon {
+    font-size: 1em; /* Ajustado */
     line-height: 1;
 }
 
@@ -256,7 +249,7 @@ h1 {
     justify-content: center;
     align-items: center;
     color: white;
-    font-size: 1.2em;
+    font-size: 1.1em; /* Ligeiramente reduzido */
     text-align: center;
     border-radius: 10px;
     z-index: 10;
@@ -264,18 +257,18 @@ h1 {
 }
 
 .key-assign-overlay p {
-    margin-bottom: 15px;
+    margin-bottom: 10px; /* Reduzido */
     font-weight: bold;
 }
 
 .key-assign-overlay span {
     background-color: #f1c40f;
     color: #2c3e50;
-    padding: 8px 15px;
+    padding: 6px 12px; /* Reduzido */
     border-radius: 5px;
     font-weight: bold;
-    font-size: 1.1em;
-    min-width: 50px;
+    font-size: 1em; /* Reduzido */
+    min-width: 40px; /* Reduzido */
     display: inline-block;
 }
 
@@ -284,21 +277,21 @@ h1 {
     position: absolute;
     top: 5px;
     right: 5px;
-    background-color: #e74c3c; /* Vermelho */
+    background-color: #e74c3c;
     color: white;
     border: none;
     border-radius: 50%;
-    width: 25px;
-    height: 25px;
+    width: 22px; /* Ligeiramente menor */
+    height: 22px; /* Ligeiramente menor */
     display: flex;
     justify-content: center;
     align-items: center;
-    font-size: 1.1em;
+    font-size: 1em; /* Ligeiramente menor */
     cursor: pointer;
     z-index: 5;
     opacity: 0.8;
     transition: opacity 0.2s ease, background-color 0.2s ease;
-    line-height: 1; /* Para alinhar o X */
+    line-height: 1;
 }
 
 .delete-button:hover {
@@ -328,24 +321,60 @@ h1 {
 }
 
 /* Responsividade */
-@media (max-width: 768px) {
+@media (max-width: 1200px) { /* Ajustar para menos colunas em ecrãs menores */
+    .soundboard-grid {
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); /* Por exemplo, 6-7 colunas */
+        gap: 12px;
+    }
+}
+
+@media (max-width: 992px) {
+    .soundboard-grid {
+        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); /* 5-6 colunas */
+        gap: 10px;
+    }
+    .sound-cell {
+        min-height: 100px;
+        padding: 8px;
+    }
+    .sound-cell .sound-name {
+        font-size: 1em;
+    }
+    .delete-button {
+        width: 20px;
+        height: 20px;
+        font-size: 0.9em;
+    }
+    .volume-control, .playback-mode, #load-sounds-button-general, #stop-all-sounds {
+        padding: 10px 15px;
+        font-size: 0.9em;
+    }
     h1 {
         font-size: 2em;
     }
+}
+
+@media (max-width: 768px) {
+    .container {
+        padding: 15px;
+    }
+    h1 {
+        font-size: 1.8em;
+    }
     .soundboard-grid {
-        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-        gap: 15px;
+        grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); /* 4-5 colunas */
+        gap: 8px;
     }
     .sound-cell {
-        min-height: 120px;
-        padding: 10px;
+        min-height: 90px;
+        padding: 6px;
     }
-    .sound-cell .sound-name {
-        font-size: 1.1em;
+    .sound-cell.empty::before {
+        font-size: 0.8em;
     }
     .controls {
         flex-direction: column;
-        gap: 15px;
+        gap: 10px;
     }
     #load-sounds-button-general, #stop-all-sounds {
         width: 100%;
@@ -357,21 +386,19 @@ h1 {
 }
 
 @media (max-width: 480px) {
-    .container {
-        padding: 20px;
-    }
-    h1 {
-        font-size: 1.8em;
-    }
     .soundboard-grid {
-        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-        gap: 10px;
+        grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); /* 3-4 colunas */
+        gap: 5px;
     }
     .sound-cell {
-        min-height: 100px;
+        min-height: 80px;
     }
     .help-text {
-        font-size: 0.85em;
-        padding: 15px;
+        font-size: 0.8em;
+        padding: 10px;
+    }
+    .sound-cell .key-info {
+        font-size: 0.7em;
+        padding: 3px 6px;
     }
 }
