@@ -21,7 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const soundData = []; // { name, key, audioBuffer, audioDataUrl, activePlayingInstances: Set<{source: AudioBufferSourceNode, gain: GainNode}>, color, isLooping, isCued }
     // MODIFICADO: globalActivePlayingInstances agora armazena {source, gain}
     const globalActivePlayingInstances = new Set(); // Armazena {source, gainNode} de todas as instâncias a tocar
-    let lastPlayedSoundIndex = null;
+    let lastPlayedSoundIndex = null; // MANTIDO: Este será o "cursor" para Space/Ctrl+Space
     let currentFadeOutDuration = 0;
     let currentFadeInDuration = 0;
     let cuedSounds = new Set(); // NOVO: Armazena os índices das células em "cue"
@@ -520,7 +520,10 @@ document.addEventListener('DOMContentLoaded', () => {
     function playSound(index) {
         const sound = soundData[index];
         if (!sound || !sound.audioBuffer) {
-            return;
+            // Se o som não existe ou não tem áudio, ainda atualiza lastPlayedSoundIndex
+            // para que Space/Ctrl+Space continuem a avançar/retroceder.
+            lastPlayedSoundIndex = index;
+            return; // Não toca nada
         }
 
         initAudioContext();
@@ -542,11 +545,11 @@ document.addEventListener('DOMContentLoaded', () => {
             audioContext.resume().then(() => {
                 console.log('AudioContext resumed successfully');
                 playActualSound(sound, index, currentFadeInDuration);
-                lastPlayedSoundIndex = index;
+                lastPlayedSoundIndex = index; // Atualiza o cursor após tocar
             }).catch(e => console.error('Erro ao retomar AudioContext:', e));
         } else {
             playActualSound(sound, index, currentFadeInDuration);
-            lastPlayedSoundIndex = index;
+            lastPlayedSoundIndex = index; // Atualiza o cursor após tocar
         }
     }
 
@@ -798,6 +801,29 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        // NOVO: Lógica para Space e Ctrl + Space (Qlab style)
+        if (pressedKey === ' ' && !e.ctrlKey && !e.shiftKey && !e.altKey) { // Apenas Space
+            e.preventDefault();
+            let nextIndex;
+            if (lastPlayedSoundIndex === null || lastPlayedSoundIndex === NUM_CELLS - 1) {
+                nextIndex = 0; // Se nada foi tocado ou é a última, vai para a primeira
+            } else {
+                nextIndex = lastPlayedSoundIndex + 1;
+            }
+            playSound(nextIndex); // playSound já atualiza lastPlayedSoundIndex
+            return;
+        } else if (pressedKey === ' ' && e.ctrlKey) { // Ctrl + Space
+            e.preventDefault();
+            let prevIndex;
+            if (lastPlayedSoundIndex === null || lastPlayedSoundIndex === 0) {
+                prevIndex = NUM_CELLS - 1; // Se nada foi tocado ou é a primeira, vai para a última
+            } else {
+                prevIndex = lastPlayedSoundIndex - 1;
+            }
+            playSound(prevIndex); // playSound já atualiza lastPlayedSoundIndex
+            return;
+        }
+
         // NOVO: Atalhos de teclado para Cue/Go
         if (e.key === 'Enter') {
             e.preventDefault();
@@ -847,6 +873,7 @@ document.addEventListener('DOMContentLoaded', () => {
             updateFadeOutDisplay();
             saveSettings();
         } else {
+            // Lógica existente para teclas QWERTY
             const indexToPlay = defaultKeys.indexOf(pressedKey);
             if (indexToPlay !== -1 && soundData[indexToPlay] && soundData[indexToPlay].audioBuffer) {
                 playSound(indexToPlay);
@@ -885,7 +912,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         if (currentFadeInDuration === 0) {
-            fadeInDisplay.textContent = `${currentFadeInDuration}s${translations[currentLanguage].immediateStart || ' (Immediate Start)'}`;
+            fadeInDisplay.textContent = `${currentFadeInDuration}s${translations[currentLanguage].immediateStart || ' (Início Imediato)'}`;
         } else {
             fadeInDisplay.textContent = `${currentFadeInDuration}s`;
         }
@@ -897,7 +924,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         if (currentFadeOutDuration === 0) {
-            fadeOutDisplay.textContent = `${currentFadeOutDuration}s${translations[currentLanguage].immediateStop || ' (Immediate Stop)'}`;
+            fadeOutDisplay.textContent = `${currentFadeOutDuration}s${translations[currentLanguage].immediateStop || ' (Paragem Imediata)'}`;
         } else {
             fadeOutDisplay.textContent = `${currentFadeOutDuration}s`;
         }
