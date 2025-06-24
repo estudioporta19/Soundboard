@@ -424,3 +424,32 @@ h1 {
         padding: 10px;
     }
 }
+/* Adicione estas regras ao seu style.css */
+.language-switcher {
+    margin-bottom: 20px;
+    text-align: right; /* Alinha os botões à direita */
+}
+
+.lang-button {
+    background-color: #5a7b8e; /* Cor neutra */
+    color: #ecf0f1;
+    border: 1px solid #7f8c8d;
+    padding: 8px 12px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.9em;
+    font-weight: bold;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+    margin-left: 5px; /* Espaçamento entre os botões */
+}
+
+.lang-button:hover {
+    background-color: #7f8c8d;
+}
+
+.lang-button.active {
+    background-color: #f1c40f; /* Cor de destaque para o ativo */
+    color: #2c3e50;
+    border-color: #f1c40f;
+    cursor: default;
+}
