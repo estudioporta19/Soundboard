@@ -84,7 +84,7 @@ h1 {
     color: #f1c40f;
 }
 
-#play-multiple {
+#play-multiple, #autokill-mode { /* Incluir autokill-mode */
     width: 20px;
     height: 20px;
     cursor: pointer;
@@ -124,9 +124,8 @@ h1 {
 
 .soundboard-grid {
     display: grid;
-    /* Alterado para 8 colunas e células ligeiramente menores */
     grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); 
-    gap: 15px; /* Espaçamento entre as células */
+    gap: 15px; 
     margin-bottom: 30px;
 }
 
@@ -134,17 +133,17 @@ h1 {
     background-color: #2c3e50;
     border: 3px solid #34495e;
     border-radius: 10px;
-    padding: 10px; /* Reduzido o padding */
+    padding: 10px; 
     display: flex;
     flex-direction: column;
     justify-content: space-between;
     align-items: center;
-    min-height: 120px; /* Altura mínima ligeiramente reduzida */
+    min-height: 120px; 
     cursor: pointer;
     transition: all 0.2s ease;
     position: relative;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-    overflow: hidden;
+    overflow: hidden; 
 }
 
 .sound-cell.empty {
@@ -158,7 +157,6 @@ h1 {
     font-size: 0.9em;
 }
 
-/* Nova mensagem para célula vazia */
 .sound-cell.empty::before {
     content: "Clique para carregar som"; 
     text-align: center;
@@ -179,15 +177,15 @@ h1 {
 
 .sound-cell .sound-name {
     font-weight: bold;
-    font-size: 1.1em; /* Ligeiramente reduzido */
-    margin-bottom: 8px; /* Espaçamento reduzido */
+    font-size: 1.1em; 
+    margin-bottom: 8px; 
     text-align: center;
-    word-break: break-word;
+    word-break: break-word; 
     cursor: text;
-    padding: 4px; /* Padding reduzido */
+    padding: 4px; 
     border-radius: 5px;
     transition: background-color 0.2s ease;
-    flex-grow: 1;
+    flex-grow: 1; 
     display: flex;
     align-items: center;
     justify-content: center;
@@ -207,33 +205,45 @@ h1 {
 
 .sound-cell .cell-actions {
     display: flex;
-    justify-content: center; /* Centralizado, pois só terá o key-info */
+    justify-content: space-between; /* Espaço entre os botões agora */
     width: 100%;
-    margin-top: 8px; /* Espaçamento reduzido */
+    margin-top: 8px; 
 }
 
-.sound-cell .key-info {
-    font-size: 0.85em; /* Ligeiramente reduzido */
+.sound-cell .key-info,
+.sound-cell .fadeout-button { /* Incluir fadeout-button */
+    font-size: 0.85em;
     color: #bdc3c7;
     display: flex;
     align-items: center;
-    gap: 4px; /* Espaçamento reduzido */
+    gap: 4px;
     cursor: pointer;
     background-color: rgba(0,0,0,0.2);
-    padding: 4px 8px; /* Padding reduzido */
+    padding: 4px 8px;
     border-radius: 5px;
     transition: background-color 0.2s ease;
-    flex-grow: 0; /* Não ocupa todo o espaço, apenas o necessário */
+    flex-grow: 1; /* Permite que ambos ocupem espaço */
     justify-content: center;
-    white-space: nowrap; /* Evita quebra de linha na tecla */
+    white-space: nowrap;
 }
 
 .sound-cell .key-info:hover {
     background-color: rgba(0,0,0,0.3);
 }
 
+/* Novo botão de Fade Out */
+.sound-cell .fadeout-button {
+    background-color: #8e44ad; /* Roxo */
+    color: white;
+    margin-left: 5px; /* Pequeno espaçamento entre key-info e fadeout */
+}
+
+.sound-cell .fadeout-button:hover {
+    background-color: #6a3287;
+}
+
 .key-info .key-icon {
-    font-size: 1em; /* Ajustado */
+    font-size: 1em;
     line-height: 1;
 }
 
@@ -249,7 +259,7 @@ h1 {
     justify-content: center;
     align-items: center;
     color: white;
-    font-size: 1.1em; /* Ligeiramente reduzido */
+    font-size: 1.1em;
     text-align: center;
     border-radius: 10px;
     z-index: 10;
@@ -257,18 +267,18 @@ h1 {
 }
 
 .key-assign-overlay p {
-    margin-bottom: 10px; /* Reduzido */
+    margin-bottom: 10px; 
     font-weight: bold;
 }
 
 .key-assign-overlay span {
     background-color: #f1c40f;
     color: #2c3e50;
-    padding: 6px 12px; /* Reduzido */
+    padding: 6px 12px; 
     border-radius: 5px;
     font-weight: bold;
-    font-size: 1em; /* Reduzido */
-    min-width: 40px; /* Reduzido */
+    font-size: 1em; 
+    min-width: 40px; 
     display: inline-block;
 }
 
@@ -281,12 +291,12 @@ h1 {
     color: white;
     border: none;
     border-radius: 50%;
-    width: 22px; /* Ligeiramente menor */
-    height: 22px; /* Ligeiramente menor */
+    width: 22px; 
+    height: 22px; 
     display: flex;
     justify-content: center;
     align-items: center;
-    font-size: 1em; /* Ligeiramente menor */
+    font-size: 1em; 
     cursor: pointer;
     z-index: 5;
     opacity: 0.8;
@@ -321,16 +331,16 @@ h1 {
 }
 
 /* Responsividade */
-@media (max-width: 1200px) { /* Ajustar para menos colunas em ecrãs menores */
+@media (max-width: 1200px) { 
     .soundboard-grid {
-        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); /* Por exemplo, 6-7 colunas */
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); 
         gap: 12px;
     }
 }
 
 @media (max-width: 992px) {
     .soundboard-grid {
-        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); /* 5-6 colunas */
+        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
         gap: 10px;
     }
     .sound-cell {
@@ -362,7 +372,7 @@ h1 {
         font-size: 1.8em;
     }
     .soundboard-grid {
-        grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); /* 4-5 colunas */
+        grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
         gap: 8px;
     }
     .sound-cell {
@@ -387,7 +397,7 @@ h1 {
 
 @media (max-width: 480px) {
     .soundboard-grid {
-        grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); /* 3-4 colunas */
+        grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
         gap: 5px;
     }
     .sound-cell {
@@ -397,7 +407,7 @@ h1 {
         font-size: 0.8em;
         padding: 10px;
     }
-    .sound-cell .key-info {
+    .sound-cell .key-info, .sound-cell .fadeout-button { /* Ajustar ambos os botões */
         font-size: 0.7em;
         padding: 3px 6px;
     }
