@@ -2,9 +2,9 @@
 
 /* --- Geral --- */
 body {
-    font-family: 'Roboto', sans-serif; /* Usando Roboto para um visual moderno */
-    background-color: #2c2c2c; /* Cor de fundo escura */
-    color: #f0f0f0; /* Cor do texto claro */
+    font-family: 'Roboto', sans-serif;
+    background-color: #2c2c2c;
+    color: #f0f0f0;
     margin: 0;
     padding: 20px;
     display: flex;
@@ -12,11 +12,11 @@ body {
     align-items: center;
     min-height: 100vh;
     box-sizing: border-box;
-    overflow-x: hidden; /* Evita scroll horizontal */
+    overflow-x: hidden;
 }
 
 h1 {
-    color: #4CAF50; /* Verde para o título principal */
+    color: #4CAF50;
     margin-bottom: 20px;
     text-align: center;
     font-size: 2.5em;
@@ -57,8 +57,8 @@ header {
 }
 
 .lang-button.active {
-    background-color: #4CAF50; /* Verde ativo */
-    border-color: #388E3C; /* Borda mais escura para o ativo */
+    background-color: #4CAF50;
+    border-color: #388E3C;
     box-shadow: 0 0 5px rgba(76, 175, 80, 0.5);
 }
 
@@ -71,7 +71,7 @@ header {
     margin-bottom: 25px;
     display: flex;
     flex-wrap: wrap;
-    gap: 15px 25px; /* Espaço entre itens de controlo */
+    gap: 15px 25px;
     justify-content: center;
     width: 100%;
     max-width: 900px;
@@ -86,7 +86,7 @@ header {
 
 .control-group label {
     font-weight: bold;
-    white-space: nowrap; /* Impede que o texto da label quebre */
+    white-space: nowrap;
 }
 
 input[type="range"] {
@@ -115,7 +115,7 @@ input[type="range"]::-webkit-slider-thumb:active {
 }
 
 #volume-display, #fadeout-display, #fadeIn-display {
-    min-width: 50px; /* Garante que não encolhe demais */
+    min-width: 50px;
     text-align: center;
 }
 
@@ -180,50 +180,67 @@ input[type="checkbox"]:checked::after {
     transform: translateY(0);
 }
 
-
-/* --- Soundboard Grid --- */
+/* --- Soundboard Grid (CORRIGIDO) --- */
 .sound-board {
     display: flex;
     flex-direction: column;
     gap: 15px;
-    width: 100%; /* Garante que ocupa a largura total disponível */
-    max-width: 1000px; /* Limita a largura máxima do soundboard */
+    width: 100%;
+    max-width: 1000px;
+    align-items: center; /* Centraliza as linhas */
 }
 
 .row {
     display: flex;
     justify-content: center;
-    gap: 10px; /* Espaço entre as células */
-    flex-wrap: wrap; /* Permite que as células quebrem para a próxima linha em telas pequenas */
+    gap: 10px;
+    flex-wrap: nowrap; /* Evita quebra de linha dentro da row */
 }
 
-/* Ajustes para alinhar as linhas do teclado */
+/* Ajustes para simular o layout QWERTY */
+.row:nth-child(1) {
+    /* Primeira linha: Q W E R T Y U I O P */
+    margin-left: 0;
+}
+
+.row:nth-child(2) {
+    /* Segunda linha: A S D F G H J K L */
+    margin-left: 25px; /* Deslocamento para simular stagger do QWERTY */
+}
+
+.row:nth-child(3) {
+    /* Terceira linha: Z X C V B N M */
+    margin-left: 50px; /* Maior deslocamento */
+}
+
+/* IDs específicos para controle fino */
+#row-top {
+    margin-left: 0;
+}
+
 #row-home {
-    padding-left: 30px; /* Desloca a linha A-L */
+    margin-left: 25px;
 }
 
 #row-bottom {
-    padding-left: 70px; /* Desloca a linha Z-M */
+    margin-left: 50px;
 }
-
 
 /* --- Célula de Som --- */
 .sound-cell {
-    flex-shrink: 0; /* Impede que as células encolham mais do que o seu tamanho base */
-    flex-grow: 0; /* Impede que as células cresçam */
-    width: 90px; /* Largura fixa da célula */
-    height: 90px; /* Altura fixa da célula */
+    flex: 0 0 90px; /* Não cresce nem encolhe, largura fixa de 90px */
+    height: 90px;
     background-color: #444;
     border-radius: 10px;
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
+    justify-content: center;
     align-items: center;
     padding: 5px;
     box-sizing: border-box;
     cursor: pointer;
-    position: relative; /* Para posicionar botões internos */
-    overflow: hidden; /* Garante que o conteúdo não vaza */
+    position: relative;
+    overflow: hidden;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
     transition: transform 0.1s ease, box-shadow 0.1s ease, background-color 0.2s ease;
 }
@@ -248,7 +265,7 @@ input[type="checkbox"]:checked::after {
 
 .sound-cell.active {
     transform: scale(0.98);
-    box-shadow: 0 0 15px #4CAF50, 0 0 20px rgba(76, 175, 80, 0.6); /* Brilho verde */
+    box-shadow: 0 0 15px #4CAF50, 0 0 20px rgba(76, 175, 80, 0.6);
     border: 2px solid #4CAF50;
     filter: brightness(1.1);
 }
@@ -259,23 +276,22 @@ input[type="checkbox"]:checked::after {
 }
 
 .sound-name {
-    width: calc(100% - 10px); /* Ajusta largura para preenchimento */
+    width: calc(100% - 10px);
     font-size: 0.8em;
     font-weight: bold;
     text-align: center;
     color: white;
-    white-space: nowrap; /* Evita que o nome quebre a linha */
-    overflow: hidden; /* Oculta o que transborda */
-    text-overflow: ellipsis; /* Adiciona "..." se o texto for muito longo */
-    user-select: none; /* Impede seleção de texto ao clicar */
-    cursor: text; /* Altera o cursor para indicar editabilidade */
-    padding: 2px 5px; /* Pequeno preenchimento para clique/edição */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    user-select: none;
+    cursor: text;
+    padding: 2px 5px;
     border-radius: 3px;
-    position: absolute; /* Posicionamento absoluto para controle */
+    position: absolute;
     top: 50%;
     left: 50%;
-    transform: translate(-50%, -50%); /* Centraliza vertical e horizontalmente */
-    /* Removi margin-top/bottom para que fique no centro, os botões têm position:absolute */
+    transform: translate(-50%, -50%);
 }
 
 .sound-name:focus {
@@ -284,25 +300,22 @@ input[type="checkbox"]:checked::after {
     box-shadow: 0 0 0 2px #4CAF50;
 }
 
-
 .key-display-bottom {
     position: absolute;
     bottom: 5px;
-    right: 5px; /* Posição à direita para não conflitar com o loop button */
+    right: 5px;
     font-size: 0.8em;
     font-weight: bold;
     color: rgba(255, 255, 255, 0.6);
     background: rgba(0, 0, 0, 0.3);
     padding: 2px 5px;
     border-radius: 3px;
-    min-width: 15px; /* Garante que o fundo não seja muito pequeno */
+    min-width: 15px;
     text-align: center;
-    z-index: 10; /* Garante que fica por cima do sound-name, se houver sobreposição */
+    z-index: 10;
 }
 
-
 /* --- Botões de Célula (Delete, Replace, Loop) --- */
-/* Estilos base para todos os botões da célula */
 .sound-cell button {
     background: rgba(0, 0, 0, 0.4);
     color: white;
@@ -311,14 +324,14 @@ input[type="checkbox"]:checked::after {
     padding: 3px;
     cursor: pointer;
     font-size: 0.9em;
-    display: flex; /* Para centralizar o ícone */
+    display: flex;
     align-items: center;
     justify-content: center;
     opacity: 0.7;
     transition: opacity 0.2s ease, transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease, border 0.2s ease;
-    z-index: 10; /* Garante que ficam por cima de outros elementos se houver sobreposição */
-    height: 24px; /* Altura fixa para botões, pode ajustar */
-    width: 24px; /* Largura fixa para botões, pode ajustar */
+    z-index: 10;
+    height: 24px;
+    width: 24px;
 }
 
 .sound-cell button:hover {
@@ -331,7 +344,7 @@ input[type="checkbox"]:checked::after {
     position: absolute;
     top: 5px;
     right: 5px;
-    background: rgba(255, 0, 0, 0.5); /* Cor vermelha para apagar */
+    background: rgba(255, 0, 0, 0.5);
 }
 
 .delete-button:hover {
@@ -343,20 +356,19 @@ input[type="checkbox"]:checked::after {
     position: absolute;
     top: 5px;
     left: 5px;
-    background: rgba(0, 128, 255, 0.5); /* Cor azul para substituir */
+    background: rgba(0, 128, 255, 0.5);
 }
 
 .replace-sound-button:hover {
     background: rgba(0, 128, 255, 0.8);
 }
 
-
-/* --- Botão de Loop (NOVO e CORRIGIDO) --- */
+/* --- Botão de Loop --- */
 .loop-button {
     position: absolute;
     bottom: 5px;
     left: 5px;
-    background: rgba(0, 0, 0, 0.4); /* Fundo mais escuro quando inativo */
+    background: rgba(0, 0, 0, 0.4);
     color: white;
     border: none;
     border-radius: 4px;
@@ -366,8 +378,8 @@ input[type="checkbox"]:checked::after {
     display: flex;
     align-items: center;
     justify-content: center;
-    opacity: 0.7; /* Ligeiramente transparente quando inativo */
-    transition: background 0.2s ease, opacity 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease, border 0.2s ease; /* Transição para todas as propriedades */
+    opacity: 0.7;
+    transition: background 0.2s ease, opacity 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease, border 0.2s ease;
     z-index: 10;
 }
 
@@ -376,14 +388,12 @@ input[type="checkbox"]:checked::after {
     transform: scale(1.1);
 }
 
-/* ESTILO PARA QUANDO O LOOP ESTÁ ATIVO (Com maior especificidade e !important como fallback robusto) */
 .sound-cell .loop-button.active {
-    background: #4CAF50 !important; /* Cor verde vibrante */
-    opacity: 1 !important; /* Totalmente visível */
-    box-shadow: 0 0 8px rgba(76, 175, 80, 0.8) !important; /* Brilho */
-    border: 1px solid rgba(255, 255, 255, 0.7) !important; /* Borda branca fina para destaque */
+    background: #4CAF50 !important;
+    opacity: 1 !important;
+    box-shadow: 0 0 8px rgba(76, 175, 80, 0.8) !important;
+    border: 1px solid rgba(255, 255, 255, 0.7) !important;
 }
-
 
 /* --- Rodapé (How To Use) --- */
 .how-to-use {
@@ -424,8 +434,8 @@ input[type="checkbox"]:checked::after {
 }
 
 .how-to-use li strong {
-    color: #8BC34A; /* Um verde mais claro para destaque */
-    flex-shrink: 0; /* Impede que o "strong" encolha */
+    color: #8BC34A;
+    flex-shrink: 0;
 }
 
 .how-to-use li kbd {
@@ -437,7 +447,7 @@ input[type="checkbox"]:checked::after {
     font-family: monospace;
     font-size: 0.9em;
     color: #ddd;
-    white-space: nowrap; /* Evita que a tecla quebre */
+    white-space: nowrap;
 }
 
 /* Ajustes para ícones Material Symbols */
@@ -465,7 +475,7 @@ input[type="checkbox"]:checked::after {
     }
 
     .language-selector {
-        order: -1; /* Move o seletor de idioma para cima em telas pequenas */
+        order: -1;
         margin-bottom: 10px;
     }
 
@@ -497,11 +507,11 @@ input[type="checkbox"]:checked::after {
     }
 
     .row {
-        gap: 8px; /* Reduz o espaço entre células */
+        gap: 8px;
     }
 
     .sound-cell {
-        width: 70px; /* Células menores */
+        flex: 0 0 70px; /* Células menores em mobile */
         height: 70px;
         border-radius: 8px;
         padding: 3px;
@@ -513,19 +523,16 @@ input[type="checkbox"]:checked::after {
         padding: 1px;
         font-size: 0.7em;
         border-radius: 3px;
-        height: 20px; /* Altura ajustada para telas menores */
-        width: 20px; /* Largura ajustada para telas menores */
+        height: 20px;
+        width: 20px;
     }
 
     .sound-cell .delete-button { top: 3px; right: 3px; }
     .sound-cell .replace-sound-button { top: 3px; left: 3px; }
     .sound-cell .loop-button { bottom: 3px; left: 3px; }
 
-
     .sound-name {
         font-size: 0.7em;
-        /* Remover margens fixas se o posicionamento absoluto for suficiente */
-        /* top: 50%; left: 50%; transform: translate(-50%, -50%); deve centralizar */
     }
 
     .key-display-bottom {
@@ -535,12 +542,13 @@ input[type="checkbox"]:checked::after {
         padding: 1px 4px;
     }
 
-    #row-home {
-        padding-left: 20px;
+    /* Ajustes de margem para mobile */
+    .row:nth-child(2), #row-home {
+        margin-left: 15px;
     }
 
-    #row-bottom {
-        padding-left: 40px;
+    .row:nth-child(3), #row-bottom {
+        margin-left: 30px;
     }
 
     .how-to-use {
@@ -561,14 +569,17 @@ input[type="checkbox"]:checked::after {
     .row {
         gap: 5px;
     }
+    
     .sound-cell {
-        width: 60px;
+        flex: 0 0 60px;
         height: 60px;
     }
-    #row-home {
-        padding-left: 10px;
+    
+    .row:nth-child(2), #row-home {
+        margin-left: 10px;
     }
-    #row-bottom {
-        padding-left: 20px;
+
+    .row:nth-child(3), #row-bottom {
+        margin-left: 20px;
     }
 }
