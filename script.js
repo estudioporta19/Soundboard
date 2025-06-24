@@ -7,24 +7,31 @@ document.addEventListener('DOMContentLoaded', () => {
     const stopAllSoundsBtn = document.getElementById('stop-all-sounds');
     const loadSoundsButtonGeneral = document.getElementById('load-sounds-button-general');
 
-    const NUM_CELLS = 12;
     let audioContext;
     const soundData = []; // { name, key, audioBuffer, audioDataUrl, activeGainNodes: Set, color }
     const globalActiveGainNodes = new Set();
     let lastPlayedSoundIndex = null;
 
-    // Caracteres para atribuição automática de teclas
-    const defaultKeys = 'qwertyuiopasdfghjklzxcvbnm'.split('');
+    // Teclas organizadas pela lógica QWERTY (top row, home row, bottom row)
+    const defaultKeys = [
+        'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p',
+        'a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l',
+        'z', 'x', 'c', 'v', 'b', 'n', 'm'
+    ];
+    const NUM_CELLS = defaultKeys.length; // Número de células é agora o número de teclas QWERTY
+
     let usedKeys = new Set(); // Para controlar as teclas já atribuídas
 
-    // Função para gerar uma cor de fundo aleatória
-    function getRandomColor() {
-        const letters = '0123456789ABCDEF';
-        let color = '#';
-        for (let i = 0; i < 6; i++) {
-            color += letters[Math.floor(Math.random() * 16)];
-        }
-        return color;
+    // Função para gerar uma cor de fundo aleatória em HSL para harmonia
+    // Gera cores com boa saturação e luminosidade para visibilidade
+    function getRandomHSLColor() {
+        // Matiz (Hue) entre 0 e 360
+        const hue = Math.floor(Math.random() * 360);
+        // Saturação entre 70% e 90% (cores mais vibrantes)
+        const saturation = Math.floor(Math.random() * 20) + 70;
+        // Luminosidade entre 40% e 60% (nem muito claro, nem muito escuro)
+        const lightness = Math.floor(Math.random() * 20) + 40;
+        return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
     }
 
     // Inicializa o AudioContext
@@ -49,37 +56,49 @@ document.addEventListener('DOMContentLoaded', () => {
         updateVolumeDisplay();
 
         usedKeys.clear(); // Limpa as teclas usadas antes de carregar
-        let defaultKeyIndex = 0;
-
+        
         for (let i = 0; i < NUM_CELLS; i++) {
             const cellData = savedSounds[i];
             const cell = createSoundCell(i); // Cria a célula e adiciona ao DOM AQUI E APENAS AQUI!
             
             if (cellData && cellData.audioDataUrl) {
-                const color = cellData.color || getRandomColor(); // Se a cor existe, usa-a; senão, gera uma nova
+                const color = cellData.color || getRandomHSLColor(); // Se a cor existe, usa-a; senão, gera uma nova
                 
-                // Atribui uma tecla padrão se não houver uma salva ou se a salva estiver vazia, e não estiver em uso
+                // Atribui uma tecla padrão com base na ordem do defaultKeys
                 let assignedKey = cellData.key || '';
-                if (!assignedKey && defaultKeyIndex < defaultKeys.length) {
-                    let nextKey = defaultKeys[defaultKeyIndex];
-                    // Procura a próxima tecla disponível
-                    while (usedKeys.has(nextKey) && defaultKeyIndex < defaultKeys.length) {
-                        defaultKeyIndex++;
-                        nextKey = defaultKeys[defaultKeyIndex];
-                    }
-                    if (nextKey && !usedKeys.has(nextKey)) {
-                        assignedKey = nextKey;
+                if (!assignedKey) { // Se não foi sobrescrito, tenta atribuir uma padrão
+                    const defaultKeyCandidate = defaultKeys[i]; // Tenta a tecla correspondente ao índice QWERTY
+                    if (defaultKeyCandidate && !usedKeys.has(defaultKeyCandidate)) {
+                        assignedKey = defaultKeyCandidate;
                         usedKeys.add(assignedKey);
-                        defaultKeyIndex++;
+                    } else { // Se a tecla padrão para este índice já estiver em uso ou não existir, encontra a próxima livre
+                        let foundDefaultKey = false;
+                        for(let k = 0; k < defaultKeys.length; k++) {
+                            const potentialKey = defaultKeys[k];
+                            if (!usedKeys.has(potentialKey)) {
+                                assignedKey = potentialKey;
+                                usedKeys.add(assignedKey);
+                                foundDefaultKey = true;
+                                break;
+                            }
+                        }
+                        if (!foundDefaultKey) {
+                            console.warn("Todas as teclas padrão estão em uso. Nenhuma tecla atribuída automaticamente para a célula " + i);
+                        }
                     }
-                } else if (assignedKey) {
+                } else {
                     usedKeys.add(assignedKey); // Adiciona a tecla salva às usadas
                 }
 
                 loadSoundFromDataURL(cellData.audioDataUrl, cell, i, cellData.name, assignedKey, color);
             } else {
-                cell.style.backgroundColor = getRandomColor(); // Células vazias também têm cor
-                updateCellDisplay(cell, { name: 'Vazio', key: '' }, true);
+                // Células vazias recebem a cor padrão baseada no índice do QWERTY
+                cell.style.backgroundColor = getRandomHSLColor(); 
+                updateCellDisplay(cell, { name: 'Vazio', key: defaultKeys[i] ? defaultKeys[i].toUpperCase() : '' }, true);
+                // Pré-define a tecla mesmo para células vazias para exibir o layout do teclado
+                if (defaultKeys[i]) {
+                    usedKeys.add(defaultKeys[i]);
+                }
             }
         }
     }
@@ -256,25 +275,31 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Lógica de atribuição de tecla padrão
                 let assignedKey = keyOverride;
                 if (!assignedKey) { // Se não foi sobrescrito, tenta atribuir uma padrão
-                    let foundDefaultKey = false;
-                    for(let i = 0; i < defaultKeys.length; i++) {
-                        const potentialKey = defaultKeys[i];
-                        if (!usedKeys.has(potentialKey)) {
-                            assignedKey = potentialKey;
-                            usedKeys.add(assignedKey);
-                            foundDefaultKey = true;
-                            break;
+                    const defaultKeyCandidate = defaultKeys[index]; // Tenta a tecla correspondente ao índice QWERTY
+                    if (defaultKeyCandidate && !usedKeys.has(defaultKeyCandidate)) {
+                        assignedKey = defaultKeyCandidate;
+                        usedKeys.add(assignedKey);
+                    } else { // Se a tecla padrão para este índice já estiver em uso ou não existir, encontra a próxima livre
+                        let foundDefaultKey = false;
+                        for(let k = 0; k < defaultKeys.length; k++) {
+                            const potentialKey = defaultKeys[k];
+                            if (!usedKeys.has(potentialKey)) {
+                                assignedKey = potentialKey;
+                                usedKeys.add(assignedKey);
+                                foundDefaultKey = true;
+                                break;
+                            }
                         }
-                    }
-                    if (!foundDefaultKey) {
-                        console.warn("Todas as teclas padrão estão em uso. Nenhuma tecla atribuída automaticamente.");
+                        if (!foundDefaultKey) {
+                            console.warn("Todas as teclas padrão estão em uso. Nenhuma tecla atribuída automaticamente para a célula " + index);
+                        }
                     }
                 } else {
                     usedKeys.add(assignedKey); // Se veio com um keyOverride, adiciona aos usados
                 }
 
                 // Gerar uma nova cor para o botão ao carregar um novo som
-                const cellColor = getRandomColor();
+                const cellColor = getRandomHSLColor();
                 cell.style.backgroundColor = cellColor; // Aplica a cor de fundo
 
                 // Clear any existing sound in this cell before loading new one
@@ -299,7 +324,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } catch (error) {
                 console.error(`Erro ao decodificar o áudio para célula ${index}:`, error);
                 alert(`Não foi possível carregar o áudio "${file.name}". Verifique o formato do ficheiro e se não está corrompido.`);
-                updateCellDisplay(cell, { name: 'Vazio', key: '' }, true);
+                updateCellDisplay(cell, { name: 'Vazio', key: defaultKeys[index] ? defaultKeys[index].toUpperCase() : '' }, true);
                 soundData[index] = null;
                 saveSettings();
             }
@@ -329,7 +354,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) {
             console.error('Erro ao decodificar áudio do Data URL:', error);
             alert(`Erro ao carregar o som "${name}". Pode estar corrompido.`);
-            updateCellDisplay(cell, { name: 'Vazio', key: '' }, true);
+            updateCellDisplay(cell, { name: 'Vazio', key: defaultKeys[index] ? defaultKeys[index].toUpperCase() : '' }, true);
             soundData[index] = null;
             saveSettings();
         }
@@ -359,9 +384,9 @@ document.addEventListener('DOMContentLoaded', () => {
             nameDisplay.textContent = 'Vazio';
             nameDisplay.contentEditable = false; // Não é editável quando vazia
 
-            keyDisplay.textContent = 'Sem Tecla';
-            keyInfo.style.display = 'none'; // Esconde o atalho de teclado
-
+            keyDisplay.textContent = data.key || 'Sem Tecla'; // Mostra a tecla QWERTY mesmo se vazio
+            keyInfo.style.display = 'flex'; // Mantém o atalho de teclado visível para células vazias
+            
             deleteButton.style.display = 'none'; // Esconde o botão de apagar
             fadeoutButton.style.display = 'none'; // Esconde o botão fadeout
         } else {
@@ -489,10 +514,11 @@ document.addEventListener('DOMContentLoaded', () => {
             clearSoundData(index); // Limpa os dados internos do array soundData
 
             const cell = soundboardGrid.children[index];
-            updateCellDisplay(cell, { name: 'Vazio', key: '' }, true); // Atualiza o display para "Vazio"
+            // Ao limpar, a célula volta a exibir a tecla QWERTY correspondente, mas vazia
+            updateCellDisplay(cell, { name: 'Vazio', key: defaultKeys[index] ? defaultKeys[index].toUpperCase() : '' }, true);
             
             // Atribui uma nova cor aleatória à célula vazia
-            cell.style.backgroundColor = getRandomColor(); 
+            cell.style.backgroundColor = getRandomHSLColor(); 
 
             saveSettings(); // Salva o estado atual (célula vazia)
             if (lastPlayedSoundIndex === index) {
@@ -533,7 +559,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const pressedKey = e.key.toLowerCase();
 
-            if (['escape', 'alt', 'control', 'shift', 'tab', 'capslock', 'f1', 'f2', 'f3', 'f4', 'f5', 'f6', 'f7', 'f8', 'f9', 'f10', 'f11', 'f12'].includes(pressedKey)) {
+            if (['escape', 'alt', 'control', 'shift', 'tab', 'capslock', 'f1', 'f2', 'f3', 'f4', 'f5', 'f6', 'f7', 'f8', 'f9', 'f10', 'f11', 'f12', 'meta'].includes(pressedKey)) { // Adicionado 'meta' para teclas como Windows/Command
                 assignedKeyDisplay.textContent = 'Inválido!';
                 setTimeout(() => assignedKeyDisplay.textContent = '...', 800);
                 return;
@@ -557,7 +583,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     soundData[index].key = '';
                 }
                 const keyDisplay = cell.querySelector('.key-display');
-                keyDisplay.textContent = 'Sem Tecla';
+                keyDisplay.textContent = 'Sem Tecla'; // Volta a "Sem Tecla" para Backspace/Delete
             } else {
                 if (soundData[index]) {
                     soundData[index].key = pressedKey;
@@ -590,6 +616,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('keydown', (e) => {
         const pressedKey = e.key.toLowerCase();
 
+        // Ignorar eventos de teclado se o foco estiver em um campo editável
         if (e.target.isContentEditable || ['INPUT', 'TEXTAREA'].includes(e.target.tagName)) {
             return;
         }
@@ -686,8 +713,9 @@ document.addEventListener('DOMContentLoaded', () => {
             for (const file of files) {
                 let foundEmptyCell = false;
                 for (let i = startIndex; i < NUM_CELLS; i++) {
+                    // Pega a referência da célula já existente
+                    const cell = soundboardGrid.children[i]; 
                     if (soundData[i] === null || soundData[i].audioBuffer === null) {
-                        const cell = soundboardGrid.children[i]; // Pega a referência da célula já existente
                         await loadFileIntoCell(file, cell, i);
                         startIndex = i + 1;
                         foundEmptyCell = true;
@@ -703,8 +731,7 @@ document.addEventListener('DOMContentLoaded', () => {
         input.click();
     });
 
-    // CORREÇÃO AQUI: Chamar loadSettings() diretamente para criar e preencher as células.
-    // O loop anterior que criava células vazias foi removido.
+    // Inicialização: carrega as configurações, que por sua vez criam as células
     loadSettings(); 
 
     // Workaround para o Chrome: AudioContext precisa de uma interação do utilizador
