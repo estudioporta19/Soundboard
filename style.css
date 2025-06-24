@@ -37,7 +37,7 @@ h1 {
     align-items: center;
 }
 
-.volume-control, .playback-mode, .fadeout-settings {
+.volume-control, .playback-mode, .fadeout-settings, .language-selection {
     display: flex;
     align-items: center;
     gap: 10px;
@@ -122,6 +122,40 @@ h1 {
     transform: translateY(0);
 }
 
+/* Estilos para os botões de idioma */
+.language-selection {
+    gap: 5px;
+    padding: 5px 10px; /* Reduzido para ser mais compacto */
+}
+
+.lang-button {
+    background-color: #5a7b8e; /* Cor mais escura */
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.9em;
+    font-weight: bold;
+    transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.lang-button:hover {
+    background-color: #6a8ea0;
+    transform: translateY(-1px);
+}
+
+.lang-button.active {
+    background-color: #f1c40f; /* Amarelo */
+    color: #2c3e50; /* Texto escuro */
+    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+}
+
+.lang-button:active {
+    transform: translateY(0);
+}
+
+
 /* Alterações para o layout QWERTY */
 .soundboard-grid {
     display: flex; /* Agora é um flex container para as linhas */
@@ -184,7 +218,7 @@ h1 {
 }
 
 .sound-cell.empty::before {
-    content: "Clique para carregar som"; 
+    content: attr(data-empty-text); /* Agora usa o atributo data para tradução */
     text-align: center;
     margin-bottom: 5px; /* Espaço entre o texto e a tecla */
 }
@@ -204,10 +238,9 @@ h1 {
     border-color: #fff; 
 }
 
-
 .sound-cell .sound-name {
     font-weight: bold;
-    font-size: 1.1em; 
+    font-size: 0.9em; /* REDUZIDO AQUI */ 
     margin-bottom: 8px; 
     text-align: center;
     word-break: break-word; 
@@ -221,6 +254,7 @@ h1 {
     justify-content: center;
     width: 100%;
     color: inherit; 
+    line-height: 1.2; /* Ajuste para melhor espaçamento de múltiplas linhas */
 }
 
 .sound-cell .sound-name:hover {
@@ -356,14 +390,14 @@ h1 {
         padding: 8px;
     }
     .sound-cell .sound-name {
-        font-size: 1em;
+        font-size: 0.85em; /* Ajuste para telas menores */
     }
     .delete-button, .replace-sound-button {
         width: 24px;
         height: 24px;
         font-size: 0.9em;
     }
-    .volume-control, .playback-mode, .fadeout-settings, #load-sounds-button-general, #stop-all-sounds {
+    .volume-control, .playback-mode, .fadeout-settings, .language-selection, #load-sounds-button-general, #stop-all-sounds {
         padding: 10px 15px;
         font-size: 0.9em;
     }
@@ -387,7 +421,7 @@ h1 {
         padding: 6px;
     }
     .sound-cell.empty::before {
-        font-size: 0.8em;
+        font-size: 0.7em; /* Ajuste para telas menores */
     }
     .controls {
         flex-direction: column;
@@ -396,7 +430,7 @@ h1 {
     #load-sounds-button-general, #stop-all-sounds {
         width: 100%;
     }
-    .volume-control, .playback-mode, .fadeout-settings {
+    .volume-control, .playback-mode, .fadeout-settings, .language-selection {
         width: 100%;
         justify-content: center;
     }
