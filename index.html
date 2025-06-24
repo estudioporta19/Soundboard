@@ -1,1 +1,65 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title data-key="title">Soundboard QWERTY</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+</head>
+<body>
+    <div class="container">
+        <h1 data-key="mainTitle">Soundboard QWERTY</h1>
 
+        <div class="controls">
+            <div class="volume-control">
+                <label for="volume-range" data-key="volumeLabel">Volume:</label>
+                <input type="range" id="volume-range" min="0" max="1" step="0.01" value="0.75">
+                <span id="volume-display">75%</span>
+            </div>
+            <div class="playback-mode">
+                <input type="checkbox" id="play-multiple">
+                <label for="play-multiple" data-key="playMultipleLabel">Reproduzir Múltiplos</label>
+            </div>
+            <div class="playback-mode">
+                <input type="checkbox" id="autokill-mode">
+                <label for="autokill-mode" data-key="autokillLabel">Auto-Kill Anterior</label>
+            </div>
+            <button id="load-sounds-button-general" data-key="loadMultipleSoundsButton">Carregar Múltiplos Sons</button>
+            <button id="stop-all-sounds" data-key="stopAllSoundsButton">Parar Todos os Sons (ESC)</button>
+            <div class="fadeout-settings">
+                <span data-key="fadeOutLabel">Fade Out: </span>
+                <span id="fadeout-display">0s (Paragem Imediata)</span>
+            </div>
+            <div class="language-selection">
+                <button class="lang-button active" data-lang="pt">PT</button>
+                <button class="lang-button" data-lang="en">EN</button>
+                <button class="lang-button" data-lang="it">IT</button>
+            </div>
+        </div>
+
+        <div class="soundboard-grid">
+            <div class="keyboard-row" id="row-top"></div> <div class="keyboard-row" id="row-home"></div> <div class="keyboard-row" id="row-bottom"></div> </div>
+
+        <div class="help-text">
+            <h3 data-key="howToUseTitle">Como Usar:</h3>
+            <ul>
+                <li data-key="dragDropHelp"><strong>Arrastar e Largar:</strong> Arraste ficheiros de áudio (MP3, WAV, OGG) para as células para as preencher.</li>
+                <li data-key="clickHelp"><strong>Clicar:</strong> Clique numa célula vazia para abrir um diálogo de seleção de ficheiro. Clique numa célula preenchida para reproduzir o som.</li>
+                <li data-key="shortcutsHelp"><strong>Atalhos de Teclado:</strong> Pressione a tecla correspondente no seu teclado para reproduzir o som. (Ex: Q para a primeira célula).</li>
+                <li data-key="stopAllHelp"><strong>Parar Sons:</strong> Pressione <kbd>ESC</kbd> para parar todos os sons a tocar.</li>
+                <li data-key="volumeHelp"><strong>Ajustar Volume:</strong> Use o slider de volume ou as teclas <kbd>⬆️</kbd> e <kbd>⬇️</kbd> para controlar o volume global.</li>
+                <li data-key="deleteSoundHelp"><strong>Apagar Som:</strong> Clique no <span style="font-size:1.1em;">❌</span> no canto superior direito de uma célula para a esvaziar. *Um clique rápido apaga; um clique longo (>0.5s) faz fade out.*</li>
+                <li data-key="replaceSoundHelp"><strong>Substituir Som:</strong> Clique no <span class="material-symbols-outlined" style="vertical-align: middle; font-size: 1.1em;">upload_file</span> para carregar um novo som para a célula.</li>
+                <li data-key="renameHelp"><strong>Mudar Nome:</strong> Clique no nome do som para editá-lo.</li>
+                <li data-key="fadeOutControlHelp"><strong>Controlar Fade Out:</strong> Pressione as teclas numéricas <kbd>0</kbd>-<kbd>9</kbd> para definir a duração do fade out em segundos. (<kbd>0</kbd> = Paragem Imediata).</li>
+                <li data-key="playMultipleModeHelp"><strong>Modo Reproduzir Múltiplos:</strong> Permite que vários sons toquem ao mesmo tempo se a caixa estiver marcada.</li>
+                <li data-key="autokillModeHelp"><strong>Modo Auto-Kill Anterior:</strong> Ao tocar um novo som, o som anteriormente ativo (se houver) será parado com um fade out rápido.</li>
+            </ul>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
