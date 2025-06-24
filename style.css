@@ -84,7 +84,7 @@ h1 {
     color: #f1c40f;
 }
 
-#play-multiple, #autokill-mode { /* Incluir autokill-mode */
+#play-multiple, #autokill-mode {
     width: 20px;
     height: 20px;
     cursor: pointer;
@@ -130,7 +130,6 @@ h1 {
 }
 
 .sound-cell {
-    /* Removido background-color fixo aqui para ser definido pelo JS */
     border: 3px solid #34495e;
     border-radius: 10px;
     padding: 10px; 
@@ -147,14 +146,15 @@ h1 {
 }
 
 .sound-cell.empty {
-    background-color: #2c3e50; /* Cor para célula vazia */
+    /* Manter a cor de fundo gerada pelo JS, mas ajustar a cor do texto */
+    /* background-color: #2c3e50; /* Removido, cor agora é dinâmica via JS */
     border-style: dashed;
     border-color: #7f8c8d;
     display: flex;
     justify-content: center;
     align-items: center;
     font-style: italic;
-    color: #bdc3c7;
+    color: #222; /* Cor mais escura para o texto da célula vazia para melhor contraste */
     font-size: 0.9em;
 }
 
@@ -166,17 +166,13 @@ h1 {
 .sound-cell:not(.empty):hover {
     transform: translateY(-5px);
     box-shadow: 0 6px 15px rgba(0, 0, 0, 0.4);
-    /* border-color: #f1c40f; <-- Removido para usar a cor da célula */
 }
 
-/* Adicionado um leve brilho amarelo ao passar o mouse sobre a borda para destacar a interatividade */
 .sound-cell:not(.empty):hover {
     border-color: #f1c40f;
 }
 
-
 .sound-cell.active {
-    /* Ajustado para usar uma cor mais clara com base na cor de fundo da célula, ou manter o amarelo */
     background-color: #f1c40f; /* Ainda um brilho amarelo forte para ativação */
     color: #2c3e50; /* Cor do texto quando ativo */
     transform: scale(1.05);
@@ -241,7 +237,7 @@ h1 {
 }
 
 .sound-cell .fadeout-button {
-    background-color: rgba(0,0,0,0.2); /* Usa o mesmo fundo dos outros, a cor será mais subtil */
+    background-color: rgba(0,0,0,0.2);
     margin-left: 5px; 
 }
 
