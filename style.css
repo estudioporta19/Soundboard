@@ -452,7 +452,67 @@ h1 {
 .lang-button.active {
     background-color: #f1c40f; /* Cor de destaque para o ativo */
     color: #2c3e50;
-    border-color: #f1c40f;
+    border-color: #f/* Estilos para o Botão de Loop */
+.loop-button {
+    position: absolute;
+    bottom: 5px; /* Ajuste conforme a sua preferência */
+    left: 5px;   /* Ajuste conforme a sua preferência */
+    background: rgba(0, 0, 0, 0.4);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 3px;
+    cursor: pointer;
+    font-size: 0.9em;
+    display: flex; /* Para centralizar o ícone */
+    align-items: center;
+    justify-content: center;
+    opacity: 0.7;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    z-index: 10; /* Para garantir que fica por cima de outros elementos se houver sobreposição */
+}
+
+.loop-button:hover {
+    opacity: 1;
+    transform: scale(1.1);
+}
+
+.loop-button.active {
+    background: #4CAF50; /* Uma cor para indicar que o loop está ativo (verde) */
+    opacity: 1;
+    box-shadow: 0 0 8px rgba(76, 175, 80, 0.8); /* Um brilho para destacar */
+}
+
+/* Ajustes para outros botões se necessário para evitar sobreposição */
+/* Garante que o delete e o replace fiquem nos cantos superiores */
+.sound-cell .delete-button {
+    position: absolute; /* Adicionado para garantir o posicionamento */
+    top: 5px;
+    right: 5px;
+    z-index: 10;
+}
+
+.sound-cell .replace-sound-button {
+    position: absolute; /* Adicionado para garantir o posicionamento */
+    top: 5px;
+    left: 5px;
+    z-index: 10;
+}
+
+/* Ajustes para o sound-name para não sobrepor botões */
+.sound-cell .sound-name {
+    margin-top: 30px; /* Espaço para os botões superiores */
+    margin-bottom: 30px; /* Espaço para o botão de loop e key-display-bottom */
+    /* Outros estilos existentes para o sound-name */
+}
+
+/* Ajustes para key-display-bottom para não sobrepor o botão de loop */
+.sound-cell .key-display-bottom {
+    position: absolute;
+    bottom: 5px;
+    right: 5px; /* Posição à direita para não conflitar com o loop button */
+    /* Outros estilos existentes para o key-display-bottom */
+}1c40f;
     cursor: default;
 }
 
