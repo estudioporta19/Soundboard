@@ -215,14 +215,15 @@ document.addEventListener('DOMContentLoaded', () => {
         let pressTimer;
         const longPressDuration = 500; // 0.5 segundos
 
-        deleteButton.addEventListener('mousedown', (e) => {
+           deleteButton.addEventListener('mousedown', (e) => {
             e.stopPropagation();
             pressTimer = setTimeout(() => {
                 // Ação de fade out (clique longo)
                 if (soundData[index] && soundData[index].audioBuffer) {
-                    fadeoutSound(index, 5); // 5 segundos de fade out fixo para clique longo
+                    // Agora usa currentFadeOutDuration para o clique longo
+                    fadeoutSound(index, currentFadeOutDuration); 
                 }
-                pressTimer = null; // Redefine o timer para indicar que o clique longo ocorreu
+                pressTimer = null; 
             }, longPressDuration);
         });
 
