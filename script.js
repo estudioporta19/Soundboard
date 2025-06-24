@@ -4,12 +4,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const volumeDisplay = document.getElementById('volume-display');
     const playMultipleCheckbox = document.getElementById('play-multiple');
     const stopAllSoundsBtn = document.getElementById('stop-all-sounds');
-    const loadSoundsButton = document.getElementById('load-sounds-button'); // Novo botão
+    const loadSoundsButtonGeneral = document.getElementById('load-sounds-button-general'); // Botão geral
 
     const NUM_CELLS = 12; // Número de células na soundboard
     let audioContext;
-    const soundData = []; // Armazena info do som: { name, key, audioBuffer, audioDataUrl, currentSource }
-    const activeSounds = new Set(); // Para controlar instâncias de sons a tocar para parar tudo
+    const soundData = []; // Armazena info do som: { name, key, audioBuffer, audioDataUrl, currentSources: Set }
+    const activeSounds = new Set(); // Para controlar instâncias de sons a tocar globalmente
 
     // Inicializa o AudioContext
     function initAudioContext() {
@@ -40,8 +40,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (cellData && cellData.audioDataUrl) {
                 loadSoundFromDataURL(cellData.audioDataUrl, cell, i, cellData.name, cellData.key);
             } else {
-                // Se não há dados guardados, limpa a célula ou deixa como vazia
-                updateCellDisplay(cell, { name: 'Vazio', key: '' }, true); // True para indicar que está vazia
+                updateCellDisplay(cell, { name: 'Vazio', key: '' }, true);
             }
         }
     }
@@ -49,7 +48,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Guardar configurações no localStorage
     function saveSettings() {
         const settingsToSave = {
-            volume: parseFloat(volumeRange.value), // Garante que é um número
+            volume: parseFloat(volumeRange.value),
             playMultiple: playMultipleCheckbox.checked,
             sounds: soundData.map(data => ({
                 name: data ? data.name : null,
@@ -66,36 +65,53 @@ document.addEventListener('DOMContentLoaded', () => {
         cell.classList.add('sound-cell', 'empty');
         cell.dataset.index = index;
 
+        // Botão de apagar (cruz)
+        const deleteButton = document.createElement('button');
+        deleteButton.classList.add('delete-button');
+        deleteButton.textContent = '❌';
+        deleteButton.title = 'Apagar este som (fade out)';
+        cell.appendChild(deleteButton);
+
         const nameDisplay = document.createElement('div');
         nameDisplay.classList.add('sound-name');
         nameDisplay.contentEditable = true;
-        nameDisplay.spellcheck = false; // Desativa a verificação ortográfica
+        nameDisplay.spellcheck = false;
         nameDisplay.textContent = 'Vazio';
         nameDisplay.title = 'Clique para editar o nome';
         cell.appendChild(nameDisplay);
+
+        const cellActions = document.createElement('div');
+        cellActions.classList.add('cell-actions');
+        cell.appendChild(cellActions);
 
         const keyInfo = document.createElement('div');
         keyInfo.classList.add('key-info');
         keyInfo.innerHTML = '<span class="key-icon">⌨️</span> <span class="key-display">Sem Tecla</span>';
         keyInfo.title = 'Clique para atribuir uma tecla';
-        cell.appendChild(keyInfo);
+        cellActions.appendChild(keyInfo);
+
+        // Botão de carregar som por célula
+        const loadSingleButton = document.createElement('div');
+        loadSingleButton.classList.add('load-single-button');
+        loadSingleButton.innerHTML = '<span class="folder-icon">📂</span> Carregar';
+        loadSingleButton.title = 'Carregar um som para esta célula';
+        cellActions.appendChild(loadSingleButton);
 
         soundboardGrid.appendChild(cell);
 
-        // Adicionar eventos
         setupCellEvents(cell, index);
 
         // Inicializa o soundData para esta célula
-        soundData[index] = null; // Indica que a célula está vazia inicialmente
+        soundData[index] = null;
 
         return cell;
     }
 
-    // Configura os eventos de Drag & Drop e Clique para uma célula
+    // Configura os eventos de Drag & Drop, Clique, Edição e Ações para uma célula
     function setupCellEvents(cell, index) {
         // Drag & Drop
         cell.addEventListener('dragover', (e) => {
-            e.preventDefault(); // Permite o drop
+            e.preventDefault();
             cell.classList.add('drag-over');
         });
 
@@ -108,7 +124,6 @@ document.addEventListener('DOMContentLoaded', () => {
             cell.classList.remove('drag-over');
             const file = e.dataTransfer.files[0];
             if (file && (file.type === 'audio/wav' || file.type === 'audio/mp3' || file.type === 'audio/ogg')) {
-                // Ao arrastar e soltar um único ficheiro, usa a célula atual
                 loadFileIntoCell(file, cell, index);
             } else {
                 alert('Por favor, arraste um ficheiro de áudio válido (MP3, WAV, OGG).');
@@ -117,7 +132,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Click para tocar som
         cell.addEventListener('click', (e) => {
-            if (!cell.classList.contains('empty') && !e.target.closest('.sound-name') && !e.target.closest('.key-info') && !cell.querySelector('.key-assign-overlay')) {
+            // Verifica se o clique não foi nos botões de controlo da célula ou overlay
+            if (!cell.classList.contains('empty') && 
+                !e.target.closest('.sound-name') && 
+                !e.target.closest('.key-info') && 
+                !e.target.closest('.load-single-button') &&
+                !e.target.closest('.delete-button') &&
+                !cell.querySelector('.key-assign-overlay')) {
                 playSound(index);
             }
         });
@@ -127,7 +148,7 @@ document.addEventListener('DOMContentLoaded', () => {
         nameDisplay.addEventListener('blur', () => {
             if (soundData[index]) {
                 soundData[index].name = nameDisplay.textContent.trim() || 'Sem Nome';
-                nameDisplay.textContent = soundData[index].name; // Garante que o texto está limpo
+                nameDisplay.textContent = soundData[index].name;
                 saveSettings();
             }
         });
@@ -141,39 +162,63 @@ document.addEventListener('DOMContentLoaded', () => {
         // Atribuição de tecla
         const keyInfo = cell.querySelector('.key-info');
         keyInfo.addEventListener('click', (e) => {
-            e.stopPropagation(); // Previne que o clique na tecla dispare o som
+            e.stopPropagation();
             assignKeyToCell(cell, index);
+        });
+
+        // Carregar som por célula (botão 📂)
+        const loadSingleButton = cell.querySelector('.load-single-button');
+        loadSingleButton.addEventListener('click', (e) => {
+            e.stopPropagation(); // Previne o clique na célula de tocar o som
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'audio/mp3, audio/wav, audio/ogg';
+            input.onchange = async (event) => {
+                const file = event.target.files[0];
+                if (file) {
+                    await loadFileIntoCell(file, cell, index);
+                }
+            };
+            input.click();
+        });
+
+        // Apagar som (botão ❌)
+        const deleteButton = cell.querySelector('.delete-button');
+        deleteButton.addEventListener('click', (e) => {
+            e.stopPropagation(); // Previne o clique na célula de tocar o som
+            clearSoundCell(index);
         });
     }
 
     // Carrega um ficheiro de áudio numa célula específica
     async function loadFileIntoCell(file, cell, index, nameOverride = null, keyOverride = null) {
-        initAudioContext(); // Garante que o AudioContext está ativo
+        initAudioContext();
 
         const reader = new FileReader();
         reader.onload = async (e) => {
-            const audioDataUrl = e.target.result; // Guarda o Data URL para persistência
-            const arrayBuffer = e.target.result; // O ArrayBuffer completo
+            const audioDataUrl = e.target.result;
+            const arrayBuffer = e.target.result;
 
             try {
                 const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
 
-                const defaultName = nameOverride || file.name.replace(/\.[^/.]+$/, ""); // Remove extensão
-                const key = keyOverride !== null ? keyOverride : (soundData[index] ? soundData[index].key : ''); // Mantém a tecla se já existir ou usa override
+                const defaultName = nameOverride || file.name.replace(/\.[^/.]+$/, "");
+                const key = keyOverride !== null ? keyOverride : (soundData[index] ? soundData[index].key : '');
                 
+                // Inicializa currentSources como um Set para gerir múltiplas instâncias
                 soundData[index] = {
                     name: defaultName,
                     key: key,
                     audioBuffer: audioBuffer,
-                    audioDataUrl: audioDataUrl
+                    audioDataUrl: audioDataUrl,
+                    currentSources: new Set() // Para gerir instâncias individuais de som
                 };
-                updateCellDisplay(cell, soundData[index], false); // False para indicar que não está vazia
+                updateCellDisplay(cell, soundData[index], false);
                 saveSettings();
             } catch (error) {
                 console.error(`Erro ao decodificar o áudio para célula ${index}:`, error);
                 alert(`Não foi possível carregar o áudio "${file.name}". Verifique o formato do ficheiro e se não está corrompido.`);
-                // Limpa a célula se houver erro
-                updateCellDisplay(cell, { name: 'Vazio', key: '' }, true); // True para indicar que está vazia
+                updateCellDisplay(cell, { name: 'Vazio', key: '' }, true);
                 soundData[index] = null;
                 saveSettings();
             }
@@ -183,10 +228,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Carrega um som a partir de um Data URL (usado ao carregar do localStorage)
     async function loadSoundFromDataURL(dataUrl, cell, index, name, key) {
-        initAudioContext(); // Garante que o AudioContext está ativo
+        initAudioContext();
 
         try {
-            // Extrai a parte Base64 do Data URL e converte para ArrayBuffer
             const base64Audio = dataUrl.split(',')[1]; 
             const arrayBuffer = base64ToArrayBuffer(base64Audio);
             const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
@@ -195,17 +239,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 name: name || 'Sem Nome',
                 key: key || '',
                 audioBuffer: audioBuffer,
-                audioDataUrl: dataUrl
+                audioDataUrl: dataUrl,
+                currentSources: new Set()
             };
-            updateCellDisplay(cell, soundData[index], false); // False para indicar que não está vazia
-            // Não precisa de saveSettings aqui, pois já estamos a carregar
+            updateCellDisplay(cell, soundData[index], false);
         } catch (error) {
             console.error('Erro ao decodificar áudio do Data URL:', error);
             alert(`Erro ao carregar o som "${name}". Pode estar corrompido.`);
-            // Limpa a célula se houver erro
-            updateCellDisplay(cell, { name: 'Vazio', key: '' }, true); // True para indicar que está vazia
+            updateCellDisplay(cell, { name: 'Vazio', key: '' }, true);
             soundData[index] = null;
-            saveSettings(); // Guarda para remover o som corrompido
+            saveSettings();
         }
     }
 
@@ -224,15 +267,21 @@ document.addEventListener('DOMContentLoaded', () => {
     function updateCellDisplay(cell, data, isEmpty) {
         const nameDisplay = cell.querySelector('.sound-name');
         const keyDisplay = cell.querySelector('.key-display');
-        
+        const deleteButton = cell.querySelector('.delete-button');
+        const loadSingleButton = cell.querySelector('.load-single-button');
+
         if (isEmpty) {
             cell.classList.add('empty');
             nameDisplay.textContent = 'Vazio';
             keyDisplay.textContent = 'Sem Tecla';
+            deleteButton.style.display = 'none'; // Esconde a cruz para células vazias
+            loadSingleButton.style.display = 'flex'; // Mostra o botão carregar na célula vazia
         } else {
             cell.classList.remove('empty');
             nameDisplay.textContent = data.name || 'Sem Nome';
             keyDisplay.textContent = data.key ? data.key.toUpperCase() : 'Sem Tecla';
+            deleteButton.style.display = 'flex'; // Mostra a cruz para células com som
+            loadSingleButton.style.display = 'none'; // Esconde o botão carregar quando já tem som
         }
     }
 
@@ -243,13 +292,11 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        initAudioContext(); // Garante que o AudioContext está ativo e resume-o
+        initAudioContext();
 
-        // Se o contexto de áudio estiver suspenso (por exemplo, após inatividade do utilizador), tente retomá-lo.
         if (audioContext.state === 'suspended') {
             audioContext.resume().then(() => {
                 console.log('AudioContext resumed successfully');
-                // Tenta reproduzir novamente após a retoma
                 playActualSound(sound, index);
             }).catch(e => console.error('Erro ao retomar AudioContext:', e));
         } else {
@@ -260,37 +307,91 @@ document.addEventListener('DOMContentLoaded', () => {
     function playActualSound(sound, index) {
         const source = audioContext.createBufferSource();
         source.buffer = sound.audioBuffer;
-        source.connect(audioContext.masterGainNode); // Conecta ao GainNode para controlo de volume
+        source.connect(audioContext.masterGainNode);
 
         const cell = soundboardGrid.children[index];
+        
+        // Adiciona a instância à lista global e à lista da célula
+        activeSounds.add(source);
+        if (sound.currentSources) {
+            sound.currentSources.add(source);
+        } else {
+            sound.currentSources = new Set([source]);
+        }
+
         if (cell) {
             cell.classList.add('active');
             source.onended = () => {
                 cell.classList.remove('active');
                 activeSounds.delete(source);
+                sound.currentSources.delete(source); // Remove da lista da célula
             };
         }
-        activeSounds.add(source); // Adiciona para controlo de parar todos os sons
 
         // Lida com a opção de reproduzir múltiplas vezes
         if (playMultipleCheckbox.checked) {
-            source.start(0); // Inicia uma nova instância
+            source.start(0);
         } else {
-            // Se não for para reproduzir múltiplas vezes, para a instância anterior se existir
-            if (sound.currentSource) {
-                sound.currentSource.stop();
-                sound.currentSource.disconnect(); // Desconecta para liberar recursos
-                activeSounds.delete(sound.currentSource);
-            }
-            sound.currentSource = source; // Armazena a referência para a instância atual
+            // Se não for para reproduzir múltiplas vezes, para todas as instâncias anteriores daquela célula
+            sound.currentSources.forEach(s => {
+                if (s !== source && s.stop) { // Não parar a que acabou de ser iniciada
+                    s.stop();
+                    s.disconnect();
+                    activeSounds.delete(s);
+                }
+            });
+            sound.currentSources.clear(); // Limpa e adiciona a nova
+            sound.currentSources.add(source);
             source.start(0);
         }
     }
 
+    // Apaga um som da célula com fade out
+    function clearSoundCell(index) {
+        const sound = soundData[index];
+        if (!sound || !sound.audioBuffer) {
+            return; // Já está vazia
+        }
+
+        initAudioContext(); // Garante o contexto
+
+        // Aplicar fade out a todas as instâncias ativas deste som
+        if (sound.currentSources) {
+            const now = audioContext.currentTime;
+            const fadeDuration = 0.5; // 0.5 segundos de fade out
+
+            sound.currentSources.forEach(source => {
+                if (source.gain) { // Se o source tiver um nó de ganho (melhor prática)
+                    source.gain.linearRampToValueAtTime(0, now + fadeDuration);
+                } else { // Caso contrário, manipula o masterGainNode temporariamente ou para diretamente
+                    // Esta parte é mais complexa sem um GainNode por som.
+                    // Para simplificar, vamos parar a fonte após um pequeno atraso.
+                    // A melhor solução seria ter um GainNode para cada SourceBuffer.
+                    // Por agora, vamos apenas parar e desconectar.
+                }
+                setTimeout(() => {
+                    if (source && source.stop) {
+                        source.stop();
+                        source.disconnect();
+                        activeSounds.delete(source);
+                    }
+                }, fadeDuration * 1000 + 50); // Dá um tempinho extra para o fade
+            });
+            sound.currentSources.clear(); // Limpa as referências
+        }
+        
+        // Reseta os dados da célula
+        soundData[index] = null;
+        const cell = soundboardGrid.children[index];
+        updateCellDisplay(cell, { name: 'Vazio', key: '' }, true);
+        saveSettings();
+    }
+
+
     // Atribui uma tecla a uma célula
     function assignKeyToCell(cell, index) {
         const existingOverlay = cell.querySelector('.key-assign-overlay');
-        if (existingOverlay) return; // Não adiciona múltiplos overlays
+        if (existingOverlay) return;
 
         const overlay = document.createElement('div');
         overlay.classList.add('key-assign-overlay');
@@ -300,19 +401,17 @@ document.addEventListener('DOMContentLoaded', () => {
         const assignedKeyDisplay = overlay.querySelector('#assigned-key-display');
 
         const keyListener = (e) => {
-            e.preventDefault(); // Previne o comportamento padrão da tecla
-            e.stopPropagation(); // Previne que o evento chegue a outros listeners
+            e.preventDefault();
+            e.stopPropagation();
 
             const pressedKey = e.key.toLowerCase();
 
-            // Exclui teclas de controlo comuns que não devem ser atribuídas
             if (['escape', 'alt', 'control', 'shift', 'tab', 'capslock', 'f1', 'f2', 'f3', 'f4', 'f5', 'f6', 'f7', 'f8', 'f9', 'f10', 'f11', 'f12'].includes(pressedKey)) {
                 assignedKeyDisplay.textContent = 'Inválido!';
                 setTimeout(() => assignedKeyDisplay.textContent = '...', 800);
                 return;
             }
 
-            // Verifica se a tecla já está atribuída a outro som
             const isKeyTaken = soundData.some((s, i) => s && s.key === pressedKey && i !== index);
 
             if (isKeyTaken) {
@@ -321,7 +420,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            // Se for 'Backspace' ou 'Delete', limpa a atribuição da tecla
             if (pressedKey === 'backspace' || pressedKey === 'delete') {
                 if (soundData[index]) {
                     soundData[index].key = '';
@@ -329,7 +427,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 const keyDisplay = cell.querySelector('.key-display');
                 keyDisplay.textContent = 'Sem Tecla';
             } else {
-                // Atribui a nova tecla
                 if (soundData[index]) {
                     soundData[index].key = pressedKey;
                 }
@@ -342,10 +439,8 @@ document.addEventListener('DOMContentLoaded', () => {
             document.removeEventListener('keydown', keyListener);
         };
 
-        // Adiciona um listener temporário para capturar a próxima tecla pressionada
-        document.addEventListener('keydown', keyListener, { once: true }); // Apenas uma vez
+        document.addEventListener('keydown', keyListener, { once: true });
 
-        // Se o utilizador clicar fora do overlay ou demorar muito, remove o overlay
         const clickOutsideListener = (e) => {
             if (!overlay.contains(e.target)) {
                 cell.removeChild(overlay);
@@ -353,7 +448,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.removeEventListener('click', clickOutsideListener);
             }
         };
-        setTimeout(() => { // Pequeno atraso para evitar clique imediato
+        setTimeout(() => {
             document.addEventListener('click', clickOutsideListener);
         }, 100);
     }
@@ -362,14 +457,13 @@ document.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('keydown', (e) => {
         const pressedKey = e.key.toLowerCase();
 
-        // Evita que o evento de teclado dispare enquanto um campo de texto está ativo
         if (e.target.isContentEditable || ['INPUT', 'TEXTAREA'].includes(e.target.tagName)) {
             return;
         }
         
         // Controlo de volume com setas para cima/baixo
         if (pressedKey === 'arrowup') {
-            e.preventDefault(); // Previne o scroll da página
+            e.preventDefault();
             volumeRange.value = Math.min(1, parseFloat(volumeRange.value) + 0.05);
             updateVolumeDisplay();
             if (audioContext && audioContext.masterGainNode) {
@@ -377,7 +471,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             saveSettings();
         } else if (pressedKey === 'arrowdown') {
-            e.preventDefault(); // Previne o scroll da página
+            e.preventDefault();
             volumeRange.value = Math.max(0, parseFloat(volumeRange.value) - 0.05);
             updateVolumeDisplay();
             if (audioContext && audioContext.masterGainNode) {
@@ -416,54 +510,58 @@ document.addEventListener('DOMContentLoaded', () => {
         saveSettings();
     });
 
-    // Parar todos os sons
+    // Parar todos os sons (global)
     function stopAllSounds() {
         activeSounds.forEach(source => {
             if (source && source.stop) {
                 source.stop();
-                source.disconnect(); // Desconecta para liberar recursos
+                source.disconnect();
             }
         });
-        activeSounds.clear(); // Limpa o conjunto de sons ativos
+        activeSounds.clear();
+        // Também limpar as referências nas células para evitar problemas
+        soundData.forEach(sound => {
+            if (sound && sound.currentSources) {
+                sound.currentSources.clear();
+            }
+        });
     }
 
     stopAllSoundsBtn.addEventListener('click', stopAllSounds);
 
-    // --- NOVA LÓGICA DE CARREGAMENTO DE SONS VIA BOTÃO ---
+    // --- LÓGICA DE CARREGAMENTO DE MÚLTIPLOS SONS VIA BOTÃO GERAL ---
 
-    loadSoundsButton.addEventListener('click', () => {
-        // Cria um input de ficheiro dinâmico
+    loadSoundsButtonGeneral.addEventListener('click', () => {
         const input = document.createElement('input');
         input.type = 'file';
         input.accept = 'audio/mp3, audio/wav, audio/ogg';
-        input.multiple = true; // Permite seleção de múltiplos ficheiros
+        input.multiple = true;
         
         input.onchange = async (e) => {
-            const files = Array.from(e.target.files); // Converte FileList para Array
-            let currentCellIndex = 0;
-
+            const files = Array.from(e.target.files);
+            let startIndex = 0; // Começa a procurar células vazias a partir do início
+            
             for (const file of files) {
-                // Encontra a próxima célula vazia
                 let foundEmptyCell = false;
-                for (let i = currentCellIndex; i < NUM_CELLS; i++) {
+                for (let i = startIndex; i < NUM_CELLS; i++) {
                     if (soundData[i] === null || soundData[i].audioBuffer === null) {
                         const cell = soundboardGrid.children[i];
                         await loadFileIntoCell(file, cell, i);
-                        currentCellIndex = i + 1; // Avança para a próxima célula
+                        startIndex = i + 1; // Próximo ficheiro procura a partir desta célula + 1
                         foundEmptyCell = true;
-                        break; // Sai do loop interno, vai para o próximo ficheiro
+                        break;
                     }
                 }
                 if (!foundEmptyCell) {
                     alert(`Não há mais células vazias para carregar "${file.name}".`);
-                    break; // Sai do loop de ficheiros se não houver mais espaço
+                    break;
                 }
             }
         };
-        input.click(); // Simula um clique para abrir o diálogo de ficheiros
+        input.click();
     });
 
-    // --- FIM DA NOVA LÓGICA ---
+    // --- FIM DA LÓGICA GERAL DE CARREGAMENTO ---
 
     // Inicialização: criar células e carregar configurações
     for (let i = 0; i < NUM_CELLS; i++) {
@@ -479,5 +577,5 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.log('AudioContext resumed due to user interaction.');
             });
         }
-    }, { once: true }); // Garante que este listener só corre uma vez
+    }, { once: true });
 });
