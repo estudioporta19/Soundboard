@@ -18,7 +18,7 @@ body {
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
     text-align: center;
     width: 100%;
-    max-width: 1200px; 
+    max-width: 1200px;
 }
 
 h1 {
@@ -37,7 +37,8 @@ h1 {
     align-items: center;
 }
 
-.volume-control, .playback-mode, .fadeout-settings {
+/* Regra combinada para o volume, modos de reprodução e AGORA INCLUI AS DUAS CONFIGURAÇÕES DE FADE */
+.volume-control, .playback-mode, .fadeout-settings, .fadein-settings { /* <-- Adicionado .fadein-settings aqui */
     display: flex;
     align-items: center;
     gap: 10px;
@@ -47,7 +48,7 @@ h1 {
     box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
 }
 
-.volume-control label, .playback-mode label, .fadeout-settings span {
+.volume-control label, .playback-mode label, .fadeout-settings span, .fadein-settings span { /* <-- Adicionado .fadein-settings span aqui */
     font-weight: bold;
 }
 
@@ -152,21 +153,20 @@ h1 {
     padding-right: 15%;
 }
 
-
 .sound-cell {
     border: 3px solid #34495e;
     border-radius: 10px;
-    padding: 10px; 
+    padding: 10px;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
     align-items: center;
-    min-height: 120px; 
+    min-height: 120px;
     cursor: pointer;
     transition: all 0.2s ease;
     position: relative;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-    overflow: hidden; 
+    overflow: hidden;
 }
 
 /* Células vazias SEM COR DE FUNDO */
@@ -189,7 +189,6 @@ h1 {
     margin-bottom: 5px; /* Espaço entre o texto e a tecla */
 }
 
-
 .sound-cell:not(.empty):hover {
     transform: translateY(-5px);
     box-shadow: 0 6px 15px rgba(0, 0, 0, 0.4);
@@ -198,29 +197,29 @@ h1 {
 
 /* ESTILO ATIVO / TECLA A TOCAR */
 .sound-cell.active {
-    filter: brightness(1.2); 
-    color: #fff; 
+    filter: brightness(1.2);
+    color: #fff;
     transform: scale(1.05);
     box-shadow: 0 0 25px 8px rgba(241, 196, 15, 0.9), 0 0 10px 3px rgba(241, 196, 15, 0.7);
-    border-color: #fff; 
+    border-color: #fff;
 }
 
 .sound-cell .sound-name {
     font-weight: bold;
-    font-size: 0.9em; /* REDUZIDO AQUI */ 
-    margin-bottom: 8px; 
+    font-size: 0.9em; /* REDUZIDO AQUI */
+    margin-bottom: 8px;
     text-align: center;
-    word-break: break-word; 
+    word-break: break-word;
     cursor: text;
-    padding: 4px; 
+    padding: 4px;
     border-radius: 5px;
     transition: background-color 0.2s ease;
-    flex-grow: 1; 
+    flex-grow: 1;
     display: flex;
     align-items: center;
     justify-content: center;
     width: 100%;
-    color: inherit; 
+    color: inherit;
     line-height: 1.2; /* Ajuste para melhor espaçamento de múltiplas linhas */
 }
 
@@ -235,26 +234,26 @@ h1 {
     padding: 4px;
 }
 
-.sound-cell .key-display-bottom { 
+.sound-cell .key-display-bottom {
     position: absolute;
     bottom: 5px;
     left: 50%;
     transform: translateX(-50%);
     font-size: 0.9em;
     font-weight: bold;
-    color: rgba(255, 255, 255, 0.7); 
+    color: rgba(255, 255, 255, 0.7);
     background-color: rgba(0, 0, 0, 0.3);
     padding: 3px 8px;
     border-radius: 5px;
     min-width: 30px;
     text-align: center;
-    user-select: none; 
+    user-select: none;
     z-index: 2; /* Para ficar por cima de elementos do drag-over */
 }
 
 /* Esconder o elemento de ações antigas */
 .sound-cell .cell-actions {
-    display: none; 
+    display: none;
 }
 
 /* Botão de Apagar (Cruz) - Agora também lida com Fade Out */
@@ -266,12 +265,12 @@ h1 {
     color: white;
     border: none;
     border-radius: 50%;
-    width: 28px; 
-    height: 28px; 
+    width: 28px;
+    height: 28px;
     display: flex;
     justify-content: center;
     align-items: center;
-    font-size: 1em; 
+    font-size: 1em;
     cursor: pointer;
     z-index: 5;
     opacity: 0.8;
@@ -339,13 +338,13 @@ h1 {
 }
 
 /* Responsividade - Ajustada para o novo layout QWERTY */
-@media (max-width: 1200px) { 
+@media (max-width: 1200px) {
     .keyboard-row {
         gap: 12px;
     }
     #row-top, #row-home, #row-bottom {
-        grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); 
-        padding-left: 0; 
+        grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+        padding-left: 0;
         padding-right: 0;
         justify-content: center;
     }
@@ -364,7 +363,8 @@ h1 {
         height: 24px;
         font-size: 0.9em;
     }
-    .volume-control, .playback-mode, .fadeout-settings, #load-sounds-button-general, #stop-all-sounds {
+    /* Adaptação das caixas de controlo para telas menores */
+    .volume-control, .playback-mode, .fadeout-settings, .fadein-settings, #load-sounds-button-general, #stop-all-sounds { /* <-- Adicionado .fadein-settings aqui */
         padding: 10px 15px;
         font-size: 0.9em;
     }
@@ -397,7 +397,8 @@ h1 {
     #load-sounds-button-general, #stop-all-sounds {
         width: 100%;
     }
-    .volume-control, .playback-mode, .fadeout-settings {
+    /* Garante que todas as caixas de controlo se expandem para a largura total */
+    .volume-control, .playback-mode, .fadeout-settings, .fadein-settings { /* <-- Adicionado .fadein-settings aqui */
         width: 100%;
         justify-content: center;
     }
@@ -424,6 +425,7 @@ h1 {
         padding: 10px;
     }
 }
+
 /* Adicione estas regras ao seu style.css */
 .language-switcher {
     margin-bottom: 20px;
@@ -452,4 +454,13 @@ h1 {
     color: #2c3e50;
     border-color: #f1c40f;
     cursor: default;
+}
+
+/* --- NOVAS REGRAS PARA O FADE IN (para ser IGUAL ao Fade Out) --- */
+/* Estilo para o span do display de fade-in para que tenha o mesmo aspeto do fade-out */
+#fadein-display {
+    min-width: 120px; /* Garante espaço suficiente para o texto */
+    text-align: left;
+    font-weight: bold;
+    color: #f1c40f; /* Cor amarela para o valor da duração */
 }
