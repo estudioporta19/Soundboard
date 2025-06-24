@@ -34,19 +34,24 @@
             </div>
             <button id="load-sounds-button-general" data-key="loadMultipleSoundsButton">Carregar Múltiplos Sons</button>
             <button id="stop-all-sounds" data-key="stopAllSoundsButton">Parar Todos os Sons (ESC)</button>
-            <div class="fadein-settings">
-                <span data-key="fadeInLabel">Fade In: </span>
-                <span id="fadein-display">0s (Paragem Imediata)</span>
-            </div>            
-            <div class="fadeout-settings">
-                <span data-key="fadeOutLabel">Fade Out: </span>
+            
+            <div class="fadein-settings control-group">
+                <label for="fadeIn-range" data-key="fadeInLabel">Fade In:</label>
+                <input type="range" id="fadeIn-range" min="0" max="10" step="0.1" value="0">
+                <span id="fadeIn-display">0s (Início Imediato)</span>
+            </div>
+            <div class="fadeout-settings control-group">
+                <label for="fadeOut-range" data-key="fadeOutLabel">Fade Out:</label>
+                <input type="range" id="fadeOut-range" min="0" max="10" step="0.1" value="0">
                 <span id="fadeout-display">0s (Paragem Imediata)</span>
             </div>
-            
-        </div>
+            </div>
 
         <div class="soundboard-grid">
-            <div class="keyboard-row" id="row-top"></div> <div class="keyboard-row" id="row-home"></div> <div class="keyboard-row" id="row-bottom"></div> </div>
+            <div class="keyboard-row" id="row-top"></div>
+            <div class="keyboard-row" id="row-home"></div>
+            <div class="keyboard-row" id="row-bottom"></div>
+        </div>
 
         <div class="help-text">
             <h3 data-key="howToUseTitle">Como Usar:</h3>
@@ -58,7 +63,7 @@
                 <li data-key="volumeHelp"><strong>Ajustar Volume:</strong> Use o slider de volume ou as teclas <kbd>⬆️</kbd> e <kbd>⬇️</kbd> para controlar o volume global.</li>
                 <li data-key="deleteSoundHelp"><strong>Apagar Som:</strong> Clique no <span style="font-size:1.1em;">❌</span> no canto superior direito de uma célula para a esvaziar. *Um clique rápido apaga; um clique longo (>0.5s) faz fade out.*</li>
                 <li data-key="replaceSoundHelp"><strong>Substituir Som:</strong> Clique no <span class="material-symbols-outlined" style="vertical-align: middle; font-size: 1.1em;">upload_file</span> para carregar um novo som para a célula.</li>
-                <li data-key="renameHelp"><strong>Mudar Nome:</strong> Clique no nome do som para editá-lo.</li>
+                <li data-key="renameHelp"><strong>Mudar Nome:</b> Clique no nome do som para editá-lo.</li>
                 <li data-key="fadeInHelp"><strong>Controlar Fade In:</strong> Pressione <kbd>Ctrl</kbd> + teclas numéricas <kbd>0</kbd>-<kbd>9</kbd> para definir a duração do fade in em segundos. (<kbd>0</kbd> = Paragem Imediata).</li>                
                 <li data-key="fadeOutControlHelp"><strong>Controlar Fade Out:</strong> Pressione as teclas numéricas <kbd>0</kbd>-<kbd>9</kbd> para definir a duração do fade out em segundos. (<kbd>0</kbd> = Paragem Imediata).</li>
                 <li data-key="playMultipleModeHelp"><strong>Modo Reproduzir Múltiplos:</strong> Permite que vários sons toquem ao mesmo tempo se a caixa estiver marcada.</li>
