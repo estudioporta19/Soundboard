@@ -279,7 +279,7 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.setItem('soundboardSettings', JSON.stringify(settingsToSave));
     }
 
-    // Cria e adiciona uma célula da soundboard à linha QWERTY correta
+ // No seu script.js, localize esta função e substitua o seu conteúdo:
     function createSoundCell(index) {
         const cell = document.createElement('div');
         cell.classList.add('sound-cell', 'empty');
@@ -289,22 +289,29 @@ document.addEventListener('DOMContentLoaded', () => {
         const replaceButton = document.createElement('button');
         replaceButton.classList.add('replace-sound-button');
         replaceButton.innerHTML = '<span class="material-symbols-outlined">upload_file</span>';
-        replaceButton.title = translations[currentLanguage].replaceSoundHelp.replace(/<[^>]*>/g, ''); // Remover HTML da dica
+        replaceButton.title = translations[currentLanguage].replaceSoundHelp.replace(/<[^>]*>/g, '');
         cell.appendChild(replaceButton);
 
         // Botão de Apagar
         const deleteButton = document.createElement('button');
         deleteButton.classList.add('delete-button');
         deleteButton.textContent = '❌'; 
-        deleteButton.title = translations[currentLanguage].deleteSoundHelp.replace(/<[^>]*>/g, ''); // Remover HTML da dica
+        deleteButton.title = translations[currentLanguage].deleteSoundHelp.replace(/<[^>]*>/g, '');
         cell.appendChild(deleteButton);
+
+        // NOVO: Botão de Loop
+        const loopButton = document.createElement('button');
+        loopButton.classList.add('loop-button');
+        loopButton.innerHTML = '<span class="material-symbols-outlined">loop</span>'; // Ícone de loop
+        loopButton.title = translations[currentLanguage].loopButtonTitle || 'Loop (Toggle)'; // Adicionado fallback para a tradução
+        cell.appendChild(loopButton);
 
         const nameDisplay = document.createElement('div');
         nameDisplay.classList.add('sound-name');
         nameDisplay.contentEditable = true;
         nameDisplay.spellcheck = false;
-        nameDisplay.textContent = translations[currentLanguage].cellEmptyDefault; // Usa tradução
-        nameDisplay.title = translations[currentLanguage].renameHelp.replace(/<[^>]*>/g, ''); // Usa tradução
+        nameDisplay.textContent = translations[currentLanguage].cellEmptyDefault;
+        nameDisplay.title = translations[currentLanguage].renameHelp.replace(/<[^>]*>/g, '');
         cell.appendChild(nameDisplay);
 
         // Elemento para exibir a tecla no rodapé da célula
