@@ -13,7 +13,7 @@
 
         <div class="controls">
             <div class="volume-control">
-                <label for="volume-display">Volume Geral:</label>
+                <label for="volume-range">Volume Geral:</label>
                 <input type="range" id="volume-range" min="0" max="1" step="0.01" value="0.75">
                 <span id="volume-display">75%</span>
             </div>
@@ -21,7 +21,7 @@
                 <input type="checkbox" id="play-multiple">
                 <label for="play-multiple">Reproduzir múltiplas vezes (se a tecla for pressionada novamente)</label>
             </div>
-            <button id="stop-all-sounds">Parar Todos os Sons (ESC)</button>
+            <button id="load-sounds-button">Carregar Sons</button> <button id="stop-all-sounds">Parar Todos os Sons (ESC)</button>
         </div>
 
         <div id="soundboard-grid" class="soundboard-grid">
@@ -30,7 +30,8 @@
         <p class="help-text">
             **Como usar:**
             <ul>
-                <li><strong>Arraste e Solte:</strong> Arraste um ficheiro de áudio (MP3, WAV, OGG) para uma célula para o carregar.</li>
+                <li><strong>Carregar Sons:</strong> Clique no botão "Carregar Sons" para selecionar um ou mais ficheiros de áudio. Eles serão adicionados às próximas células vazias.</li>
+                <li>**Arraste e Solte:** Arraste um ficheiro de áudio (MP3, WAV, OGG) para uma célula para o carregar (pode não funcionar em páginas alojadas na web por razões de segurança).</li>
                 <li><strong>Alterar Nome:</strong> Clique no nome da célula para o editar.</li>
                 <li><strong>Atribuir Tecla:</strong> Clique no ícone de teclado para atribuir ou mudar a tecla.</li>
                 <li><strong>Volume:</strong> Use as setas <strong>↑</strong> e <strong>↓</strong> do teclado para ajustar o volume geral.</li>
