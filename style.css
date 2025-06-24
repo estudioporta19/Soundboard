@@ -453,3 +453,12 @@ h1 {
     border-color: #f1c40f;
     cursor: default;
 }
+.fadein-settings {
+    margin-top: 10px;
+    font-size: 0.9em;
+    color: #ecf0f1;
+}
+
+.fadein-settings span:first-child {
+    font-weight: bold;
+}
