@@ -18,7 +18,7 @@ body {
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
     text-align: center;
     width: 100%;
-    max-width: 1200px; /* Aumentado para caber mais células */
+    max-width: 1200px; 
 }
 
 h1 {
@@ -122,12 +122,36 @@ h1 {
     transform: translateY(0);
 }
 
+/* Alterações para o layout QWERTY */
 .soundboard-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); 
-    gap: 15px; 
+    display: flex; /* Agora é um flex container para as linhas */
+    flex-direction: column;
+    gap: 15px; /* Espaço entre as linhas */
     margin-bottom: 30px;
 }
+
+.keyboard-row {
+    display: grid;
+    gap: 15px; /* Espaço entre as células dentro de cada linha */
+    justify-content: center; /* Centraliza as linhas */
+}
+
+#row-top {
+    grid-template-columns: repeat(10, minmax(100px, 1fr)); /* QWERTYUIOP (10 colunas) */
+}
+
+#row-home {
+    grid-template-columns: repeat(9, minmax(100px, 1fr)); /* ASDFGHJKL (9 colunas) */
+    padding-left: 5%; /* Ajuste para simular o indent da linha A-L */
+    padding-right: 5%;
+}
+
+#row-bottom {
+    grid-template-columns: repeat(7, minmax(100px, 1fr)); /* ZXCVBNM (7 colunas) */
+    padding-left: 15%; /* Ajuste para simular o indent da linha Z-M */
+    padding-right: 15%;
+}
+
 
 .sound-cell {
     border: 3px solid #34495e;
@@ -146,15 +170,13 @@ h1 {
 }
 
 .sound-cell.empty {
-    /* Manter a cor de fundo gerada pelo JS, mas ajustar a cor do texto */
-    /* background-color: #2c3e50; /* Removido, cor agora é dinâmica via JS */
     border-style: dashed;
     border-color: #7f8c8d;
     display: flex;
     justify-content: center;
     align-items: center;
     font-style: italic;
-    color: #222; /* Cor mais escura para o texto da célula vazia para melhor contraste */
+    color: #222; 
     font-size: 0.9em;
 }
 
@@ -166,15 +188,12 @@ h1 {
 .sound-cell:not(.empty):hover {
     transform: translateY(-5px);
     box-shadow: 0 6px 15px rgba(0, 0, 0, 0.4);
-}
-
-.sound-cell:not(.empty):hover {
     border-color: #f1c40f;
 }
 
 .sound-cell.active {
-    background-color: #f1c40f; /* Ainda um brilho amarelo forte para ativação */
-    color: #2c3e50; /* Cor do texto quando ativo */
+    background-color: #f1c40f; 
+    color: #2c3e50; 
     transform: scale(1.05);
     box-shadow: 0 0 20px rgba(241, 196, 15, 0.7);
 }
@@ -194,7 +213,7 @@ h1 {
     align-items: center;
     justify-content: center;
     width: 100%;
-    color: inherit; /* Garante que a cor do texto herda da célula para melhor contraste */
+    color: inherit; 
 }
 
 .sound-cell .sound-name:hover {
@@ -218,7 +237,7 @@ h1 {
 .sound-cell .key-info,
 .sound-cell .fadeout-button { 
     font-size: 0.85em;
-    color: #ecf0f1; /* Cor do texto para os botões internos */
+    color: #ecf0f1; 
     display: flex;
     align-items: center;
     gap: 4px;
@@ -333,19 +352,20 @@ h1 {
     margin-bottom: 8px;
 }
 
-/* Responsividade */
+/* Responsividade - Ajustada para o novo layout QWERTY */
 @media (max-width: 1200px) { 
-    .soundboard-grid {
-        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); 
+    .keyboard-row {
         gap: 12px;
+    }
+    #row-top, #row-home, #row-bottom {
+        grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); /* Torna flexível de novo para telas menores */
+        padding-left: 0; /* Remove padding extra em telas menores */
+        padding-right: 0;
+        justify-content: center;
     }
 }
 
 @media (max-width: 992px) {
-    .soundboard-grid {
-        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-        gap: 10px;
-    }
     .sound-cell {
         min-height: 100px;
         padding: 8px;
@@ -365,6 +385,9 @@ h1 {
     h1 {
         font-size: 2em;
     }
+    #row-top, #row-home, #row-bottom {
+        grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    }
 }
 
 @media (max-width: 768px) {
@@ -373,10 +396,6 @@ h1 {
     }
     h1 {
         font-size: 1.8em;
-    }
-    .soundboard-grid {
-        grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
-        gap: 8px;
     }
     .sound-cell {
         min-height: 90px;
@@ -396,11 +415,15 @@ h1 {
         width: 100%;
         justify-content: center;
     }
+    #row-top, #row-home, #row-bottom {
+        grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+        gap: 8px;
+    }
 }
 
 @media (max-width: 480px) {
-    .soundboard-grid {
-        grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    #row-top, #row-home, #row-bottom {
+        grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
         gap: 5px;
     }
     .sound-cell {
