@@ -315,3 +315,35 @@ h1 {
         padding: 15px;
     }
 }
+
+
+
+#load-sounds-button {
+    background-color: #27ae60; /* Verde */
+    color: white;
+    border: none;
+    padding: 12px 25px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1em;
+    font-weight: bold;
+    transition: background-color 0.2s ease, transform 0.1s ease;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+#load-sounds-button:hover {
+    background-color: #229954;
+    transform: translateY(-2px);
+}
+
+#load-sounds-button:active {
+    transform: translateY(0);
+}
+
+/* Ajustes para responsividade, se necessário, para os botões */
+@media (max-width: 768px) {
+    /* ... (seu CSS existente para controls) ... */
+    #load-sounds-button, #stop-all-sounds {
+        width: 100%; /* Para os botões ocuparem a largura total em ecrãs pequenos */
+    }
+}
