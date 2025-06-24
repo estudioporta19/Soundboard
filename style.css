@@ -130,7 +130,7 @@ h1 {
 }
 
 .sound-cell {
-    background-color: #2c3e50;
+    /* Removido background-color fixo aqui para ser definido pelo JS */
     border: 3px solid #34495e;
     border-radius: 10px;
     padding: 10px; 
@@ -147,6 +147,7 @@ h1 {
 }
 
 .sound-cell.empty {
+    background-color: #2c3e50; /* Cor para célula vazia */
     border-style: dashed;
     border-color: #7f8c8d;
     display: flex;
@@ -165,12 +166,19 @@ h1 {
 .sound-cell:not(.empty):hover {
     transform: translateY(-5px);
     box-shadow: 0 6px 15px rgba(0, 0, 0, 0.4);
+    /* border-color: #f1c40f; <-- Removido para usar a cor da célula */
+}
+
+/* Adicionado um leve brilho amarelo ao passar o mouse sobre a borda para destacar a interatividade */
+.sound-cell:not(.empty):hover {
     border-color: #f1c40f;
 }
 
+
 .sound-cell.active {
-    background-color: #f1c40f;
-    color: #2c3e50;
+    /* Ajustado para usar uma cor mais clara com base na cor de fundo da célula, ou manter o amarelo */
+    background-color: #f1c40f; /* Ainda um brilho amarelo forte para ativação */
+    color: #2c3e50; /* Cor do texto quando ativo */
     transform: scale(1.05);
     box-shadow: 0 0 20px rgba(241, 196, 15, 0.7);
 }
@@ -190,6 +198,7 @@ h1 {
     align-items: center;
     justify-content: center;
     width: 100%;
+    color: inherit; /* Garante que a cor do texto herda da célula para melhor contraste */
 }
 
 .sound-cell .sound-name:hover {
@@ -205,15 +214,15 @@ h1 {
 
 .sound-cell .cell-actions {
     display: flex;
-    justify-content: space-between; /* Espaço entre os botões agora */
+    justify-content: space-between; 
     width: 100%;
     margin-top: 8px; 
 }
 
 .sound-cell .key-info,
-.sound-cell .fadeout-button { /* Incluir fadeout-button */
+.sound-cell .fadeout-button { 
     font-size: 0.85em;
-    color: #bdc3c7;
+    color: #ecf0f1; /* Cor do texto para os botões internos */
     display: flex;
     align-items: center;
     gap: 4px;
@@ -222,7 +231,7 @@ h1 {
     padding: 4px 8px;
     border-radius: 5px;
     transition: background-color 0.2s ease;
-    flex-grow: 1; /* Permite que ambos ocupem espaço */
+    flex-grow: 1; 
     justify-content: center;
     white-space: nowrap;
 }
@@ -231,15 +240,13 @@ h1 {
     background-color: rgba(0,0,0,0.3);
 }
 
-/* Novo botão de Fade Out */
 .sound-cell .fadeout-button {
-    background-color: #8e44ad; /* Roxo */
-    color: white;
-    margin-left: 5px; /* Pequeno espaçamento entre key-info e fadeout */
+    background-color: rgba(0,0,0,0.2); /* Usa o mesmo fundo dos outros, a cor será mais subtil */
+    margin-left: 5px; 
 }
 
 .sound-cell .fadeout-button:hover {
-    background-color: #6a3287;
+    background-color: rgba(0,0,0,0.3);
 }
 
 .key-info .key-icon {
@@ -407,7 +414,7 @@ h1 {
         font-size: 0.8em;
         padding: 10px;
     }
-    .sound-cell .key-info, .sound-cell .fadeout-button { /* Ajustar ambos os botões */
+    .sound-cell .key-info, .sound-cell .fadeout-button { 
         font-size: 0.7em;
         padding: 3px 6px;
     }
