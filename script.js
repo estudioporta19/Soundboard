@@ -10,11 +10,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const autokillModeCheckbox = document.getElementById('autokill-mode');
     const stopAllSoundsBtn = document.getElementById('stop-all-sounds');
     const loadSoundsButtonGeneral = document.getElementById('load-sounds-button-general');
+    const fadeOutDisplay = document.getElementById('fadeout-display');
 
     let audioContext;
     const soundData = []; // { name, key, audioBuffer, audioDataUrl, activeGainNodes: Set, color }
     const globalActiveGainNodes = new Set();
     let lastPlayedSoundIndex = null;
+    let currentFadeOutDuration = 0; // Default para paragem imediata (0 segundos)
 
     // Teclas organizadas pela lógica QWERTY (top row, home row, bottom row)
     const defaultKeys = [
@@ -50,8 +52,10 @@ document.addEventListener('DOMContentLoaded', () => {
         volumeRange.value = savedSettings.volume !== undefined ? savedSettings.volume : 0.75;
         playMultipleCheckbox.checked = savedSettings.playMultiple !== undefined ? savedSettings.playMultiple : false;
         autokillModeCheckbox.checked = savedSettings.autokillMode !== undefined ? savedSettings.autokillMode : false;
+        currentFadeOutDuration = savedSettings.currentFadeOutDuration !== undefined ? savedSettings.currentFadeOutDuration : 0; // Carrega a duração salva
         
         updateVolumeDisplay();
+        updateFadeOutDisplay(); // Atualiza o display de fade out
 
         // Recria as células com base no NUM_CELLS e defaultKeys
         for (let i = 0; i < NUM_CELLS; i++) {
@@ -63,10 +67,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (cellData && cellData.audioDataUrl) {
                 const color = cellData.color || getRandomHSLColor();
-                // A tecla é sempre a defaultKey para esta posição
                 loadSoundFromDataURL(cellData.audioDataUrl, cell, i, cellData.name, fixedKey, color);
             } else {
-                cell.style.backgroundColor = getRandomHSLColor();
+                // Células vazias agora não têm cor de fundo (apenas borda)
                 updateCellDisplay(cell, { name: 'Vazio', key: fixedKey || '' }, true);
             }
         }
@@ -78,9 +81,10 @@ document.addEventListener('DOMContentLoaded', () => {
             volume: parseFloat(volumeRange.value),
             playMultiple: playMultipleCheckbox.checked,
             autokillMode: autokillModeCheckbox.checked,
+            currentFadeOutDuration: currentFadeOutDuration, // Salva a duração atual do fade out
             sounds: soundData.map(data => ({
                 name: data ? data.name : null,
-                key: data ? data.key : null, // A tecla é sempre a defaultKey aqui
+                key: data ? data.key : null, 
                 audioDataUrl: data ? data.audioDataUrl : null,
                 color: data ? data.color : null
             }))
@@ -94,10 +98,18 @@ document.addEventListener('DOMContentLoaded', () => {
         cell.classList.add('sound-cell', 'empty');
         cell.dataset.index = index;
 
+        // Botão de Substituir Som
+        const replaceButton = document.createElement('button');
+        replaceButton.classList.add('replace-sound-button');
+        replaceButton.innerHTML = '<span class="material-symbols-outlined">upload_file</span>';
+        replaceButton.title = 'Substituir este som';
+        cell.appendChild(replaceButton);
+
+        // Botão de Apagar
         const deleteButton = document.createElement('button');
         deleteButton.classList.add('delete-button');
-        deleteButton.textContent = '❌'; // O ícone de cruz continua sendo a principal ação
-        deleteButton.title = 'Clique para apagar o som (fade out rápido ao segurar)';
+        deleteButton.textContent = '❌'; 
+        deleteButton.title = 'Clique para apagar (clique longo para fade out)';
         cell.appendChild(deleteButton);
 
         const nameDisplay = document.createElement('div');
@@ -108,7 +120,7 @@ document.addEventListener('DOMContentLoaded', () => {
         nameDisplay.title = 'Clique para editar o nome';
         cell.appendChild(nameDisplay);
 
-        // Novo elemento para exibir a tecla no rodapé da célula
+        // Elemento para exibir a tecla no rodapé da célula
         const keyDisplayBottom = document.createElement('div');
         keyDisplayBottom.classList.add('key-display-bottom');
         keyDisplayBottom.textContent = defaultKeys[index] ? defaultKeys[index].toUpperCase() : '';
@@ -158,8 +170,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Click para tocar ou carregar som
         cell.addEventListener('click', (e) => {
-            // Se o clique foi no botão de apagar ou no nome, não faz nada (a não ser que seja para editar)
-            if (e.target.closest('.delete-button') || e.target.closest('.sound-name')) {
+            // Se o clique foi nos botões ou no nome, não faz nada diretamente no clique da célula
+            if (e.target.closest('.delete-button') || 
+                e.target.closest('.replace-sound-button') ||
+                e.target.closest('.sound-name')) {
                 e.stopPropagation(); 
                 return;
             }
@@ -206,30 +220,48 @@ document.addEventListener('DOMContentLoaded', () => {
             pressTimer = setTimeout(() => {
                 // Ação de fade out (clique longo)
                 if (soundData[index] && soundData[index].audioBuffer) {
-                    fadeoutSound(index, 5); // 5 segundos de fade out
+                    fadeoutSound(index, 5); // 5 segundos de fade out fixo para clique longo
                 }
+                pressTimer = null; // Redefine o timer para indicar que o clique longo ocorreu
             }, longPressDuration);
         });
 
         deleteButton.addEventListener('mouseup', (e) => {
             e.stopPropagation();
-            clearTimeout(pressTimer);
-            // Ação de apagar (clique curto, se o timer não foi concluído)
-            if (e.button === 0 && !cell.classList.contains('empty')) { // Apenas para clique esquerdo e se não estiver vazia
-                 // Se o timer não terminou, significa que foi um clique curto
-                if (Date.now() - e.timeStamp < longPressDuration) { // Comparar o tempo do evento
+            if (pressTimer !== null) { // Se o clique longo não ativou
+                clearTimeout(pressTimer);
+                // Ação de apagar (clique curto)
+                if (e.button === 0 && !cell.classList.contains('empty')) { 
                     clearSoundCell(index, 0.1); // Fade out super rápido ao apagar (0.1s)
                 }
             }
+            pressTimer = null; // Garante que o timer é limpo
         });
 
         deleteButton.addEventListener('mouseleave', () => {
             clearTimeout(pressTimer); // Cancela o timer se o mouse sair do botão
+            pressTimer = null;
         });
 
         // Previne o menu de contexto do clique direito no botão de apagar
         deleteButton.addEventListener('contextmenu', (e) => {
             e.preventDefault();
+        });
+
+        // Lógica para o botão de substituir som
+        const replaceButton = cell.querySelector('.replace-sound-button');
+        replaceButton.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'audio/mp3, audio/wav, audio/ogg';
+            input.onchange = async (event) => {
+                const file = event.target.files[0];
+                if (file) {
+                    await loadFileIntoCell(file, cell, index);
+                }
+            };
+            input.click();
         });
     }
 
@@ -246,12 +278,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
 
                 const defaultName = nameOverride || file.name.replace(/\.[^/.]+$/, "");
-                const fixedKey = defaultKeys[index]; // A tecla é sempre a pré-definida para esta posição
+                const fixedKey = defaultKeys[index]; 
 
                 const cellColor = getRandomHSLColor();
                 cell.style.backgroundColor = cellColor; 
 
-                // Limpa qualquer som existente nesta célula antes de carregar um novo
                 if (soundData[index]) {
                     clearSoundData(index);
                 }
@@ -269,6 +300,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } catch (error) {
                 console.error(`Erro ao decodificar o áudio para célula ${index}:`, error);
                 alert(`Não foi possível carregar o áudio "${file.name}". Verifique o formato do ficheiro e se não está corrompido.`);
+                // Células vazias agora não têm cor de fundo
                 updateCellDisplay(cell, { name: 'Vazio', key: defaultKeys[index] || '' }, true);
                 soundData[index] = null;
                 saveSettings();
@@ -286,7 +318,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const arrayBuffer = base64ToArrayBuffer(base64Audio);
             const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
             
-            // A tecla é sempre a defaultKey, mesmo se o localStorage tiver algo diferente
             const fixedKey = defaultKeys[index];
 
             soundData[index] = {
@@ -302,6 +333,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) {
             console.error('Erro ao decodificar áudio do Data URL:', error);
             alert(`Erro ao carregar o som "${name}". Pode estar corrompido.`);
+            // Células vazias agora não têm cor de fundo
             updateCellDisplay(cell, { name: 'Vazio', key: defaultKeys[index] || '' }, true);
             soundData[index] = null;
             saveSettings();
@@ -324,19 +356,23 @@ document.addEventListener('DOMContentLoaded', () => {
         const nameDisplay = cell.querySelector('.sound-name');
         const keyDisplayBottom = cell.querySelector('.key-display-bottom');
         const deleteButton = cell.querySelector('.delete-button');
+        const replaceButton = cell.querySelector('.replace-sound-button'); // Novo botão
 
         if (isEmpty) {
             cell.classList.add('empty');
             nameDisplay.textContent = 'Vazio';
             nameDisplay.contentEditable = false;
-            deleteButton.style.display = 'none'; // Esconde o botão de apagar
+            deleteButton.style.display = 'none'; 
+            replaceButton.style.display = 'none'; // Esconde o botão de substituir
+            cell.style.backgroundColor = 'transparent'; // Torna o fundo transparente
         } else {
             cell.classList.remove('empty');
             nameDisplay.textContent = data.name || 'Sem Nome';
             nameDisplay.contentEditable = true;
-            deleteButton.style.display = 'flex'; // Mostra o botão de apagar
+            deleteButton.style.display = 'flex'; 
+            replaceButton.style.display = 'flex'; // Mostra o botão de substituir
+            cell.style.backgroundColor = data.color; // Define a cor para células preenchidas
         }
-        // A tecla sempre será a defaultKey para a posição da célula
         keyDisplayBottom.textContent = defaultKeys[cell.dataset.index] ? defaultKeys[cell.dataset.index].toUpperCase() : '';
     }
 
@@ -352,7 +388,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (autokillModeCheckbox.checked && lastPlayedSoundIndex !== null && lastPlayedSoundIndex !== index) {
             const lastCell = document.querySelector(`.sound-cell[data-index="${lastPlayedSoundIndex}"]`);
             if (lastCell) lastCell.classList.remove('active'); // Remove a classe 'active' da célula anterior
-            fadeoutSound(lastPlayedSoundIndex, 0.2); 
+            fadeoutSound(lastPlayedSoundIndex, currentFadeOutDuration); // Usa a duração de fade out selecionada
         }
 
         if (audioContext.state === 'suspended') {
@@ -380,23 +416,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const cell = document.querySelector(`.sound-cell[data-index="${index}"]`);
         if (cell) {
-            cell.classList.add('active'); // Adiciona a classe 'active' ao começar a tocar
+            cell.classList.add('active'); 
             source.onended = () => {
-                // Atraso curto para que o efeito visual seja visível por mais tempo
                 setTimeout(() => {
-                    cell.classList.remove('active'); // Remove a classe 'active' ao terminar
+                    cell.classList.remove('active'); 
                     sound.activeGainNodes.delete(gainNode);
                     globalActiveGainNodes.delete(gainNode);
                     source.disconnect();
                     gainNode.disconnect();
-                }, 50); // Pequeno atraso (ex: 50ms)
+                }, 50); 
             };
         }
 
         if (playMultipleCheckbox.checked) {
             source.start(0);
         } else {
-            // No modo de reprodução única, interrompe outros sons *desta mesma célula*
             sound.activeGainNodes.forEach(gN => {
                 if (gN !== gainNode) {
                     gN.gain.cancelScheduledValues(audioContext.currentTime);
@@ -408,7 +442,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     }, 150);
                 }
             });
-            sound.activeGainNodes.clear(); // Limpa, pois só queremos 1 ativo por célula neste modo
+            sound.activeGainNodes.clear(); 
             sound.activeGainNodes.add(gainNode);
             source.start(0);
         }
@@ -424,25 +458,40 @@ document.addEventListener('DOMContentLoaded', () => {
         const now = audioContext.currentTime;
         const cell = document.querySelector(`.sound-cell[data-index="${index}"]`);
 
-        sound.activeGainNodes.forEach(gainNode => {
-            gainNode.gain.cancelScheduledValues(now); 
-            gainNode.gain.setValueAtTime(gainNode.gain.value, now);
-            gainNode.gain.linearRampToValueAtTime(0.001, now + duration); 
-            
-            setTimeout(() => {
+        if (duration === 0) { // Paragem imediata
+            sound.activeGainNodes.forEach(gainNode => {
                 if (gainNode) {
+                    gainNode.gain.cancelScheduledValues(now);
+                    gainNode.gain.setValueAtTime(0, now); // Set volume to 0 immediately
                     gainNode.disconnect();
                     globalActiveGainNodes.delete(gainNode);
                 }
-            }, duration * 1000 + 50);
-        });
-        sound.activeGainNodes.clear(); 
-        if (cell) {
-            cell.classList.remove('active'); // Remove a classe active também no fade out
+            });
+            sound.activeGainNodes.clear();
+            if (cell) cell.classList.remove('active');
+            console.log(`Sound ${index} stopped immediately.`);
+        } else { // Fade out normal
+            sound.activeGainNodes.forEach(gainNode => {
+                gainNode.gain.cancelScheduledValues(now); 
+                gainNode.gain.setValueAtTime(gainNode.gain.value, now);
+                gainNode.gain.linearRampToValueAtTime(0.001, now + duration); 
+                
+                setTimeout(() => {
+                    if (gainNode) {
+                        gainNode.disconnect();
+                        globalActiveGainNodes.delete(gainNode);
+                    }
+                }, duration * 1000 + 50);
+            });
+            sound.activeGainNodes.clear(); 
+            if (cell) {
+                cell.classList.remove('active'); 
+            }
+            console.log(`Sound ${index} fading out over ${duration} seconds.`);
         }
     }
 
-    function clearSoundCell(index, fadeDuration = 0.1) { // Fade out padrão mais rápido para apagar
+    function clearSoundCell(index, fadeDuration = 0.1) { 
         const sound = soundData[index];
         if (!sound) { 
             return;
@@ -450,16 +499,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
         initAudioContext(); 
 
-        fadeoutSound(index, fadeDuration); 
+        fadeoutSound(index, fadeDuration); // Usa a duração de fade out para apagar
 
         setTimeout(() => {
             clearSoundData(index); 
 
             const cell = document.querySelector(`.sound-cell[data-index="${index}"]`);
             if (cell) {
+                // Ao limpar, a célula volta a ser transparente
                 updateCellDisplay(cell, { name: 'Vazio', key: defaultKeys[index] || '' }, true); 
-                cell.style.backgroundColor = getRandomHSLColor(); 
-                cell.classList.remove('active'); // Garante que a classe 'active' é removida
+                cell.classList.remove('active'); 
             }
 
             saveSettings(); 
@@ -488,7 +537,6 @@ document.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('keydown', (e) => {
         const pressedKey = e.key.toLowerCase();
 
-        // Ignorar eventos de teclado se o foco estiver em um campo editável
         if (e.target.isContentEditable || ['INPUT', 'TEXTAREA'].includes(e.target.tagName)) {
             return;
         }
@@ -511,8 +559,12 @@ document.addEventListener('DOMContentLoaded', () => {
             saveSettings();
         } else if (pressedKey === 'escape') {
             stopAllSounds();
-        } else {
-            // Procura o índice da tecla pressionada no array defaultKeys
+        } else if (pressedKey >= '0' && pressedKey <= '9') {
+            currentFadeOutDuration = parseInt(pressedKey);
+            updateFadeOutDisplay();
+            saveSettings();
+        } 
+        else {
             const indexToPlay = defaultKeys.indexOf(pressedKey);
             if (indexToPlay !== -1 && soundData[indexToPlay] && soundData[indexToPlay].audioBuffer) {
                 playSound(indexToPlay);
@@ -534,6 +586,15 @@ document.addEventListener('DOMContentLoaded', () => {
         volumeDisplay.textContent = `${Math.round(volumeRange.value * 100)}%`;
     }
 
+    // Atualiza o display de fade out
+    function updateFadeOutDisplay() {
+        if (currentFadeOutDuration === 0) {
+            fadeOutDisplay.textContent = '0s (Paragem Imediata)';
+        } else {
+            fadeOutDisplay.textContent = `${currentFadeOutDuration}s`;
+        }
+    }
+
     playMultipleCheckbox.addEventListener('change', () => {
         saveSettings();
     });
@@ -545,7 +606,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function stopAllSounds() {
         if (audioContext) {
             const now = audioContext.currentTime;
-            const fadeDuration = 0.2;
+            const fadeDuration = 0.2; // Fade out padrão para parar todos os sons
 
             globalActiveGainNodes.forEach(gainNode => {
                 if (gainNode) {
@@ -560,7 +621,6 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             globalActiveGainNodes.clear();
             
-            // Remove a classe 'active' de todas as células
             document.querySelectorAll('.sound-cell.active').forEach(cell => {
                 cell.classList.remove('active');
             });
@@ -590,7 +650,8 @@ document.addEventListener('DOMContentLoaded', () => {
             for (const file of files) {
                 let foundEmptyCell = false;
                 for (let i = startIndex; i < NUM_CELLS; i++) {
-                    if (soundData[i] === null || soundData[i].audioBuffer === null) {
+                    // Check if cell is truly empty or if it's just a placeholder for a key
+                    if (soundData[i] === null || (soundData[i] && soundData[i].audioBuffer === null)) {
                         const cell = document.querySelector(`.sound-cell[data-index="${i}"]`); 
                         await loadFileIntoCell(file, cell, i); 
                         startIndex = i + 1;
