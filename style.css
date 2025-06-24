@@ -186,14 +186,15 @@ input[type="checkbox"]:checked::after {
     display: flex;
     flex-direction: column;
     gap: 15px;
-    width: 100%;
-    max-width: 1000px; /* Limita a largura do soundboard */
+    width: 100%; /* Garante que ocupa a largura total disponível */
+    max-width: 1000px; /* Limita a largura máxima do soundboard */
 }
 
 .row {
     display: flex;
     justify-content: center;
     gap: 10px; /* Espaço entre as células */
+    flex-wrap: wrap; /* Permite que as células quebrem para a próxima linha em telas pequenas */
 }
 
 /* Ajustes para alinhar as linhas do teclado */
@@ -208,8 +209,10 @@ input[type="checkbox"]:checked::after {
 
 /* --- Célula de Som --- */
 .sound-cell {
-    width: 90px; /* Largura da célula */
-    height: 90px; /* Altura da célula */
+    flex-shrink: 0; /* Impede que as células encolham mais do que o seu tamanho base */
+    flex-grow: 0; /* Impede que as células cresçam */
+    width: 90px; /* Largura fixa da célula */
+    height: 90px; /* Altura fixa da célula */
     background-color: #444;
     border-radius: 10px;
     display: flex;
@@ -272,7 +275,7 @@ input[type="checkbox"]:checked::after {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%); /* Centraliza vertical e horizontalmente */
-    margin-top: 5px; /* Ajusta para baixo para não sobrepor botões superiores */
+    /* Removi margin-top/bottom para que fique no centro, os botões têm position:absolute */
 }
 
 .sound-name:focus {
@@ -299,6 +302,7 @@ input[type="checkbox"]:checked::after {
 
 
 /* --- Botões de Célula (Delete, Replace, Loop) --- */
+/* Estilos base para todos os botões da célula */
 .sound-cell button {
     background: rgba(0, 0, 0, 0.4);
     color: white;
@@ -311,8 +315,10 @@ input[type="checkbox"]:checked::after {
     align-items: center;
     justify-content: center;
     opacity: 0.7;
-    transition: opacity 0.2s ease, transform 0.2s ease;
+    transition: opacity 0.2s ease, transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease, border 0.2s ease;
     z-index: 10; /* Garante que ficam por cima de outros elementos se houver sobreposição */
+    height: 24px; /* Altura fixa para botões, pode ajustar */
+    width: 24px; /* Largura fixa para botões, pode ajustar */
 }
 
 .sound-cell button:hover {
@@ -345,7 +351,7 @@ input[type="checkbox"]:checked::after {
 }
 
 
-/* --- Botão de Loop (NOVO) --- */
+/* --- Botão de Loop (NOVO e CORRIGIDO) --- */
 .loop-button {
     position: absolute;
     bottom: 5px;
@@ -370,7 +376,7 @@ input[type="checkbox"]:checked::after {
     transform: scale(1.1);
 }
 
-/* ESTILO PARA QUANDO O LOOP ESTÁ ATIVO (Aumentada especificidade para garantir visibilidade) */
+/* ESTILO PARA QUANDO O LOOP ESTÁ ATIVO (Com maior especificidade e !important como fallback robusto) */
 .sound-cell .loop-button.active {
     background: #4CAF50 !important; /* Cor verde vibrante */
     opacity: 1 !important; /* Totalmente visível */
@@ -507,6 +513,8 @@ input[type="checkbox"]:checked::after {
         padding: 1px;
         font-size: 0.7em;
         border-radius: 3px;
+        height: 20px; /* Altura ajustada para telas menores */
+        width: 20px; /* Largura ajustada para telas menores */
     }
 
     .sound-cell .delete-button { top: 3px; right: 3px; }
@@ -516,8 +524,8 @@ input[type="checkbox"]:checked::after {
 
     .sound-name {
         font-size: 0.7em;
-        margin-top: 15px; /* Ajusta espaço para botões menores */
-        margin-bottom: 15px;
+        /* Remover margens fixas se o posicionamento absoluto for suficiente */
+        /* top: 50%; left: 50%; transform: translate(-50%, -50%); deve centralizar */
     }
 
     .key-display-bottom {
