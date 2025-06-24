@@ -477,7 +477,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const keyDisplayBottom = cell.querySelector('.key-display-bottom');
         const deleteButton = cell.querySelector('.delete-button');
         const replaceButton = cell.querySelector('.replace-sound-button'); 
-        const loopButton = cell.querySelector('.loop-button'); // NOVO: Obter o botão de loop
+        const loopButton = cell.querySelector('.loop-button'); // Obter o botão de loop
 
         if (isEmpty) {
             cell.classList.add('empty');
@@ -485,17 +485,18 @@ document.addEventListener('DOMContentLoaded', () => {
             nameDisplay.contentEditable = false;
             deleteButton.style.display = 'none'; 
             replaceButton.style.display = 'none'; 
-            loopButton.style.display = 'none'; // NOVO: Esconde o botão de loop
+            loopButton.style.display = 'none'; // Esconde o botão de loop
             cell.style.backgroundColor = 'transparent'; 
+            loopButton.classList.remove('active'); // Garante que a classe 'active' é removida quando vazia
         } else {
             cell.classList.remove('empty');
             nameDisplay.textContent = data.name || translations[currentLanguage].cellNoName; 
             nameDisplay.contentEditable = true;
             deleteButton.style.display = 'flex'; 
             replaceButton.style.display = 'flex'; 
-            loopButton.style.display = 'flex'; // NOVO: Mostra o botão de loop
+            loopButton.style.display = 'flex'; // Mostra o botão de loop
             cell.style.backgroundColor = data.color; 
-            // NOVO: Define o estado visual do botão de loop com base nos dados
+            // Define o estado visual do botão de loop com base nos dados
             loopButton.classList.toggle('active', data.isLooping); 
         }
         keyDisplayBottom.textContent = defaultKeys[cell.dataset.index] ? defaultKeys[cell.dataset.index].toUpperCase() : '';
