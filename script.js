@@ -152,9 +152,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const reader = new FileReader();
         reader.onload = async (e) => {
             const audioDataUrl = e.target.result; // Guarda o Data URL para persistência
-            
+            const arrayBuffer = e.target.result; // O ArrayBuffer completo
+
             try {
-                const audioBuffer = await audioContext.decodeAudioData(e.target.result.split(',')[1]); // Decodifica base64
+                // Modificação aqui: Passa o ArrayBuffer diretamente para decodeAudioData
+                const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
 
                 const defaultName = file.name.replace(/\.[^/.]+$/, ""); // Remove extensão
                 const key = soundData[index] ? soundData[index].key : ''; // Mantém a tecla se já existir
@@ -169,14 +171,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 saveSettings();
             } catch (error) {
                 console.error('Erro ao decodificar o áudio:', error);
-                alert('Não foi possível carregar o áudio. Verifique o formato do ficheiro.');
+                alert('Não foi possível carregar o áudio. Verifique o formato do ficheiro e se não está corrompido.');
                 // Limpa a célula se houver erro
                 updateCellDisplay(cell, { name: 'Vazio', key: '' });
                 soundData[index] = null;
                 saveSettings();
             }
         };
-        reader.readAsDataURL(file);
+        // Modificação aqui: Lê o ficheiro como ArrayBuffer
+        reader.readAsArrayBuffer(file);
     }
 
     // Carrega um som a partir de um Data URL (usado ao carregar do localStorage)
@@ -184,9 +187,10 @@ document.addEventListener('DOMContentLoaded', () => {
         initAudioContext(); // Garante que o AudioContext está ativo
 
         try {
-            // Extrai a parte Base64 do Data URL
+            // Extrai a parte Base64 do Data URL e converte para ArrayBuffer
             const base64Audio = dataUrl.split(',')[1]; 
-            const audioBuffer = await audioContext.decodeAudioData(base64ToArrayBuffer(base64Audio));
+            const arrayBuffer = base64ToArrayBuffer(base64Audio);
+            const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
             
             soundData[index] = {
                 name: name || 'Sem Nome',
