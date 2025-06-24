@@ -10,21 +10,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const autokillModeCheckbox = document.getElementById('autokill-mode');
     const stopAllSoundsBtn = document.getElementById('stop-all-sounds');
     const loadSoundsButtonGeneral = document.getElementById('load-sounds-button-general');
-    const fadeOutRange = document.getElementById('fadeOut-range'); // NOVO: Slider para Fade Out
+    const fadeOutRange = document.getElementById('fadeOut-range');
     const fadeOutDisplay = document.getElementById('fadeout-display');
-    const fadeInRange = document.getElementById('fadeIn-range'); // NOVO: Slider para Fade In
+    const fadeInRange = document.getElementById('fadeIn-range');
     const fadeInDisplay = document.getElementById('fadeIn-display');
     const langButtons = document.querySelectorAll('.lang-button');
 
     let audioContext;
-    // MODIFICADO: soundData agora inclui isLooping, activePlayingInstances e isCued
     const soundData = []; // { name, key, audioBuffer, audioDataUrl, activePlayingInstances: Set<{source: AudioBufferSourceNode, gain: GainNode}>, color, isLooping, isCued }
-    // MODIFICADO: globalActivePlayingInstances agora armazena {source, gain}
     const globalActivePlayingInstances = new Set(); // Armazena {source, gainNode} de todas as instâncias a tocar
-    let lastPlayedSoundIndex = null; // MANTIDO: Este será o "cursor" para Space/Ctrl+Space
+    let lastPlayedSoundIndex = null; // Este será o "cursor" para Space/Ctrl+Space
     let currentFadeOutDuration = 0;
     let currentFadeInDuration = 0;
-    let cuedSounds = new Set(); // NOVO: Armazena os índices das células em "cue"
+    let cuedSounds = new Set(); // Armazena os índices das células em "cue"
 
     let translations = {};
     let currentLanguage = 'pt';
@@ -47,7 +45,6 @@ document.addEventListener('DOMContentLoaded', () => {
             setLanguage(savedLang);
         } catch (error) {
             console.error('Erro ao carregar traduções:', error);
-            // Fallback para um objeto de tradução mínimo ou alertar o utilizador
             translations = {
                 pt: {
                     title: "Soundboard QWERTY", mainTitle: "Soundboard QWERTY", volumeLabel: "Volume:", playMultipleLabel: "Reproduzir Múltiplos", autokillLabel: "Auto-Kill Anterior", loadMultipleSoundsButton: "Carregar Múltiplos Sons", stopAllSoundsButton: "Parar Todos os Sons (ESC)", fadeInLabel: "Fade In:", immediateStart: " (Início Imediato)", fadeOutLabel: "Fade Out:", immediateStop: " (Paragem Imediata)", howToUseTitle: "Como Usar:", dragDropHelp: "<strong>Arrastar e Largar:</strong> Arraste ficheiros de áudio (MP3, WAV, OGG) para as células para as preencher.", clickHelp: "<strong>Clicar:</strong> Clique numa célula vazia para abrir um diálogo de seleção de ficheiro. Clique numa célula preenchida para reproduzir o som.", shortcutsHelp: "<strong>Atalhos de Teclado:</strong> Pressione a tecla correspondente no seu teclado para reproduzir o som. (Ex: Q para a primeira célula).", stopAllHelp: "<strong>Parar Sons:</strong> Pressione <kbd>ESC</kbd> para parar todos os sons a tocar.", volumeHelp: "<strong>Ajustar Volume:</strong> Use o slider de volume ou as teclas <kbd>⬆️</kbd> e <kbd>⬇️</kbd> para controlar o volume global.", deleteSoundHelp: "<strong>Apagar Som:</strong> Clique no <span style=\"font-size:1.1em;\">❌</span> no canto superior direito de uma célula para a esvaziar. *Um clique rápido apaga; um clique longo (>0.5s) faz fade out.*", replaceSoundHelp: "<strong>Substituir Som:</strong> Clique no <span class=\"material-symbols-outlined\" style=\"vertical-align: middle; font-size: 1.1em;\">upload_file</span> para carregar um novo som para a célula.", renameHelp: "<strong>Mudar Nome:</strong> Clique no nome do som para editá-lo.", fadeInHelp: "<strong>Controlar Fade In:</strong> Use o slider de Fade In, ou as teclas <kbd>Ctrl</kbd> + teclas numéricas <kbd>0</kbd>-<kbd>9</kbd> para definir a duração do fade in em segundos.", fadeOutControlHelp: "<strong>Controlar Fade Out:</strong> Use o slider de Fade Out, ou as teclas numéricas <kbd>0</kbd>-<kbd>9</kbd> para definir a duração do fade out em segundos.", playMultipleModeHelp: "<strong>Modo Reproduzir Múltiplos:</strong> Permite que vários sons toquem ao mesmo tempo se a caixa estiver marcada.", autokillModeHelp: "<strong>Modo Auto-Kill Anterior:</strong> Ao tocar um novo som, o som anteriormente ativo (se houver) será parado com um fade out rápido.", alertInvalidFile: "Tipo de ficheiro inválido. Por favor, arraste ficheiros de áudio (MP3, WAV, OGG).", alertLoadError: "Não foi possível carregar o áudio '{fileName}'.", alertDecodeError: "Erro ao descodificar o áudio '{soundName}'.", alertNoEmptyCells: "Não há mais células vazias para carregar o ficheiro '{fileName}'.", cellEmptyText: "Clique para carregar o som", cellNoName: "Sem Nome", cellEmptyDefault: "Vazio", loopButtonTitle: "Ativar/Desativar Loop", cueHelp: "<strong>CUE / GO:</strong> Pressione <kbd>Ctrl</kbd> + <kbd>Enter</kbd> para 'cue' (marcar) um som. Pressione <kbd>Enter</kbd> para tocar todos os sons em 'cue' com fade-in. Pressione <kbd>Shift</kbd> + <kbd>Enter</kbd> para parar todos os sons em 'cue' com fade-out.", cueSingleHelp: "<strong>CUE Individual:</strong> Pressione <kbd>Ctrl</kbd> + clique na célula para adicionar/remover um som do 'cue'.", removeCueHelp: "<strong>Remover CUE:</strong> Pressione <kbd>Alt</kbd> + <kbd>Enter</kbd> para remover todos os sons do 'cue' sem os parar.",
@@ -77,9 +74,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const key = element.dataset.key;
             if (translations[lang][key]) {
                 if (element.tagName === 'INPUT' && element.type === 'range') {
-                    // Sliders não precisam de textContent para a label diretamente no elemento input
                 } else if (element.tagName === 'INPUT' && (element.type === 'checkbox' || element.type === 'radio')) {
-                    // Checkboxes/radios não precisam de textContent para a label diretamente no elemento input
                 } else if (element.tagName === 'BUTTON') {
                     element.textContent = translations[lang][key];
                 } else if (element.tagName === 'LABEL') {
@@ -95,7 +90,6 @@ document.addEventListener('DOMContentLoaded', () => {
         updateFadeOutDisplay();
         updateFadeInDisplay();
 
-        // Atualizar texto das células vazias e tooltips dos botões
         document.querySelectorAll('.sound-cell').forEach(cell => {
             const index = parseInt(cell.dataset.index);
             const data = soundData[index];
@@ -119,7 +113,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 loopButton.title = translations[currentLanguage].loopButtonTitle || 'Loop (Toggle)';
             }
 
-            // Garante que o estado visual do loop é atualizado na mudança de idioma
             if (data && data.isLooping) {
                 loopButton.classList.add('active');
             } else if (loopButton) {
@@ -161,10 +154,10 @@ document.addEventListener('DOMContentLoaded', () => {
         volumeRange.value = savedSettings.volume !== undefined ? savedSettings.volume : 0.75;
         playMultipleCheckbox.checked = savedSettings.playMultiple !== undefined ? savedSettings.playMultiple : false;
         autokillModeCheckbox.checked = savedSettings.autokillMode !== undefined ? savedSettings.autokillMode : false;
-        fadeInRange.value = savedSettings.currentFadeInDuration !== undefined ? savedSettings.currentFadeInDuration : 0; // NOVO: Carrega valor do slider
-        fadeOutRange.value = savedSettings.currentFadeOutDuration !== undefined ? savedSettings.currentFadeOutDuration : 0; // NOVO: Carrega valor do slider
-        currentFadeInDuration = parseFloat(fadeInRange.value); // Usa o valor do slider
-        currentFadeOutDuration = parseFloat(fadeOutRange.value); // Usa o valor do slider
+        fadeInRange.value = savedSettings.currentFadeInDuration !== undefined ? savedSettings.currentFadeInDuration : 0;
+        fadeOutRange.value = savedSettings.currentFadeOutDuration !== undefined ? savedSettings.currentFadeOutDuration : 0;
+        currentFadeInDuration = parseFloat(fadeInRange.value);
+        currentFadeOutDuration = parseFloat(fadeOutRange.value);
 
         updateVolumeDisplay();
         updateFadeOutDisplay();
@@ -178,7 +171,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (cellData && cellData.audioDataUrl) {
                 const color = cellData.color || getRandomHSLColor();
-                // MODIFICADO: Passa isLooping para loadSoundFromDataURL
                 const isLooping = cellData.isLooping !== undefined ? cellData.isLooping : false;
                 loadSoundFromDataURL(cellData.audioDataUrl, cell, i, cellData.name, fixedKey, color, isLooping);
             } else {
@@ -192,15 +184,15 @@ document.addEventListener('DOMContentLoaded', () => {
             volume: parseFloat(volumeRange.value),
             playMultiple: playMultipleCheckbox.checked,
             autokillMode: autokillModeCheckbox.checked,
-            currentFadeOutDuration: parseFloat(fadeOutRange.value), // Salva o valor do slider
-            currentFadeInDuration: parseFloat(fadeInRange.value), // Salva o valor do slider
+            currentFadeOutDuration: parseFloat(fadeOutRange.value),
+            currentFadeInDuration: parseFloat(fadeInRange.value),
             sounds: soundData.map(data => ({
                 name: data ? data.name : null,
                 key: data ? data.key : null,
                 audioDataUrl: data ? data.audioDataUrl : null,
                 color: data ? data.color : null,
-                isLooping: data ? data.isLooping : false, // NOVO: Salva o estado de loop
-                isCued: data ? data.isCued : false // NOVO: Salva o estado de cue
+                isLooping: data ? data.isLooping : false,
+                isCued: data ? data.isCued : false
             }))
         };
         localStorage.setItem('soundboardSettings', JSON.stringify(settingsToSave));
@@ -223,7 +215,6 @@ document.addEventListener('DOMContentLoaded', () => {
         deleteButton.title = translations[currentLanguage].deleteSoundHelp.replace(/<[^>]*>/g, '');
         cell.appendChild(deleteButton);
 
-        // NOVO: Botão de Loop
         const loopButton = document.createElement('button');
         loopButton.classList.add('loop-button');
         loopButton.innerHTML = '<span class="material-symbols-outlined">loop</span>';
@@ -283,7 +274,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         cell.addEventListener('click', (e) => {
-            // NOVO: Clique com Ctrl para cue/uncue
             if (e.ctrlKey) {
                 e.stopPropagation();
                 toggleCue(index);
@@ -420,8 +410,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     audioDataUrl: audioDataUrl,
                     activePlayingInstances: new Set(),
                     color: cellColor,
-                    isLooping: false, // NOVO: Default para não loop
-                    isCued: false // NOVO: Default para não "cued"
+                    isLooping: false,
+                    isCued: false
                 };
                 updateCellDisplay(cell, soundData[index], false);
                 saveSettings();
@@ -453,8 +443,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 audioDataUrl: dataUrl,
                 activePlayingInstances: new Set(),
                 color: color,
-                isLooping: isLoopingState, // NOVO: Carrega o estado de loop
-                isCued: false // NOVO: O estado de cue não é persistido, inicia como false
+                isLooping: isLoopingState,
+                isCued: false
             };
             updateCellDisplay(cell, soundData[index], false);
         } catch (error) {
@@ -485,7 +475,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (isEmpty) {
             cell.classList.add('empty');
-            cell.classList.remove('cued', 'active'); // Garante que cue e active são removidos
+            cell.classList.remove('cued', 'active');
             nameDisplay.textContent = translations[currentLanguage].cellEmptyDefault;
             nameDisplay.contentEditable = false;
             deleteButton.style.display = 'none';
@@ -493,7 +483,7 @@ document.addEventListener('DOMContentLoaded', () => {
             loopButton.style.display = 'none';
             cell.style.backgroundColor = 'transparent';
             loopButton.classList.remove('active');
-            if (data && data.isCued) { // Se estava cued, remove do set
+            if (data && data.isCued) {
                 cuedSounds.delete(parseInt(cell.dataset.index));
             }
         } else {
@@ -505,7 +495,6 @@ document.addEventListener('DOMContentLoaded', () => {
             loopButton.style.display = 'flex';
             cell.style.backgroundColor = data.color;
             loopButton.classList.toggle('active', data.isLooping);
-            // NOVO: Atualiza a classe 'cued' se o som for cued
             if (data.isCued) {
                 cell.classList.add('cued');
                 cuedSounds.add(parseInt(cell.dataset.index));
@@ -517,18 +506,23 @@ document.addEventListener('DOMContentLoaded', () => {
         keyDisplayBottom.textContent = defaultKeys[cell.dataset.index] ? defaultKeys[cell.dataset.index].toUpperCase() : '';
     }
 
+    /**
+     * Toca um som na célula especificada pelo índice.
+     * Gerencia o modo auto-kill e a atualização do lastPlayedSoundIndex.
+     * @param {number} index - O índice da célula a ser tocada.
+     * @returns {boolean} True se um som foi efetivamente reproduzido, false caso contrário.
+     */
     function playSound(index) {
         const sound = soundData[index];
+
+        // Se não há som, não faz nada além de retornar false. lastPlayedSoundIndex NÃO é atualizado AQUI.
         if (!sound || !sound.audioBuffer) {
-            // Se o som não existe ou não tem áudio, ainda atualiza lastPlayedSoundIndex
-            // para que Space/Ctrl+Space continuem a avançar/retroceder.
-            lastPlayedSoundIndex = index;
-            return; // Não toca nada
+            return false;
         }
 
         initAudioContext();
 
-        // MODIFICADO: auto-kill agora aplica-se a todas as instâncias do *último som*, não só a primeira.
+        // Aplicar auto-kill ao som anteriormente tocado, se houver e o modo estiver ativado.
         if (autokillModeCheckbox.checked && lastPlayedSoundIndex !== null && lastPlayedSoundIndex !== index) {
             const lastSound = soundData[lastPlayedSoundIndex];
             if (lastSound) {
@@ -545,19 +539,19 @@ document.addEventListener('DOMContentLoaded', () => {
             audioContext.resume().then(() => {
                 console.log('AudioContext resumed successfully');
                 playActualSound(sound, index, currentFadeInDuration);
-                lastPlayedSoundIndex = index; // Atualiza o cursor após tocar
+                lastPlayedSoundIndex = index; // Atualiza o cursor APÓS tocar
             }).catch(e => console.error('Erro ao retomar AudioContext:', e));
         } else {
             playActualSound(sound, index, currentFadeInDuration);
-            lastPlayedSoundIndex = index; // Atualiza o cursor após tocar
+            lastPlayedSoundIndex = index; // Atualiza o cursor APÓS tocar
         }
+        return true; // Um som foi iniciado
     }
 
-    // MODIFICADO: Função que realmente toca o som, com fade-in e loop
     function playActualSound(sound, index, fadeInDuration = 0) {
         const source = audioContext.createBufferSource();
         source.buffer = sound.audioBuffer;
-        source.loop = sound.isLooping; // NOVO: Ativa/desativa o loop com base no estado do som
+        source.loop = sound.isLooping;
 
         const gainNode = audioContext.createGain();
         gainNode.connect(audioContext.masterGainNode);
@@ -571,7 +565,6 @@ document.addEventListener('DOMContentLoaded', () => {
             gainNode.gain.setValueAtTime(1, now);
         }
 
-        // MODIFICADO: Adiciona a instância {source, gainNode} aos Sets
         const playingInstance = { source, gain: gainNode };
         sound.activePlayingInstances.add(playingInstance);
         globalActivePlayingInstances.add(playingInstance);
@@ -579,7 +572,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const cell = document.querySelector(`.sound-cell[data-index="${index}"]`);
         if (cell) {
             cell.classList.add('active');
-            // Remove a classe 'cued' quando o som começa a tocar
             if (sound.isCued) {
                 sound.isCued = false;
                 cell.classList.remove('cued');
@@ -587,6 +579,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             source.onended = () => {
                 if (!source.loop) {
+                    // Pequeno atraso para garantir que a transição visual é suave
                     setTimeout(() => {
                         cell.classList.remove('active');
                         sound.activePlayingInstances.delete(playingInstance);
@@ -604,6 +597,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (playMultipleCheckbox.checked) {
             source.start(0);
         } else {
+            // Parar outras instâncias ativas do MESMO som
             sound.activePlayingInstances.forEach(instance => {
                 if (instance !== playingInstance) {
                     fadeoutInstance(instance.source, instance.gain, 0.1);
@@ -613,15 +607,18 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // NOVA FUNÇÃO: Para fazer fade out de uma instância específica de som
     function fadeoutInstance(sourceNode, gainNode, duration) {
-        if (!audioContext || !sourceNode || !gainNode) return;
+        if (!audioContext || !sourceNode || !gainNode || typeof gainNode.gain === 'undefined') return;
 
         const now = audioContext.currentTime;
         if (duration === 0) {
             gainNode.gain.cancelScheduledValues(now);
             gainNode.gain.setValueAtTime(0, now);
-            sourceNode.stop();
+            try {
+                sourceNode.stop();
+            } catch (e) {
+                console.warn("Erro ao parar sourceNode:", e);
+            }
             sourceNode.disconnect();
             gainNode.disconnect();
         } else {
@@ -629,27 +626,27 @@ document.addEventListener('DOMContentLoaded', () => {
             gainNode.gain.setValueAtTime(gainNode.gain.value, now);
             gainNode.gain.linearRampToValueAtTime(0.001, now + duration);
 
-            // Usa onended para limpar após o fade, mesmo que a fonte possa continuar a tocar
-            // por um breve período ou estar em loop (que será ignorado após o ganho ser 0)
             const stopTime = now + duration;
-            sourceNode.stop(stopTime); // Agenda a paragem da fonte
+            try {
+                sourceNode.stop(stopTime);
+            } catch (e) {
+                console.warn("Erro ao agendar stop para sourceNode:", e);
+            }
+
             sourceNode.onended = () => {
                 sourceNode.disconnect();
                 gainNode.disconnect();
             };
 
-            // Fallback para garantir que desconecta se onended não for disparado corretamente
             setTimeout(() => {
-                if (sourceNode.numberOfOutputs > 0) { // Verifica se ainda está conectado
+                if (sourceNode.numberOfOutputs > 0) {
                     sourceNode.disconnect();
                     gainNode.disconnect();
                 }
-            }, duration * 1000 + 100); // Dá um pouco mais de tempo para o fade
+            }, duration * 1000 + 100);
         }
     }
 
-
-    // MODIFICADO: A função fadeoutSound agora chama fadeoutInstance para todas as instâncias ativas do som
     function fadeoutSound(index, duration) {
         const sound = soundData[index];
         if (!sound || !sound.audioBuffer) {
@@ -671,25 +668,22 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log(`Sound ${index} fading out over ${duration} seconds.`);
     }
 
-    // MODIFICADO: A função clearSoundCell agora usa fadeoutSound
     function clearSoundCell(index, fadeDuration = 0.1) {
         const sound = soundData[index];
         if (!sound) {
             return;
         }
 
-        // Primeiro, para todas as instâncias ativas deste som
         fadeoutSound(index, fadeDuration);
 
-        // Em seguida, limpa os dados da célula após um pequeno atraso para o fade
         setTimeout(() => {
-            clearSoundData(index); // Isso remove a referência, mas as instâncias já foram desativadas/desconectadas pelo fadeoutSound
+            clearSoundData(index);
 
             const cell = document.querySelector(`.sound-cell[data-index="${index}"]`);
             if (cell) {
                 updateCellDisplay(cell, { name: translations[currentLanguage].cellEmptyDefault, key: defaultKeys[index] || '', isLooping: false, isCued: false }, true);
                 cell.classList.remove('active');
-                cell.classList.remove('cued'); // Garante que a classe cued é removida ao limpar
+                cell.classList.remove('cued');
             }
 
             saveSettings();
@@ -700,7 +694,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }, fadeDuration * 1000 + 100);
     }
 
-    // MODIFICADO: clearSoundData agora lida com activePlayingInstances
     function clearSoundData(index) {
         const sound = soundData[index];
         if (sound && sound.activePlayingInstances) {
@@ -716,17 +709,16 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             sound.activePlayingInstances.clear();
         }
-        if (soundData[index]) { // Se o som existe, remove o estado cued
+        if (soundData[index]) {
             soundData[index].isCued = false;
         }
-        cuedSounds.delete(index); // Remove também do set de cuedSounds
+        cuedSounds.delete(index);
         soundData[index] = null;
     }
 
-    // NOVO: Função para ativar/desativar o estado "cued" de uma célula
     function toggleCue(index) {
         const sound = soundData[index];
-        if (!sound || sound.audioBuffer === null) { // Só pode "cue" se tiver som
+        if (!sound || sound.audioBuffer === null) {
             return;
         }
 
@@ -744,21 +736,17 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // NOVO: Função para tocar todos os sons em "cue"
     function playCuedSounds() {
         if (cuedSounds.size === 0) {
             return;
         }
 
-        // Converte o Set para um Array para iterar e remover elementos seguramente
         const soundsToPlay = Array.from(cuedSounds);
         soundsToPlay.forEach(index => {
-            playSound(index); // playSound já lida com o fade-in e remove a classe 'cued'
+            playSound(index);
         });
-        // O set cuedSounds é esvaziado implicitamente por playSound ao remover a classe 'cued'
     }
 
-    // NOVO: Função para parar todos os sons em "cue"
     function stopCuedSounds() {
         if (cuedSounds.size === 0) {
             return;
@@ -767,21 +755,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const soundsToStop = Array.from(cuedSounds);
         soundsToStop.forEach(index => {
             fadeoutSound(index, currentFadeOutDuration);
-            // Ao invés de remover a classe 'cued' aqui, ela é removida no playActualSound
-            // ou ao limpar a célula. Para o caso de `stopCuedSounds`, o som não é
-            // "des-cued", apenas parado. Se for para des-cue, é preciso uma função separada.
-            // Para este cenário, como o som está a ser parado, pode-se des-cue-lo.
             const cell = document.querySelector(`.sound-cell[data-index="${index}"]`);
             if (cell && soundData[index]) {
                 soundData[index].isCued = false;
                 cell.classList.remove('cued');
             }
         });
-        cuedSounds.clear(); // Limpa o set após tratar todos
+        cuedSounds.clear();
         saveSettings();
     }
 
-    // NOVO: Função para remover todos os sons em "cue" sem parar
     function removeAllCues() {
         cuedSounds.forEach(index => {
             const cell = document.querySelector(`.sound-cell[data-index="${index}"]`);
@@ -794,6 +777,41 @@ document.addEventListener('DOMContentLoaded', () => {
         saveSettings();
     }
 
+    // NOVO: Função auxiliar para encontrar a próxima/anterior célula com som
+    function findNextSoundIndex(startIndex, direction) {
+        let currentIndex = startIndex;
+        let attempts = 0;
+        const maxAttempts = NUM_CELLS; // Evita loop infinito em caso de todas as células vazias
+
+        while (attempts < maxAttempts) {
+            currentIndex += direction;
+
+            if (currentIndex >= NUM_CELLS) {
+                currentIndex = 0; // Wrap around to start
+            } else if (currentIndex < 0) {
+                currentIndex = NUM_CELLS - 1; // Wrap around to end
+            }
+
+            // Se encontrarmos um som carregado, retornamos o índice
+            if (soundData[currentIndex] && soundData[currentIndex].audioBuffer) {
+                return currentIndex;
+            }
+
+            // Se, ao avançar, chegarmos novamente ao ponto de partida
+            // (e o ponto de partida estava vazio ou não tinha som),
+            // isso significa que não há mais sons na direção desejada.
+            // Isso acontece se start index for null e a primeira célula não tiver som,
+            // ou se só houver uma célula com som e você tentar avançar/retroceder.
+            if (startIndex !== null && currentIndex === startIndex && attempts > 0) {
+                return null; // Não há mais sons para encontrar
+            }
+
+            attempts++;
+        }
+        return null; // Não encontrou nenhum som em todas as tentativas
+    }
+
+
     document.addEventListener('keydown', (e) => {
         const pressedKey = e.key.toLowerCase();
 
@@ -801,30 +819,52 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // NOVO: Lógica para Space e Ctrl + Space (Qlab style)
-        if (pressedKey === ' ' && !e.ctrlKey && !e.shiftKey && !e.altKey) { // Apenas Space
+        // Lógica para Space e Ctrl + Space (Qlab style)
+        if (pressedKey === ' ' && !e.ctrlKey && !e.shiftKey && !e.altKey) { // Apenas Space (GO)
             e.preventDefault();
-            let nextIndex;
-            if (lastPlayedSoundIndex === null || lastPlayedSoundIndex === NUM_CELLS - 1) {
-                nextIndex = 0; // Se nada foi tocado ou é a última, vai para a primeira
+            let targetIndex;
+
+            if (lastPlayedSoundIndex === null) {
+                // Se nenhum som foi tocado ainda, começa a procurar a partir do -1 para encontrar o 0 ou o próximo
+                targetIndex = findNextSoundIndex(-1, 1);
             } else {
-                nextIndex = lastPlayedSoundIndex + 1;
+                targetIndex = findNextSoundIndex(lastPlayedSoundIndex, 1);
             }
-            playSound(nextIndex); // playSound já atualiza lastPlayedSoundIndex
+
+            if (targetIndex !== null) {
+                const played = playSound(targetIndex);
+                // lastPlayedSoundIndex é atualizado dentro de playSound SE o som for reproduzido.
+                // Se playSound retornar false (célula vazia), não atualizamos lastPlayedSoundIndex aqui,
+                // mas a lógica de findNextSoundIndex já garantiu que saltamos vazios.
+            } else {
+                console.log("Não há mais sons para tocar para a frente.");
+                // O que fazer se não houver mais sons para tocar?
+                // Podemos manter lastPlayedSoundIndex como está ou redefini-lo para o início/fim.
+                // Por agora, vou mantê-lo, para que o próximo GO procure de novo a partir do último ponto.
+                // O QLab geralmente para de avançar se não há mais deixas.
+            }
             return;
-        } else if (pressedKey === ' ' && e.ctrlKey) { // Ctrl + Space
+        } else if (pressedKey === ' ' && e.ctrlKey) { // Ctrl + Space (GO-)
             e.preventDefault();
-            let prevIndex;
-            if (lastPlayedSoundIndex === null || lastPlayedSoundIndex === 0) {
-                prevIndex = NUM_CELLS - 1; // Se nada foi tocado ou é a primeira, vai para a última
+            let targetIndex;
+
+            if (lastPlayedSoundIndex === null) {
+                // Se nenhum som foi tocado ainda, começa a procurar a partir do NUM_CELLS para encontrar o último ou o anterior
+                targetIndex = findNextSoundIndex(NUM_CELLS, -1);
             } else {
-                prevIndex = lastPlayedSoundIndex - 1;
+                targetIndex = findNextSoundIndex(lastPlayedSoundIndex, -1);
             }
-            playSound(prevIndex); // playSound já atualiza lastPlayedSoundIndex
+
+            if (targetIndex !== null) {
+                const played = playSound(targetIndex);
+                // lastPlayedSoundIndex é atualizado dentro de playSound SE o som for reproduzido.
+            } else {
+                console.log("Não há mais sons para tocar para trás.");
+            }
             return;
         }
 
-        // NOVO: Atalhos de teclado para Cue/Go
+        // Atalhos de teclado para Cue/Go
         if (e.key === 'Enter') {
             e.preventDefault();
             if (e.ctrlKey) { // Ctrl + Enter: Adiciona/remove o último som tocado do cue
@@ -839,7 +879,7 @@ document.addEventListener('DOMContentLoaded', () => {
             else { // Enter (sem modificadores): Toca todos os sons em cue
                 playCuedSounds();
             }
-            return; // Impede que o Enter normal continue
+            return;
         }
 
         if (pressedKey === 'arrowup') {
@@ -862,18 +902,17 @@ document.addEventListener('DOMContentLoaded', () => {
             stopAllSounds();
         } else if (e.ctrlKey && pressedKey >= '0' && pressedKey <= '9') {
             e.preventDefault();
-            fadeInRange.value = parseInt(pressedKey); // Atualiza o slider
+            fadeInRange.value = parseInt(pressedKey);
             currentFadeInDuration = parseFloat(fadeInRange.value);
             updateFadeInDisplay();
             saveSettings();
-        } else if (pressedKey >= '0' && pressedKey <= '9' && !e.ctrlKey && !e.altKey && !e.shiftKey) { // Garante que é apenas o número
+        } else if (pressedKey >= '0' && pressedKey <= '9' && !e.ctrlKey && !e.altKey && !e.shiftKey) {
             e.preventDefault();
-            fadeOutRange.value = parseInt(pressedKey); // Atualiza o slider
+            fadeOutRange.value = parseInt(pressedKey);
             currentFadeOutDuration = parseFloat(fadeOutRange.value);
             updateFadeOutDisplay();
             saveSettings();
         } else {
-            // Lógica existente para teclas QWERTY
             const indexToPlay = defaultKeys.indexOf(pressedKey);
             if (indexToPlay !== -1 && soundData[indexToPlay] && soundData[indexToPlay].audioBuffer) {
                 playSound(indexToPlay);
@@ -881,7 +920,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // NOVO: Event listeners para os sliders de Fade In/Out
     fadeInRange.addEventListener('input', () => {
         currentFadeInDuration = parseFloat(fadeInRange.value);
         updateFadeInDisplay();
@@ -938,17 +976,14 @@ document.addEventListener('DOMContentLoaded', () => {
         saveSettings();
     });
 
-    // MODIFICADO: stopAllSounds agora itera globalActivePlayingInstances
     function stopAllSounds() {
         if (audioContext) {
             const now = audioContext.currentTime;
-            const fadeDuration = 0.2; // Duração do fade out para parar todos os sons
+            const fadeDuration = 0.2;
 
-            // Itera sobre uma cópia do Set para permitir modificações durante a iteração
             const instancesToStop = new Set(globalActivePlayingInstances);
 
             instancesToStop.forEach(instance => {
-                // Verifica se a instância é válida, tem um source e se o gain é um GainNode (e não undefined)
                 if (instance && instance.source && instance.gain && typeof instance.gain.gain === 'object') {
                     try {
                         instance.gain.gain.cancelScheduledValues(now);
