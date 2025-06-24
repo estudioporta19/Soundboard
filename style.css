@@ -83,7 +83,7 @@ h1 {
     gap: 10px;
 }
 
-.volume-control label, .playback-mode label, .fadein-settings span, .fadeout-settings span {
+.volume-control label, .playback-mode label, .fadein-settings label, .fadeout-settings label { /* MODIFICADO: Adicionado labels para fade settings */
     font-weight: bold;
     white-space: nowrap;
 }
@@ -268,6 +268,22 @@ input[type="checkbox"]:checked::after {
     border: 2px solid #4CAF50;
     filter: brightness(1.1);
 }
+
+/* NOVO: Estilo para a célula em cue (pronta para ser tocada com GO/GO-) */
+.sound-cell.cued {
+    box-shadow: 0 0 10px 5px rgba(255, 255, 0, 0.5); /* Amarelo suave */
+    border: 2px solid yellow; /* Borda amarela para indicar cue */
+    transform: scale(1.02);
+    transition: transform 0.1s ease-out, box-shadow 0.1s ease-out, border 0.1s ease-out;
+}
+
+/* NOVO: Garante que o cueing é removido quando o som está ativo, para não haver conflito visual */
+.sound-cell.cued.active {
+    box-shadow: 0 0 15px #4CAF50, 0 0 20px rgba(76, 175, 80, 0.6); /* Volta ao estilo 'active' */
+    border: 2px solid #4CAF50;
+    filter: brightness(1.1);
+}
+
 
 .sound-cell.drag-over {
     border: 2px dashed #4CAF50;
