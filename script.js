@@ -3,23 +3,23 @@ document.addEventListener('DOMContentLoaded', () => {
     const volumeRange = document.getElementById('volume-range');
     const volumeDisplay = document.getElementById('volume-display');
     const playMultipleCheckbox = document.getElementById('play-multiple');
+    const autokillModeCheckbox = document.getElementById('autokill-mode'); // Nova checkbox
     const stopAllSoundsBtn = document.getElementById('stop-all-sounds');
-    const loadSoundsButtonGeneral = document.getElementById('load-sounds-button-general'); // Botão geral
+    const loadSoundsButtonGeneral = document.getElementById('load-sounds-button-general');
 
-    const NUM_CELLS = 12; // Número de células na soundboard
+    const NUM_CELLS = 12;
     let audioContext;
-    const soundData = []; // Armazena info do som: { name, key, audioBuffer, audioDataUrl, currentSources: Set }
-    const activeSounds = new Set(); // Para controlar instâncias de sons a tocar globalmente
+    const soundData = []; // { name, key, audioBuffer, audioDataUrl, activeGainNodes: Set }
+    const globalActiveGainNodes = new Set(); // Para controlar todos os sons a tocar globalmente
+    let lastPlayedSoundIndex = null; // Para o modo Autokill
 
     // Inicializa o AudioContext
     function initAudioContext() {
         if (!audioContext) {
             audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            // Conecta o GainNode (para controle de volume) ao destino
-            const gainNode = audioContext.createGain();
-            gainNode.connect(audioContext.destination);
-            gainNode.gain.value = volumeRange.value; // Define o volume inicial
-            audioContext.masterGainNode = gainNode; // Armazena para acesso fácil
+            audioContext.masterGainNode = audioContext.createGain();
+            audioContext.masterGainNode.connect(audioContext.destination);
+            audioContext.masterGainNode.gain.value = volumeRange.value;
         }
     }
 
@@ -30,10 +30,10 @@ document.addEventListener('DOMContentLoaded', () => {
         
         volumeRange.value = savedSettings.volume !== undefined ? savedSettings.volume : 0.75;
         playMultipleCheckbox.checked = savedSettings.playMultiple !== undefined ? savedSettings.playMultiple : false;
+        autokillModeCheckbox.checked = savedSettings.autokillMode !== undefined ? savedSettings.autokillMode : false; // Carrega estado do autokill
         
         updateVolumeDisplay();
 
-        // Regenerar células e carregar sons
         for (let i = 0; i < NUM_CELLS; i++) {
             const cellData = savedSounds[i];
             const cell = createSoundCell(i);
@@ -50,6 +50,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const settingsToSave = {
             volume: parseFloat(volumeRange.value),
             playMultiple: playMultipleCheckbox.checked,
+            autokillMode: autokillModeCheckbox.checked, // Guarda estado do autokill
             sounds: soundData.map(data => ({
                 name: data ? data.name : null,
                 key: data ? data.key : null,
@@ -65,11 +66,10 @@ document.addEventListener('DOMContentLoaded', () => {
         cell.classList.add('sound-cell', 'empty');
         cell.dataset.index = index;
 
-        // Botão de apagar (cruz)
         const deleteButton = document.createElement('button');
         deleteButton.classList.add('delete-button');
         deleteButton.textContent = '❌';
-        deleteButton.title = 'Apagar este som (fade out)';
+        deleteButton.title = 'Apagar este som (fade out rápido)';
         cell.appendChild(deleteButton);
 
         const nameDisplay = document.createElement('div');
@@ -90,26 +90,24 @@ document.addEventListener('DOMContentLoaded', () => {
         keyInfo.title = 'Clique para atribuir uma tecla';
         cellActions.appendChild(keyInfo);
 
-        // Botão de carregar som por célula
-        const loadSingleButton = document.createElement('div');
-        loadSingleButton.classList.add('load-single-button');
-        loadSingleButton.innerHTML = '<span class="folder-icon">📂</span> Carregar';
-        loadSingleButton.title = 'Carregar um som para esta célula';
-        cellActions.appendChild(loadSingleButton);
+        // Novo botão de Fade Out de 5 segundos
+        const fadeoutButton = document.createElement('div');
+        fadeoutButton.classList.add('fadeout-button');
+        fadeoutButton.textContent = '🔽'; // Um ícone para fade out
+        fadeoutButton.title = 'Fade Out (5s)';
+        cellActions.appendChild(fadeoutButton);
 
         soundboardGrid.appendChild(cell);
 
         setupCellEvents(cell, index);
 
-        // Inicializa o soundData para esta célula
         soundData[index] = null;
 
         return cell;
     }
 
-    // Configura os eventos de Drag & Drop, Clique, Edição e Ações para uma célula
+    // Configura os eventos para uma célula
     function setupCellEvents(cell, index) {
-        // Drag & Drop
         cell.addEventListener('dragover', (e) => {
             e.preventDefault();
             cell.classList.add('drag-over');
@@ -130,15 +128,30 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // Click para tocar som
+        // Click para tocar ou carregar som
         cell.addEventListener('click', (e) => {
             // Verifica se o clique não foi nos botões de controlo da célula ou overlay
-            if (!cell.classList.contains('empty') && 
-                !e.target.closest('.sound-name') && 
-                !e.target.closest('.key-info') && 
-                !e.target.closest('.load-single-button') &&
-                !e.target.closest('.delete-button') &&
-                !cell.querySelector('.key-assign-overlay')) {
+            if (e.target.closest('.delete-button') || 
+                e.target.closest('.fadeout-button') || // Novo botão fadeout
+                e.target.closest('.sound-name') || 
+                e.target.closest('.key-info') || 
+                cell.querySelector('.key-assign-overlay')) {
+                e.stopPropagation(); 
+                return;
+            }
+
+            if (cell.classList.contains('empty')) {
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = 'audio/mp3, audio/wav, audio/ogg';
+                input.onchange = async (event) => {
+                    const file = event.target.files[0];
+                    if (file) {
+                        await loadFileIntoCell(file, cell, index);
+                    }
+                };
+                input.click();
+            } else {
                 playSound(index);
             }
         });
@@ -166,27 +179,20 @@ document.addEventListener('DOMContentLoaded', () => {
             assignKeyToCell(cell, index);
         });
 
-        // Carregar som por célula (botão 📂)
-        const loadSingleButton = cell.querySelector('.load-single-button');
-        loadSingleButton.addEventListener('click', (e) => {
-            e.stopPropagation(); // Previne o clique na célula de tocar o som
-            const input = document.createElement('input');
-            input.type = 'file';
-            input.accept = 'audio/mp3, audio/wav, audio/ogg';
-            input.onchange = async (event) => {
-                const file = event.target.files[0];
-                if (file) {
-                    await loadFileIntoCell(file, cell, index);
-                }
-            };
-            input.click();
-        });
-
         // Apagar som (botão ❌)
         const deleteButton = cell.querySelector('.delete-button');
         deleteButton.addEventListener('click', (e) => {
-            e.stopPropagation(); // Previne o clique na célula de tocar o som
-            clearSoundCell(index);
+            e.stopPropagation();
+            clearSoundCell(index, 0.3); // Fade out rápido ao apagar (0.3s)
+        });
+
+        // Novo: Fade Out de 5 segundos (botão 🔽)
+        const fadeoutButton = cell.querySelector('.fadeout-button');
+        fadeoutButton.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (soundData[index] && soundData[index].audioBuffer) {
+                fadeoutSound(index, 5); // 5 segundos de fade out
+            }
         });
     }
 
@@ -205,13 +211,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 const defaultName = nameOverride || file.name.replace(/\.[^/.]+$/, "");
                 const key = keyOverride !== null ? keyOverride : (soundData[index] ? soundData[index].key : '');
                 
-                // Inicializa currentSources como um Set para gerir múltiplas instâncias
+                // Limpa quaisquer sons existentes nesta célula antes de carregar um novo
+                if (soundData[index]) {
+                    clearSoundData(index);
+                }
+
                 soundData[index] = {
                     name: defaultName,
                     key: key,
                     audioBuffer: audioBuffer,
                     audioDataUrl: audioDataUrl,
-                    currentSources: new Set() // Para gerir instâncias individuais de som
+                    activeGainNodes: new Set()
                 };
                 updateCellDisplay(cell, soundData[index], false);
                 saveSettings();
@@ -240,7 +250,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 key: key || '',
                 audioBuffer: audioBuffer,
                 audioDataUrl: dataUrl,
-                currentSources: new Set()
+                activeGainNodes: new Set()
             };
             updateCellDisplay(cell, soundData[index], false);
         } catch (error) {
@@ -268,20 +278,25 @@ document.addEventListener('DOMContentLoaded', () => {
         const nameDisplay = cell.querySelector('.sound-name');
         const keyDisplay = cell.querySelector('.key-display');
         const deleteButton = cell.querySelector('.delete-button');
-        const loadSingleButton = cell.querySelector('.load-single-button');
+        const keyInfo = cell.querySelector('.key-info'); // Para mostrar/esconder
+        const fadeoutButton = cell.querySelector('.fadeout-button'); // Para mostrar/esconder
 
         if (isEmpty) {
             cell.classList.add('empty');
             nameDisplay.textContent = 'Vazio';
             keyDisplay.textContent = 'Sem Tecla';
-            deleteButton.style.display = 'none'; // Esconde a cruz para células vazias
-            loadSingleButton.style.display = 'flex'; // Mostra o botão carregar na célula vazia
+            deleteButton.style.display = 'none';
+            fadeoutButton.style.display = 'none'; // Esconde o botão fadeout
+            nameDisplay.contentEditable = false;
+            keyInfo.style.display = 'none'; 
         } else {
             cell.classList.remove('empty');
             nameDisplay.textContent = data.name || 'Sem Nome';
             keyDisplay.textContent = data.key ? data.key.toUpperCase() : 'Sem Tecla';
-            deleteButton.style.display = 'flex'; // Mostra a cruz para células com som
-            loadSingleButton.style.display = 'none'; // Esconde o botão carregar quando já tem som
+            deleteButton.style.display = 'flex';
+            fadeoutButton.style.display = 'flex'; // Mostra o botão fadeout
+            nameDisplay.contentEditable = true;
+            keyInfo.style.display = 'flex';
         }
     }
 
@@ -294,99 +309,132 @@ document.addEventListener('DOMContentLoaded', () => {
 
         initAudioContext();
 
+        // Lógica Autokill: Se ativado e um som anterior foi tocado, para-o
+        if (autokillModeCheckbox.checked && lastPlayedSoundIndex !== null && lastPlayedSoundIndex !== index) {
+            fadeoutSound(lastPlayedSoundIndex, 0.2); // Fade out rápido do som anterior (0.2s)
+        }
+
+        // Se o contexto de áudio estiver suspenso (por exemplo, após inatividade do utilizador), tente retomá-lo.
         if (audioContext.state === 'suspended') {
             audioContext.resume().then(() => {
                 console.log('AudioContext resumed successfully');
                 playActualSound(sound, index);
+                lastPlayedSoundIndex = index; // Atualiza o último som tocado APENAS se iniciar
             }).catch(e => console.error('Erro ao retomar AudioContext:', e));
         } else {
             playActualSound(sound, index);
+            lastPlayedSoundIndex = index; // Atualiza o último som tocado
         }
     }
 
     function playActualSound(sound, index) {
         const source = audioContext.createBufferSource();
         source.buffer = sound.audioBuffer;
-        source.connect(audioContext.masterGainNode);
+
+        const gainNode = audioContext.createGain();
+        gainNode.connect(audioContext.masterGainNode);
+        source.connect(gainNode);
+
+        // Adiciona a referência do GainNode às listas de controlo
+        sound.activeGainNodes.add(gainNode);
+        globalActiveGainNodes.add(gainNode);
 
         const cell = soundboardGrid.children[index];
-        
-        // Adiciona a instância à lista global e à lista da célula
-        activeSounds.add(source);
-        if (sound.currentSources) {
-            sound.currentSources.add(source);
-        } else {
-            sound.currentSources = new Set([source]);
-        }
-
         if (cell) {
             cell.classList.add('active');
             source.onended = () => {
                 cell.classList.remove('active');
-                activeSounds.delete(source);
-                sound.currentSources.delete(source); // Remove da lista da célula
+                sound.activeGainNodes.delete(gainNode);
+                globalActiveGainNodes.delete(gainNode);
+                source.disconnect();
+                gainNode.disconnect();
             };
         }
 
-        // Lida com a opção de reproduzir múltiplas vezes
         if (playMultipleCheckbox.checked) {
             source.start(0);
         } else {
-            // Se não for para reproduzir múltiplas vezes, para todas as instâncias anteriores daquela célula
-            sound.currentSources.forEach(s => {
-                if (s !== source && s.stop) { // Não parar a que acabou de ser iniciada
-                    s.stop();
-                    s.disconnect();
-                    activeSounds.delete(s);
+            // Se não for para reproduzir múltiplas vezes, para todas as instâncias anteriores deste som
+            sound.activeGainNodes.forEach(gN => {
+                if (gN !== gainNode) {
+                    gN.gain.cancelScheduledValues(audioContext.currentTime);
+                    gN.gain.setValueAtTime(gN.gain.value, audioContext.currentTime);
+                    gN.gain.linearRampToValueAtTime(0.001, audioContext.currentTime + 0.1); 
+                    setTimeout(() => {
+                        gN.disconnect();
+                        globalActiveGainNodes.delete(gN);
+                    }, 150);
                 }
             });
-            sound.currentSources.clear(); // Limpa e adiciona a nova
-            sound.currentSources.add(source);
+            sound.activeGainNodes.clear();
+            sound.activeGainNodes.add(gainNode);
             source.start(0);
         }
     }
 
-    // Apaga um som da célula com fade out
-    function clearSoundCell(index) {
+    // Função para aplicar fade out a um som de uma célula específica
+    function fadeoutSound(index, duration) {
         const sound = soundData[index];
         if (!sound || !sound.audioBuffer) {
-            return; // Já está vazia
+            return;
+        }
+
+        initAudioContext();
+        const now = audioContext.currentTime;
+
+        sound.activeGainNodes.forEach(gainNode => {
+            gainNode.gain.cancelScheduledValues(now); // Limpa agendamentos anteriores
+            gainNode.gain.setValueAtTime(gainNode.gain.value, now); // Define o valor inicial para o fade
+            gainNode.gain.linearRampToValueAtTime(0.001, now + duration); // Fade out para quase zero
+            
+            setTimeout(() => {
+                if (gainNode) {
+                    gainNode.disconnect();
+                    globalActiveGainNodes.delete(gainNode);
+                }
+            }, duration * 1000 + 50); // Atraso para garantir o fim do fade
+        });
+        sound.activeGainNodes.clear(); // Limpa as referências ativas para este som
+    }
+
+    // Apaga um som da célula com um fade out opcional
+    function clearSoundCell(index, fadeDuration = 0.3) {
+        const sound = soundData[index];
+        if (!sound || !sound.audioBuffer) {
+            return;
         }
 
         initAudioContext(); // Garante o contexto
 
-        // Aplicar fade out a todas as instâncias ativas deste som
-        if (sound.currentSources) {
-            const now = audioContext.currentTime;
-            const fadeDuration = 0.5; // 0.5 segundos de fade out
+        fadeoutSound(index, fadeDuration); // Usa a nova função de fade out
 
-            sound.currentSources.forEach(source => {
-                if (source.gain) { // Se o source tiver um nó de ganho (melhor prática)
-                    source.gain.linearRampToValueAtTime(0, now + fadeDuration);
-                } else { // Caso contrário, manipula o masterGainNode temporariamente ou para diretamente
-                    // Esta parte é mais complexa sem um GainNode por som.
-                    // Para simplificar, vamos parar a fonte após um pequeno atraso.
-                    // A melhor solução seria ter um GainNode para cada SourceBuffer.
-                    // Por agora, vamos apenas parar e desconectar.
-                }
-                setTimeout(() => {
-                    if (source && source.stop) {
-                        source.stop();
-                        source.disconnect();
-                        activeSounds.delete(source);
-                    }
-                }, fadeDuration * 1000 + 50); // Dá um tempinho extra para o fade
-            });
-            sound.currentSources.clear(); // Limpa as referências
-        }
-        
-        // Reseta os dados da célula
-        soundData[index] = null;
-        const cell = soundboardGrid.children[index];
-        updateCellDisplay(cell, { name: 'Vazio', key: '' }, true);
-        saveSettings();
+        // Após o fade out (ou imediatamente se duration for 0), limpa os dados da célula
+        setTimeout(() => {
+            clearSoundData(index);
+            const cell = soundboardGrid.children[index];
+            updateCellDisplay(cell, { name: 'Vazio', key: '' }, true);
+            saveSettings();
+            if (lastPlayedSoundIndex === index) { // Se a célula apagada era a última tocada no modo autokill
+                lastPlayedSoundIndex = null;
+            }
+        }, fadeDuration * 1000 + 100); // Um pouco mais de atraso para garantir o fade
     }
 
+
+    // Função auxiliar para limpar dados de som de uma célula e parar instâncias
+    function clearSoundData(index) {
+        const sound = soundData[index];
+        if (sound && sound.activeGainNodes) {
+            sound.activeGainNodes.forEach(gainNode => {
+                gainNode.gain.cancelScheduledValues(audioContext.currentTime);
+                gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+                gainNode.disconnect();
+                globalActiveGainNodes.delete(gainNode);
+            });
+            sound.activeGainNodes.clear();
+        }
+        soundData[index] = null;
+    }
 
     // Atribui uma tecla a uma célula
     function assignKeyToCell(cell, index) {
@@ -461,7 +509,6 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         
-        // Controlo de volume com setas para cima/baixo
         if (pressedKey === 'arrowup') {
             e.preventDefault();
             volumeRange.value = Math.min(1, parseFloat(volumeRange.value) + 0.05);
@@ -479,10 +526,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             saveSettings();
         } else if (pressedKey === 'escape') {
-            // Atalho para parar todos os sons
             stopAllSounds();
         } else {
-            // Procura e reproduz o som associado à tecla
             const soundToPlay = soundData.find(s => s && s.key === pressedKey);
             if (soundToPlay) {
                 const index = soundData.indexOf(soundToPlay);
@@ -510,27 +555,43 @@ document.addEventListener('DOMContentLoaded', () => {
         saveSettings();
     });
 
+    // Novo: Evento para a checkbox do modo Autokill
+    autokillModeCheckbox.addEventListener('change', () => {
+        saveSettings();
+    });
+
     // Parar todos os sons (global)
     function stopAllSounds() {
-        activeSounds.forEach(source => {
-            if (source && source.stop) {
-                source.stop();
-                source.disconnect();
-            }
-        });
-        activeSounds.clear();
-        // Também limpar as referências nas células para evitar problemas
-        soundData.forEach(sound => {
-            if (sound && sound.currentSources) {
-                sound.currentSources.clear();
-            }
-        });
+        if (audioContext) {
+            const now = audioContext.currentTime;
+            const fadeDuration = 0.2;
+
+            globalActiveGainNodes.forEach(gainNode => {
+                if (gainNode) {
+                    gainNode.gain.cancelScheduledValues(now);
+                    gainNode.gain.setValueAtTime(gainNode.gain.value, now);
+                    gainNode.gain.linearRampToValueAtTime(0.001, now + fadeDuration);
+                    
+                    setTimeout(() => {
+                        if (gainNode) gainNode.disconnect();
+                    }, fadeDuration * 1000 + 50);
+                }
+            });
+            globalActiveGainNodes.clear();
+            
+            // Limpar também as referências nas células
+            soundData.forEach(sound => {
+                if (sound && sound.activeGainNodes) {
+                    sound.activeGainNodes.clear();
+                }
+            });
+            lastPlayedSoundIndex = null; // Reseta o último som tocado no modo autokill
+        }
     }
 
     stopAllSoundsBtn.addEventListener('click', stopAllSounds);
 
-    // --- LÓGICA DE CARREGAMENTO DE MÚLTIPLOS SONS VIA BOTÃO GERAL ---
-
+    // Lógica de Carregamento de Múltiplos Sons Via Botão Geral
     loadSoundsButtonGeneral.addEventListener('click', () => {
         const input = document.createElement('input');
         input.type = 'file';
@@ -539,7 +600,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         input.onchange = async (e) => {
             const files = Array.from(e.target.files);
-            let startIndex = 0; // Começa a procurar células vazias a partir do início
+            let startIndex = 0; 
             
             for (const file of files) {
                 let foundEmptyCell = false;
@@ -547,7 +608,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (soundData[i] === null || soundData[i].audioBuffer === null) {
                         const cell = soundboardGrid.children[i];
                         await loadFileIntoCell(file, cell, i);
-                        startIndex = i + 1; // Próximo ficheiro procura a partir desta célula + 1
+                        startIndex = i + 1;
                         foundEmptyCell = true;
                         break;
                     }
@@ -561,16 +622,13 @@ document.addEventListener('DOMContentLoaded', () => {
         input.click();
     });
 
-    // --- FIM DA LÓGICA GERAL DE CARREGAMENTO ---
-
     // Inicialização: criar células e carregar configurações
     for (let i = 0; i < NUM_CELLS; i++) {
         createSoundCell(i);
     }
     loadSettings();
 
-    // Workaround para o Chrome: AudioContext precisa de uma interação do utilizador para ser "resumido"
-    // ou iniciado se o autoplay estiver bloqueado.
+    // Workaround para o Chrome: AudioContext precisa de uma interação do utilizador
     document.body.addEventListener('click', () => {
         if (audioContext && audioContext.state === 'suspended') {
             audioContext.resume().then(() => {
