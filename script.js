@@ -798,44 +798,64 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // MODIFICADO: stopAllSounds agora itera globalActivePlayingInstances
-    function stopAllSounds() {
-        if (audioContext) {
-            const now = audioContext.currentTime;
-            const fadeDuration = 0.2; 
+function stopAllSounds() {
+    if (audioContext) {
+        const now = audioContext.currentTime;
+        const fadeDuration = 0.2; // Duração do fade out para parar todos os sons
 
-            // NOVO: Itera sobre uma cópia do Set para permitir modificações durante a iteração
-            const instancesToStop = new Set(globalActivePlayingInstances);
+        // Itera sobre uma cópia do Set para permitir modificações durante a iteração
+        const instancesToStop = new Set(globalActivePlayingInstances);
 
-            instancesToStop.forEach(instance => {
-                if (instance && instance.gain) {
-                    instance.gain.cancelScheduledValues(now);
-                    instance.gain.setValueAtTime(instance.gain.value, now);
-                    instance.gain.linearRampToValueAtTime(0.001, now + fadeDuration);
+        instancesToStop.forEach(instance => {
+            // Verifica se a instância é válida, tem um source e se o gain é um GainNode (e não undefined)
+            if (instance && instance.source && instance.gain && typeof instance.gain.gain === 'object') { // Verificação crucial aqui
+                try {
+                    // Cancela quaisquer valores de volume agendados anteriormente para este som
+                    instance.gain.gain.cancelScheduledValues(now);
+                    // Define o valor atual do volume para onde ele está agora
+                    instance.gain.gain.setValueAtTime(instance.gain.gain.value, now);
+                    // Aplica um fade-out linear para 0.001 (quase zero)
+                    instance.gain.gain.linearRampToValueAtTime(0.001, now + fadeDuration);
                     
+                    // Agenda a paragem do som e a desconexão após o fade-out
                     setTimeout(() => {
-                        if (instance.source) instance.source.stop(0); // Para a fonte
-                        if (instance.source) instance.source.disconnect();
-                        if (instance.gain) instance.gain.disconnect();
-                    }, fadeDuration * 1000 + 50);
+                        if (instance.source) {
+                            instance.source.stop(); // Parar a fonte
+                            instance.source.disconnect(); // Desconectar a fonte
+                        }
+                        if (instance.gain) {
+                            instance.gain.disconnect(); // Desconectar o nó de ganho
+                        }
+                    }, fadeDuration * 1000 + 50); // Adiciona um pequeno atraso (50ms) para garantir o fade
+                } catch (error) {
+                    console.warn("Erro ao parar som ou aplicar fade-out:", error);
+                    // Fallback: se houver um erro, tenta parar o source diretamente sem fade
+                    if (instance.source && typeof instance.source.stop === 'function') {
+                        instance.source.stop();
+                    }
                 }
-                globalActivePlayingInstances.delete(instance); // Remove do set global
-            });
-            // O set global é esvaziado aqui, pois todas as instâncias foram tratadas.
-            globalActivePlayingInstances.clear();
-            
-            document.querySelectorAll('.sound-cell.active').forEach(cell => {
-                cell.classList.remove('active');
-            });
+            }
+            // Remove a instância do set global independentemente do sucesso do stop
+            globalActivePlayingInstances.delete(instance);
+        });
 
-            // Garante que cada som individual limpa suas instâncias
-            soundData.forEach(sound => {
-                if (sound && sound.activePlayingInstances) {
-                    sound.activePlayingInstances.clear();
-                }
-            });
-            lastPlayedSoundIndex = null;
-        }
+        // O set global é esvaziado aqui, pois todas as instâncias foram tratadas.
+        globalActivePlayingInstances.clear();
+        
+        // Remove a classe 'active' de todas as células para feedback visual
+        document.querySelectorAll('.sound-cell.active').forEach(cell => {
+            cell.classList.remove('active');
+        });
+
+        // Garante que cada som individual limpa suas instâncias ativas
+        soundData.forEach(sound => {
+            if (sound && sound.activePlayingInstances) {
+                sound.activePlayingInstances.clear();
+            }
+        });
+        lastPlayedSoundIndex = null; // Reseta o último som tocado
     }
+}
 
     stopAllSoundsBtn.addEventListener('click', stopAllSounds);
 
