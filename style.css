@@ -1,0 +1,317 @@
+body {
+    font-family: 'Montserrat', sans-serif;
+    background-color: #2c3e50; /* Azul escuro */
+    color: #ecf0f1; /* Branco claro */
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+.container {
+    background-color: #34495e; /* Azul médio */
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+    text-align: center;
+    width: 100%;
+    max-width: 1000px;
+}
+
+h1 {
+    color: #f1c40f; /* Amarelo */
+    margin-bottom: 30px;
+    font-size: 2.5em;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+}
+
+.controls {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 20px;
+    margin-bottom: 30px;
+    align-items: center;
+}
+
+.volume-control, .playback-mode {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background-color: #2c3e50;
+    padding: 10px 20px;
+    border-radius: 8px;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.volume-control label, .playback-mode label {
+    font-weight: bold;
+}
+
+#volume-range {
+    width: 150px;
+    -webkit-appearance: none;
+    height: 8px;
+    border-radius: 5px;
+    background: #5a7b8e;
+    outline: none;
+    opacity: 0.9;
+    transition: opacity .2s;
+}
+
+#volume-range::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #f1c40f;
+    cursor: grab;
+    box-shadow: 0 0 5px rgba(0,0,0,0.3);
+}
+
+#volume-range::-webkit-slider-thumb:active {
+    cursor: grabbing;
+}
+
+#volume-display {
+    min-width: 45px;
+    text-align: left;
+    font-weight: bold;
+    color: #f1c40f;
+}
+
+#play-multiple {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+}
+
+#stop-all-sounds {
+    background-color: #e74c3c; /* Vermelho */
+    color: white;
+    border: none;
+    padding: 12px 25px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1em;
+    font-weight: bold;
+    transition: background-color 0.2s ease, transform 0.1s ease;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+#stop-all-sounds:hover {
+    background-color: #c0392b;
+    transform: translateY(-2px);
+}
+
+#stop-all-sounds:active {
+    transform: translateY(0);
+}
+
+.soundboard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.sound-cell {
+    background-color: #2c3e50;
+    border: 3px solid #34495e;
+    border-radius: 10px;
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    min-height: 150px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+}
+
+.sound-cell.empty {
+    border-style: dashed;
+    border-color: #7f8c8d; /* Cinzento */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-style: italic;
+    color: #bdc3c7;
+    font-size: 0.9em;
+}
+
+.sound-cell.empty::before {
+    content: "Arraste um som para aqui";
+    text-align: center;
+}
+
+.sound-cell:not(.empty):hover {
+    transform: translateY(-5px);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.4);
+    border-color: #f1c40f;
+}
+
+.sound-cell.active {
+    background-color: #f1c40f; /* Amarelo */
+    color: #2c3e50;
+    transform: scale(1.05);
+    box-shadow: 0 0 20px rgba(241, 196, 15, 0.7);
+}
+
+.sound-cell .sound-name {
+    font-weight: bold;
+    font-size: 1.2em;
+    margin-bottom: 10px;
+    text-align: center;
+    word-break: break-word; /* Garante que o texto se ajusta à largura */
+    cursor: text;
+    padding: 5px;
+    border-radius: 5px;
+    transition: background-color 0.2s ease;
+}
+
+.sound-cell .sound-name:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.sound-cell .sound-name:focus {
+    outline: none;
+    background-color: #f1c40f;
+    color: #2c3e50;
+    padding: 5px;
+}
+
+.sound-cell .key-info {
+    font-size: 0.9em;
+    color: #bdc3c7;
+    margin-top: auto; /* Empurra para baixo */
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    cursor: pointer;
+    background-color: rgba(0,0,0,0.2);
+    padding: 5px 10px;
+    border-radius: 5px;
+    transition: background-color 0.2s ease;
+}
+
+.sound-cell .key-info:hover {
+    background-color: rgba(0,0,0,0.3);
+}
+
+.key-info .key-icon {
+    font-size: 1.1em;
+    line-height: 1; /* Alinha o ícone */
+}
+
+.key-assign-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.85);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    font-size: 1.2em;
+    text-align: center;
+    border-radius: 10px;
+    z-index: 10;
+    box-shadow: inset 0 0 15px rgba(0,0,0,0.5);
+}
+
+.key-assign-overlay p {
+    margin-bottom: 15px;
+    font-weight: bold;
+}
+
+.key-assign-overlay span {
+    background-color: #f1c40f;
+    color: #2c3e50;
+    padding: 8px 15px;
+    border-radius: 5px;
+    font-weight: bold;
+    font-size: 1.1em;
+    min-width: 50px;
+    display: inline-block;
+}
+
+.help-text {
+    background-color: #2c3e50;
+    padding: 20px;
+    border-radius: 10px;
+    text-align: left;
+    margin-top: 30px;
+    font-size: 0.95em;
+    line-height: 1.6;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.help-text ul {
+    list-style: none;
+    padding: 0;
+    margin-top: 15px;
+}
+
+.help-text li {
+    margin-bottom: 8px;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+    h1 {
+        font-size: 2em;
+    }
+    .soundboard-grid {
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        gap: 15px;
+    }
+    .sound-cell {
+        min-height: 120px;
+        padding: 10px;
+    }
+    .sound-cell .sound-name {
+        font-size: 1.1em;
+    }
+    .controls {
+        flex-direction: column;
+        gap: 15px;
+    }
+    #stop-all-sounds {
+        width: 100%;
+    }
+    .volume-control, .playback-mode {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+@media (max-width: 480px) {
+    .container {
+        padding: 20px;
+    }
+    h1 {
+        font-size: 1.8em;
+    }
+    .soundboard-grid {
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+        gap: 10px;
+    }
+    .sound-cell {
+        min-height: 100px;
+    }
+    .help-text {
+        font-size: 0.85em;
+        padding: 15px;
+    }
+}
