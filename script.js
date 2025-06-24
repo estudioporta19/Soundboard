@@ -17,7 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const defaultKeys = 'qwertyuiopasdfghjklzxcvbnm'.split('');
     let usedKeys = new Set(); // Para controlar as teclas já atribuídas
 
-    // Função para gerar uma cor de fundo aleatória e garantir que seja visível no localStorage
+    // Função para gerar uma cor de fundo aleatória
     function getRandomColor() {
         const letters = '0123456789ABCDEF';
         let color = '#';
@@ -53,12 +53,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         for (let i = 0; i < NUM_CELLS; i++) {
             const cellData = savedSounds[i];
-            const cell = createSoundCell(i);
+            const cell = createSoundCell(i); // Cria a célula e adiciona ao DOM AQUI E APENAS AQUI!
             
             if (cellData && cellData.audioDataUrl) {
-                // Se a cor já existe, usa-a; senão, gera uma nova
-                const color = cellData.color || getRandomColor();
-                cell.style.backgroundColor = color; // Aplica a cor de fundo
+                const color = cellData.color || getRandomColor(); // Se a cor existe, usa-a; senão, gera uma nova
                 
                 // Atribui uma tecla padrão se não houver uma salva ou se a salva estiver vazia, e não estiver em uso
                 let assignedKey = cellData.key || '';
@@ -96,7 +94,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 name: data ? data.name : null,
                 key: data ? data.key : null,
                 audioDataUrl: data ? data.audioDataUrl : null,
-                color: data ? data.color : null // Guarda a cor da célula
+                color: data ? data.color : null
             }))
         };
         localStorage.setItem('soundboardSettings', JSON.stringify(settingsToSave));
@@ -138,33 +136,24 @@ document.addEventListener('DOMContentLoaded', () => {
         fadeoutButton.title = 'Fade Out (5s)';
         cellActions.appendChild(fadeoutButton);
 
-        soundboardGrid.appendChild(cell);
+        soundboardGrid.appendChild(cell); // Adiciona a célula ao grid AQUI!
 
-        setupCellEvents(cell, index); // Assegura que os eventos são configurados para cada nova célula
+        // Configura os eventos PARA ESTA CÉLULA RECÉM-CRIADA
+        setupCellEvents(cell, index); 
 
         soundData[index] = null;
 
-        return cell;
+        return cell; // Retorna a referência para a célula criada
     }
 
-    // Configura os eventos para uma célula
+    // Configura os eventos para uma célula - SEM CLONAGEM, pois a célula já é nova
     function setupCellEvents(cell, index) {
-        // Remove listeners existentes para evitar duplicação (importante para o bug do '❌')
-        // Embora não esteja a remover os eventos da célula, mas sim a reassociá-los,
-        // o problema do '❌' pode ser mais relacionado com a forma como os elementos DOM são geridos.
-        // O código anterior já fazia a reatribuição, o problema pode estar noutro lugar,
-        // mas vale a pena garantir que não há conflitos.
-
-        // Limpar listeners antigos antes de adicionar novos (se a célula for reutilizada)
-        const oldCell = soundboardGrid.children[index];
-        if (oldCell) {
-            // Clonar e substituir para remover todos os event listeners de uma vez
-            const newCell = oldCell.cloneNode(true);
-            soundboardGrid.replaceChild(newCell, oldCell);
-            cell = newCell; // Atualiza a referência 'cell' para a nova célula clonada
+        // Remove quaisquer overlays de atribuição de tecla que possam ter ficado de uma sessão anterior se a página recarregar
+        const existingOverlay = cell.querySelector('.key-assign-overlay');
+        if (existingOverlay) {
+            cell.removeChild(existingOverlay);
         }
 
-        // AGORA, adiciona os listeners à célula (ou à sua versão clonada)
         cell.addEventListener('dragover', (e) => {
             e.preventDefault();
             cell.classList.add('drag-over');
@@ -234,8 +223,10 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         const deleteButton = cell.querySelector('.delete-button');
+        // Adicionando o listener ao botão de apagar especificamente
         deleteButton.addEventListener('click', (e) => {
-            e.stopPropagation();
+            e.stopPropagation(); // Evita que o clique se propague para a célula e tente tocar o som
+            console.log(`Apagar célula ${index}`); // Log para depuração
             clearSoundCell(index, 0.3); // Fade out rápido ao apagar (0.3s)
         });
 
@@ -366,19 +357,23 @@ document.addEventListener('DOMContentLoaded', () => {
         if (isEmpty) {
             cell.classList.add('empty');
             nameDisplay.textContent = 'Vazio';
+            nameDisplay.contentEditable = false; // Não é editável quando vazia
+
             keyDisplay.textContent = 'Sem Tecla';
-            deleteButton.style.display = 'none';
-            fadeoutButton.style.display = 'none';
-            nameDisplay.contentEditable = false;
-            keyInfo.style.display = 'none'; 
+            keyInfo.style.display = 'none'; // Esconde o atalho de teclado
+
+            deleteButton.style.display = 'none'; // Esconde o botão de apagar
+            fadeoutButton.style.display = 'none'; // Esconde o botão fadeout
         } else {
             cell.classList.remove('empty');
             nameDisplay.textContent = data.name || 'Sem Nome';
+            nameDisplay.contentEditable = true; // Torna editável quando tem som
+
             keyDisplay.textContent = data.key ? data.key.toUpperCase() : 'Sem Tecla';
-            deleteButton.style.display = 'flex';
-            fadeoutButton.style.display = 'flex';
-            nameDisplay.contentEditable = true;
-            keyInfo.style.display = 'flex';
+            keyInfo.style.display = 'flex'; // Mostra o atalho de teclado
+
+            deleteButton.style.display = 'flex'; // Mostra o botão de apagar
+            fadeoutButton.style.display = 'flex'; // Mostra o botão fadeout
         }
     }
 
@@ -476,32 +471,35 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function clearSoundCell(index, fadeDuration = 0.3) {
         const sound = soundData[index];
-        if (!sound || !sound.audioBuffer) {
+        if (!sound) { // Se não há som, não faz nada
             return;
         }
 
-        initAudioContext();
+        initAudioContext(); // Garante que o contexto de áudio está ativo
 
-        fadeoutSound(index, fadeDuration);
+        fadeoutSound(index, fadeDuration); // Inicia o fade out do som atual
 
+        // Define um timeout para limpar os dados da célula após o fade out
         setTimeout(() => {
             // Se a célula tinha uma tecla atribuída, remove-a de usedKeys
             if (soundData[index] && soundData[index].key) {
                 usedKeys.delete(soundData[index].key);
             }
 
-            clearSoundData(index);
+            clearSoundData(index); // Limpa os dados internos do array soundData
+
             const cell = soundboardGrid.children[index];
-            updateCellDisplay(cell, { name: 'Vazio', key: '' }, true);
+            updateCellDisplay(cell, { name: 'Vazio', key: '' }, true); // Atualiza o display para "Vazio"
             
             // Atribui uma nova cor aleatória à célula vazia
             cell.style.backgroundColor = getRandomColor(); 
 
-            saveSettings();
+            saveSettings(); // Salva o estado atual (célula vazia)
             if (lastPlayedSoundIndex === index) {
                 lastPlayedSoundIndex = null;
             }
-        }, fadeDuration * 1000 + 100);
+            console.log(`Célula ${index} limpa.`); // Confirmação de depuração
+        }, fadeDuration * 1000 + 100); // Um pouco mais de atraso para garantir o fade
     }
 
     function clearSoundData(index) {
@@ -689,7 +687,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 let foundEmptyCell = false;
                 for (let i = startIndex; i < NUM_CELLS; i++) {
                     if (soundData[i] === null || soundData[i].audioBuffer === null) {
-                        const cell = soundboardGrid.children[i];
+                        const cell = soundboardGrid.children[i]; // Pega a referência da célula já existente
                         await loadFileIntoCell(file, cell, i);
                         startIndex = i + 1;
                         foundEmptyCell = true;
@@ -705,17 +703,9 @@ document.addEventListener('DOMContentLoaded', () => {
         input.click();
     });
 
-    // Inicialização: criar células e carregar configurações
-    // Criamos as células aqui para garantir que todas existem antes de carregar settings
-    // A função setupCellEvents é chamada dentro de createSoundCell
-    for (let i = 0; i < NUM_CELLS; i++) {
-        const cell = document.createElement('div');
-        cell.classList.add('sound-cell');
-        cell.dataset.index = i;
-        soundboardGrid.appendChild(cell); // Adiciona ao DOM temporariamente
-        // O conteúdo e os event listeners serão adicionados/reconfigurados no loadSettings
-    }
-    loadSettings(); // Isso vai preencher e configurar as células existentes no DOM
+    // CORREÇÃO AQUI: Chamar loadSettings() diretamente para criar e preencher as células.
+    // O loop anterior que criava células vazias foi removido.
+    loadSettings(); 
 
     // Workaround para o Chrome: AudioContext precisa de uma interação do utilizador
     document.body.addEventListener('click', () => {
