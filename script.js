@@ -4,10 +4,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const volumeDisplay = document.getElementById('volume-display');
     const playMultipleCheckbox = document.getElementById('play-multiple');
     const stopAllSoundsBtn = document.getElementById('stop-all-sounds');
+    const loadSoundsButton = document.getElementById('load-sounds-button'); // Novo botão
 
     const NUM_CELLS = 12; // Número de células na soundboard
     let audioContext;
-    const soundData = []; // Armazena info do som: { name, key, audioBuffer, audioSourceNode (para parar) }
+    const soundData = []; // Armazena info do som: { name, key, audioBuffer, audioDataUrl, currentSource }
     const activeSounds = new Set(); // Para controlar instâncias de sons a tocar para parar tudo
 
     // Inicializa o AudioContext
@@ -40,7 +41,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 loadSoundFromDataURL(cellData.audioDataUrl, cell, i, cellData.name, cellData.key);
             } else {
                 // Se não há dados guardados, limpa a célula ou deixa como vazia
-                updateCellDisplay(cell, { name: 'Vazio', key: '' });
+                updateCellDisplay(cell, { name: 'Vazio', key: '' }, true); // True para indicar que está vazia
             }
         }
     }
@@ -48,12 +49,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // Guardar configurações no localStorage
     function saveSettings() {
         const settingsToSave = {
-            volume: volumeRange.value,
+            volume: parseFloat(volumeRange.value), // Garante que é um número
             playMultiple: playMultipleCheckbox.checked,
             sounds: soundData.map(data => ({
                 name: data ? data.name : null,
                 key: data ? data.key : null,
-                // Salvamos o data URL para persistência do áudio
                 audioDataUrl: data ? data.audioDataUrl : null
             }))
         };
@@ -108,7 +108,8 @@ document.addEventListener('DOMContentLoaded', () => {
             cell.classList.remove('drag-over');
             const file = e.dataTransfer.files[0];
             if (file && (file.type === 'audio/wav' || file.type === 'audio/mp3' || file.type === 'audio/ogg')) {
-                loadSoundFile(file, cell, index);
+                // Ao arrastar e soltar um único ficheiro, usa a célula atual
+                loadFileIntoCell(file, cell, index);
             } else {
                 alert('Por favor, arraste um ficheiro de áudio válido (MP3, WAV, OGG).');
             }
@@ -145,8 +146,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Carrega um ficheiro de áudio e o prepara
-    async function loadSoundFile(file, cell, index) {
+    // Carrega um ficheiro de áudio numa célula específica
+    async function loadFileIntoCell(file, cell, index, nameOverride = null, keyOverride = null) {
         initAudioContext(); // Garante que o AudioContext está ativo
 
         const reader = new FileReader();
@@ -155,30 +156,28 @@ document.addEventListener('DOMContentLoaded', () => {
             const arrayBuffer = e.target.result; // O ArrayBuffer completo
 
             try {
-                // Modificação aqui: Passa o ArrayBuffer diretamente para decodeAudioData
                 const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
 
-                const defaultName = file.name.replace(/\.[^/.]+$/, ""); // Remove extensão
-                const key = soundData[index] ? soundData[index].key : ''; // Mantém a tecla se já existir
+                const defaultName = nameOverride || file.name.replace(/\.[^/.]+$/, ""); // Remove extensão
+                const key = keyOverride !== null ? keyOverride : (soundData[index] ? soundData[index].key : ''); // Mantém a tecla se já existir ou usa override
                 
                 soundData[index] = {
                     name: defaultName,
                     key: key,
                     audioBuffer: audioBuffer,
-                    audioDataUrl: audioDataUrl // Guarda o Data URL
+                    audioDataUrl: audioDataUrl
                 };
-                updateCellDisplay(cell, soundData[index]);
+                updateCellDisplay(cell, soundData[index], false); // False para indicar que não está vazia
                 saveSettings();
             } catch (error) {
-                console.error('Erro ao decodificar o áudio:', error);
-                alert('Não foi possível carregar o áudio. Verifique o formato do ficheiro e se não está corrompido.');
+                console.error(`Erro ao decodificar o áudio para célula ${index}:`, error);
+                alert(`Não foi possível carregar o áudio "${file.name}". Verifique o formato do ficheiro e se não está corrompido.`);
                 // Limpa a célula se houver erro
-                updateCellDisplay(cell, { name: 'Vazio', key: '' });
+                updateCellDisplay(cell, { name: 'Vazio', key: '' }, true); // True para indicar que está vazia
                 soundData[index] = null;
                 saveSettings();
             }
         };
-        // Modificação aqui: Lê o ficheiro como ArrayBuffer
         reader.readAsArrayBuffer(file);
     }
 
@@ -198,13 +197,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 audioBuffer: audioBuffer,
                 audioDataUrl: dataUrl
             };
-            updateCellDisplay(cell, soundData[index]);
+            updateCellDisplay(cell, soundData[index], false); // False para indicar que não está vazia
             // Não precisa de saveSettings aqui, pois já estamos a carregar
         } catch (error) {
             console.error('Erro ao decodificar áudio do Data URL:', error);
             alert(`Erro ao carregar o som "${name}". Pode estar corrompido.`);
             // Limpa a célula se houver erro
-            updateCellDisplay(cell, { name: 'Vazio', key: '' });
+            updateCellDisplay(cell, { name: 'Vazio', key: '' }, true); // True para indicar que está vazia
             soundData[index] = null;
             saveSettings(); // Guarda para remover o som corrompido
         }
@@ -221,16 +220,20 @@ document.addEventListener('DOMContentLoaded', () => {
         return bytes.buffer;
     }
 
-
     // Atualiza a exibição da célula com o nome e a tecla
-    function updateCellDisplay(cell, data) {
+    function updateCellDisplay(cell, data, isEmpty) {
         const nameDisplay = cell.querySelector('.sound-name');
         const keyDisplay = cell.querySelector('.key-display');
         
-        cell.classList.remove('empty'); // Remove a classe 'empty'
-        
-        nameDisplay.textContent = data.name || 'Sem Nome';
-        keyDisplay.textContent = data.key ? data.key.toUpperCase() : 'Sem Tecla';
+        if (isEmpty) {
+            cell.classList.add('empty');
+            nameDisplay.textContent = 'Vazio';
+            keyDisplay.textContent = 'Sem Tecla';
+        } else {
+            cell.classList.remove('empty');
+            nameDisplay.textContent = data.name || 'Sem Nome';
+            keyDisplay.textContent = data.key ? data.key.toUpperCase() : 'Sem Tecla';
+        }
     }
 
     // Reproduz um som
@@ -425,6 +428,42 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     stopAllSoundsBtn.addEventListener('click', stopAllSounds);
+
+    // --- NOVA LÓGICA DE CARREGAMENTO DE SONS VIA BOTÃO ---
+
+    loadSoundsButton.addEventListener('click', () => {
+        // Cria um input de ficheiro dinâmico
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'audio/mp3, audio/wav, audio/ogg';
+        input.multiple = true; // Permite seleção de múltiplos ficheiros
+        
+        input.onchange = async (e) => {
+            const files = Array.from(e.target.files); // Converte FileList para Array
+            let currentCellIndex = 0;
+
+            for (const file of files) {
+                // Encontra a próxima célula vazia
+                let foundEmptyCell = false;
+                for (let i = currentCellIndex; i < NUM_CELLS; i++) {
+                    if (soundData[i] === null || soundData[i].audioBuffer === null) {
+                        const cell = soundboardGrid.children[i];
+                        await loadFileIntoCell(file, cell, i);
+                        currentCellIndex = i + 1; // Avança para a próxima célula
+                        foundEmptyCell = true;
+                        break; // Sai do loop interno, vai para o próximo ficheiro
+                    }
+                }
+                if (!foundEmptyCell) {
+                    alert(`Não há mais células vazias para carregar "${file.name}".`);
+                    break; // Sai do loop de ficheiros se não houver mais espaço
+                }
+            }
+        };
+        input.click(); // Simula um clique para abrir o diálogo de ficheiros
+    });
+
+    // --- FIM DA NOVA LÓGICA ---
 
     // Inicialização: criar células e carregar configurações
     for (let i = 0; i < NUM_CELLS; i++) {
