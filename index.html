@@ -3,48 +3,51 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Minha Soundboard</title>
+    <title>Soundboard QWERTY</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap" rel="stylesheet">
 </head>
 <body>
     <div class="container">
-        <h1>Minha Soundboard Mágica</h1>
+        <h1>Soundboard QWERTY</h1>
 
         <div class="controls">
             <div class="volume-control">
-                <label for="volume-range">Volume Geral:</label>
+                <label for="volume-range">Volume:</label>
                 <input type="range" id="volume-range" min="0" max="1" step="0.01" value="0.75">
                 <span id="volume-display">75%</span>
             </div>
             <div class="playback-mode">
                 <input type="checkbox" id="play-multiple">
-                <label for="play-multiple">Reproduzir múltiplas vezes</label>
+                <label for="play-multiple">Reproduzir Múltiplos</label>
             </div>
-            <div class="playback-mode"> <input type="checkbox" id="autokill-mode">
-                <label for="autokill-mode">Modo Autokill (Parar anterior)</label>
+            <div class="playback-mode">
+                <input type="checkbox" id="autokill-mode">
+                <label for="autokill-mode">Auto-Kill Anterior</label>
             </div>
             <button id="load-sounds-button-general">Carregar Múltiplos Sons</button>
             <button id="stop-all-sounds">Parar Todos os Sons (ESC)</button>
         </div>
 
-        <div id="soundboard-grid" class="soundboard-grid">
-            </div>
+        <div class="soundboard-grid">
+            <div class="keyboard-row" id="row-top"></div> <div class="keyboard-row" id="row-home"></div> <div class="keyboard-row" id="row-bottom"></div> </div>
 
-        <p class="help-text">
-            **Como usar:**
+        <div class="help-text">
+            <h3>Como Usar:</h3>
             <ul>
-                <li><strong>Carregar Múltiplos Sons:</strong> Use o botão "Carregar Múltiplos Sons" para adicionar vários ficheiros às próximas células vazias.</li>
-                <li><strong>Carregar por Célula:</strong> Clique numa célula vazia para carregar um único som para essa célula.</li>
-                <li><strong>Alterar Nome:</strong> Clique no nome da célula para o editar.</li>
-                <li><strong>Atribuir Tecla:</strong> Clique no ícone de teclado ⌨️ para atribuir ou mudar a tecla.</li>
-                <li><strong>Apagar Som:</strong> Clique na cruz ❌ para fazer o som desaparecer e limpar a célula.</li>
-                <li><strong>Fade Out Célula:</strong> Clique no botão 🔽 para fazer o som atual da célula desaparecer gradualmente em 5 segundos.</li>
-                <li><strong>Modo Autokill:</strong> Ative a checkbox "Modo Autokill" para que um som pare o som anterior que estava a tocar.</li>
-                <li><strong>Volume:</strong> Use as setas <strong>↑</strong> e <strong>↓</strong> do teclado para ajustar o volume geral.</li>
-                <li><strong>Parar Tudo:</strong> Pressione **ESC** para parar todos os sons a tocar.</li>
+                <li><strong>Arrastar e Largar:</strong> Arraste ficheiros de áudio (MP3, WAV, OGG) para as células para as preencher.</li>
+                <li><strong>Clicar:</strong> Clique numa célula vazia para abrir um diálogo de seleção de ficheiro. Clique numa célula preenchida para reproduzir o som.</li>
+                <li><strong>Atalhos de Teclado:</strong> Pressione a tecla correspondente no seu teclado para reproduzir o som. (Ex: Q para a primeira célula).</li>
+                <li><strong>Parar Sons:</strong> Pressione <kbd>ESC</kbd> para parar todos os sons a tocar.</li>
+                <li><strong>Ajustar Volume:</strong> Use o slider de volume ou as teclas <kbd>⬆️</kbd> e <kbd>⬇️</kbd> para controlar o volume global.</li>
+                <li><strong>Apagar Som:</strong> Clique no <span style="font-size:1.1em;">❌</span> no canto superior direito de uma célula para a esvaziar.</li>
+                <li><strong>Fade Out:</strong> Clique no <span style="font-size:1.1em;">🔽</span> para aplicar um fade out de 5 segundos ao som.</li>
+                <li><strong>Mudar Nome:</strong> Clique no nome do som para editá-lo.</li>
+                <li><strong>Mudar Tecla:</strong> Clique no ícone de teclado (<span style="font-size:1.1em;">⌨️</span>) para atribuir uma nova tecla.</li>
+                <li><strong>Modo Reproduzir Múltiplos:</strong> Permite que vários sons toquem ao mesmo tempo se a caixa estiver marcada.</li>
+                <li><strong>Modo Auto-Kill Anterior:</strong> Ao tocar um novo som, o som anteriormente ativo (se houver) será parado com um fade out rápido.</li>
             </ul>
-        </p>
+        </div>
     </div>
 
     <script src="script.js"></script>
