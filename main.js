@@ -276,7 +276,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const input = document.createElement('input');
         input.type = 'file';
         // FIX: Alterado 'audio/mp3' para 'audio/mpeg' para compatibilidade adequada
-        input.accept = 'audio/mpeg, audio/wav, audio/ogg';
+        input.accept = 'audio/mp3, audio/wav, audio/ogg';
         input.multiple = true;
 
         input.onchange = async (e) => {
