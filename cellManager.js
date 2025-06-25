@@ -39,6 +39,7 @@ window.soundboardApp.cellManager = (function() {
 
         const keyDisplayBottom = document.createElement('div');
         keyDisplayBottom.classList.add('key-display-bottom');
+        // Ensure fixedKey exists before calling toUpperCase
         keyDisplayBottom.textContent = fixedKey ? fixedKey.toUpperCase() : '';
         cell.appendChild(keyDisplayBottom);
 
@@ -129,7 +130,7 @@ window.soundboardApp.cellManager = (function() {
             if (soundData[index]) {
                 soundData[index].name = nameDisplay.textContent.trim() || getTranslationCallback('cellNoName');
                 nameDisplay.textContent = soundData[index].name; // Ensure actual displayed text matches data
-                window.soundboardApp.settingsManager.saveSettings(soundData, window.soundboardApp.volumeRange, window.soundboardApp.playMultipleCheckbox, window.soundboardApp.autokillModeCheckbox, window.soundboardApp.fadeOutRange, window.soundboardApp.fadeInRange, window.soundboardApp.isHelpVisible);
+                window.soundboardApp.settingsManager.saveSettings(window.soundboardApp.soundData, window.soundboardApp.volumeRange, window.soundboardApp.playMultipleCheckbox, window.soundboardApp.autokillModeCheckbox, window.soundboardApp.fadeOutRange, window.soundboardApp.fadeInRange, window.soundboardApp.isHelpVisible);
             }
         });
         nameDisplay.addEventListener('keydown', (e) => {
@@ -194,7 +195,7 @@ window.soundboardApp.cellManager = (function() {
             if (soundData[index]) {
                 soundData[index].isLooping = !soundData[index].isLooping;
                 loopButton.classList.toggle('active', soundData[index].isLooping);
-                window.soundboardApp.settingsManager.saveSettings(soundData, window.soundboardApp.volumeRange, window.soundboardApp.playMultipleCheckbox, window.soundboardApp.autokillModeCheckbox, window.soundboardApp.fadeOutRange, window.soundboardApp.fadeInRange, window.soundboardApp.isHelpVisible);
+                window.soundboardApp.settingsManager.saveSettings(window.soundboardApp.soundData, window.soundboardApp.volumeRange, window.soundboardApp.playMultipleCheckbox, window.soundboardApp.autokillModeCheckbox, window.soundboardApp.fadeOutRange, window.soundboardApp.fadeInRange, window.soundboardApp.isHelpVisible);
 
                 // Update active instances' loop status
                 soundData[index].activePlayingInstances.forEach(instance => {
@@ -223,7 +224,8 @@ window.soundboardApp.cellManager = (function() {
             replaceButton.style.display = 'none'; // Hide replace button
             nameDisplay.contentEditable = false; // Disable editing for empty cells
             nameDisplay.classList.remove('editable'); // Remove editable class for styling
-            keyDisplayBottom.textContent = data.key.toUpperCase(); // Show key even if empty
+            // Ensure data.key exists before using it
+            keyDisplayBottom.textContent = (data && data.key) ? data.key.toUpperCase() : '';
         } else {
             nameDisplay.textContent = data.name || getTranslationCallback('cellNoName');
             cell.style.backgroundColor = data.color || window.soundboardApp.utils.getRandomHSLColor(); // Ensure a color if missing
@@ -233,7 +235,8 @@ window.soundboardApp.cellManager = (function() {
             replaceButton.style.display = 'block'; // Show replace button
             nameDisplay.contentEditable = true; // Enable editing for filled cells
             nameDisplay.classList.add('editable'); // Add editable class for styling
-            keyDisplayBottom.textContent = data.key.toUpperCase(); // Show key for filled cells
+            // Ensure data.key exists before using it
+            keyDisplayBottom.textContent = (data && data.key) ? data.key.toUpperCase() : '';
         }
 
         // Update cue state display
