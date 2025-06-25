@@ -457,7 +457,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     // When created, it's initially empty, so pass a default soundDataEntry for display
                     // The actual soundData will be loaded by loadSettings() later
                     updateCellDisplay(cell, {
-                        name: translations[currentLanguage] ? translations[currentLanguage].cellEmptyDefault : 'Drag or Click',
+                        name: defaultText,
                         key: key,
                         isLooping: false,
                         isCued: false,
