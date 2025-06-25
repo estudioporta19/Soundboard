@@ -368,107 +368,113 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+function createSoundboard() {
+    const keyboardRows = {
+        'row-top': ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'],
+        'row-home': ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l'],
+        'row-bottom': ['z', 'x', 'c', 'v', 'b', 'n', 'm']
+    };
 
-    function createSoundboard() {
-        const keyboardRows = {
-            'row-top': ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'],
-            'row-home': ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l'],
-            'row-bottom': ['z', 'x', 'c', 'v', 'b', 'n', 'm']
-        };
+    let cellIndex = 0;
 
-        let cellIndex = 0;
-        for (const rowId in keyboardRows) {
-            const rowElement = document.getElementById(rowId);
-            if (rowElement) {
-                keyboardRows[rowId].forEach(key => {
-                    const cell = document.createElement('div');
-                    cell.classList.add('sound-cell');
-                    cell.dataset.index = cellIndex;
+    // MOVIDO PARA AQUI: Declare defaultText antes do forEach loop
+    // Assim, defaultText é acessível dentro do forEach loop.
+    const initialDefaultCellText = (translations[currentLanguage] && translations[currentLanguage].cellEmptyDefault)
+                                    ? translations[currentLanguage].cellEmptyDefault
+                                    : 'Drag or Click'; // Fallback se as traduções ainda não estiverem carregadas
 
-                    // Add data attributes for original key and sound path
-                    cell.dataset.key = key; // Store the key directly on the cell
+    for (const rowId in keyboardRows) {
+        const rowElement = document.getElementById(rowId);
+        if (rowElement) {
+            keyboardRows[rowId].forEach(key => {
+                const cell = document.createElement('div');
+                cell.classList.add('sound-cell');
+                cell.dataset.index = cellIndex;
 
-                    // Add event listeners for drag and drop
-                    cell.addEventListener('dragover', (e) => {
-                        e.preventDefault(); // Allow drop
-                        cell.classList.add('drag-over');
-                    });
-                    cell.addEventListener('dragleave', () => {
-                        cell.classList.remove('drag-over');
-                    });
-                    cell.addEventListener('drop', async (e) => {
-                        e.preventDefault();
-                        cell.classList.remove('drag-over');
-                        const files = e.dataTransfer.files;
-                        if (files.length > 0 && files[0].type.startsWith('audio/')) {
-                            await loadFileIntoCell(files[0], cell, cellIndex);
-                        } else {
-                            alert(translations[currentLanguage].alertInvalidFile);
-                        }
-                    });
+                // Add data attributes for original key and sound path
+                cell.dataset.key = key; // Store the key directly on the cell
 
-                    // Add click listener to cell (for playing or loading)
-                    cell.addEventListener('click', async (e) => {
-                        // Check if a control button (delete, loop, replace) was clicked
-                        if (e.target.closest('.delete-button') || e.target.closest('.loop-button') || e.target.closest('.replace-sound-button') || e.target.closest('.sound-name[contenteditable="true"]')) {
-                            return; // Do nothing if a control button or editable name was clicked
-                        }
-
-                        // Handle Ctrl + Click for CUE
-                        if (e.ctrlKey) {
-                            toggleCue(cellIndex);
-                            return; // Prevent playing if Ctrl is pressed
-                        }
-
-                        if (soundData[cellIndex] && soundData[cellIndex].audioBuffer) {
-                            playSound(cellIndex);
-                        } else {
-                            // If cell is empty, trigger file input
-                            const input = document.createElement('input');
-                            input.type = 'file';
-                            input.accept = 'audio/mp3, audio/wav, audio/ogg';
-                            input.onchange = async (e) => {
-                                const file = e.target.files[0];
-                                if (file) {
-                                    await loadFileIntoCell(file, cell, cellIndex);
-                                }
-                            };
-                            input.click();
-                        }
-                    });
-
-                    // Event listener for renaming sound (when contenteditable is true)
-                    cell.addEventListener('blur', (e) => {
-                        const target = e.target;
-                        if (target.classList.contains('sound-name') && target.isContentEditable) {
-                            const newName = target.textContent.trim();
-                            const index = parseInt(cell.dataset.index);
-                            if (soundData[index]) {
-                                soundData[index].name = newName;
-                                saveSettings(); // Save after renaming
-                                console.log(`Sound ${index} renamed to: ${newName}`);
-                            }
-                        }
-                    }, true); // Use capture phase for blur event
-
-                    rowElement.appendChild(cell);
-
-                    // Initialize the cell display (important for filled/empty state)
-                    // When created, it's initially empty, so pass a default soundDataEntry for display
-                    // The actual soundData will be loaded by loadSettings() later
-                    updateCellDisplay(cell, {
-                        name: defaultText,
-                        key: key,
-                        isLooping: false,
-                        isCued: false,
-                        audioBuffer: null // Explicitly mark as no sound
-                    }, true); // Pass true to indicate clearing/initial empty state
-
-                    cellIndex++;
+                // Add event listeners for drag and drop
+                cell.addEventListener('dragover', (e) => {
+                    e.preventDefault(); // Allow drop
+                    cell.classList.add('drag-over');
                 });
-            }
+                cell.addEventListener('dragleave', () => {
+                    cell.classList.remove('drag-over');
+                });
+                cell.addEventListener('drop', async (e) => {
+                    e.preventDefault();
+                    cell.classList.remove('drag-over');
+                    const files = e.dataTransfer.files;
+                    if (files.length > 0 && files[0].type.startsWith('audio/')) {
+                        await loadFileIntoCell(files[0], cell, cellIndex);
+                    } else {
+                        alert(translations[currentLanguage].alertInvalidFile);
+                    }
+                });
+
+                // Add click listener to cell (for playing or loading)
+                cell.addEventListener('click', async (e) => {
+                    // Check if a control button (delete, loop, replace) was clicked
+                    if (e.target.closest('.delete-button') || e.target.closest('.loop-button') || e.target.closest('.replace-sound-button') || e.target.closest('.sound-name[contenteditable="true"]')) {
+                        return; // Do nothing if a control button or editable name was clicked
+                    }
+
+                    // Handle Ctrl + Click for CUE
+                    if (e.ctrlKey) {
+                        toggleCue(cellIndex);
+                        return; // Prevent playing if Ctrl is pressed
+                    }
+
+                    if (soundData[cellIndex] && soundData[cellIndex].audioBuffer) {
+                        playSound(cellIndex);
+                    } else {
+                        // If cell is empty, trigger file input
+                        const input = document.createElement('input');
+                        input.type = 'file';
+                        input.accept = 'audio/mp3, audio/wav, audio/ogg';
+                        input.onchange = async (e) => {
+                            const file = e.target.files[0];
+                            if (file) {
+                                await loadFileIntoCell(file, cell, cellIndex);
+                            }
+                        };
+                        input.click();
+                    }
+                });
+
+                // Event listener for renaming sound (when contenteditable is true)
+                cell.addEventListener('blur', (e) => {
+                    const target = e.target;
+                    if (target.classList.contains('sound-name') && target.isContentEditable) {
+                        const newName = target.textContent.trim();
+                        const index = parseInt(cell.dataset.index);
+                        if (soundData[index]) {
+                            soundData[index].name = newName;
+                            saveSettings(); // Save after renaming
+                            console.log(`Sound ${index} renamed to: ${newName}`);
+                        }
+                    }
+                }, true); // Use capture phase for blur event
+
+                rowElement.appendChild(cell);
+
+                // Initialize the cell display (important for filled/empty state)
+                // Usar a variável initialDefaultCellText declarada antes do forEach
+                updateCellDisplay(cell, {
+                    name: initialDefaultCellText, // Agora acessível
+                    key: key,
+                    isLooping: false,
+                    isCued: false,
+                    audioBuffer: null // Explicitly mark as no sound
+                }, true); // Pass true to indicate clearing/initial empty state
+
+                cellIndex++;
+            });
         }
     }
+}
+
 
     async function loadFileIntoCell(file, cellElement, index) {
         if (!audioContext) {
