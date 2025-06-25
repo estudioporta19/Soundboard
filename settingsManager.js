@@ -6,7 +6,8 @@ window.soundboardApp = window.soundboardApp || {};
 
 window.soundboardApp.settingsManager = (function() {
 
-    function loadSettings(appState) {
+    // Adicionado loadMultipleFilesIntoCellsCallback como um novo parâmetro
+    function loadSettings(appState, loadMultipleFilesIntoCellsCallback) { // <--- ALTERAÇÃO AQUI: Adicionado o novo parâmetro
         const savedSettings = JSON.parse(localStorage.getItem('soundboardSettings')) || {};
         const savedSounds = savedSettings.sounds || [];
         const savedHelpVisible = savedSettings.helpVisible !== undefined ? savedSettings.helpVisible : true;
@@ -51,7 +52,8 @@ window.soundboardApp.settingsManager = (function() {
                 window.soundboardApp.audioManager.clearSoundCell,
                 window.soundboardApp.audioManager.fadeoutSound,
                 window.soundboardApp.cueGoSystem.toggleCue,
-                window.soundboardApp.i18n.getTranslation
+                window.soundboardApp.i18n.getTranslation,
+                loadMultipleFilesIntoCellsCallback // <--- ALTERAÇÃO AQUI: Passando o novo callback
             );
 
             // Check if cellData exists and audioDataUrl is a valid string
