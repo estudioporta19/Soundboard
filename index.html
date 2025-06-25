@@ -19,33 +19,49 @@
         <h1 data-key="mainTitle">Soundboard QWERTY</h1>
 
         <div class="controls">
-            <div class="volume-control">
-                <label for="volume-range" data-key="volumeLabel">Volume:</label>
-                <input type="range" id="volume-range" min="0" max="1" step="0.01" value="0.75">
-                <span id="volume-display">75%</span>
+            <div class="control-group-section playback-core">
+                <h3 data-key="playbackCoreTitle">Controles de Reprodução</h3>
+                <div class="control-items-wrapper">
+                    <div class="volume-control control-item">
+                        <label for="volume-range" data-key="volumeLabel">Volume:</label>
+                        <input type="range" id="volume-range" min="0" max="1" step="0.01" value="0.75">
+                        <span id="volume-display">75%</span>
+                    </div>
+                    <div class="playback-mode control-item">
+                        <input type="checkbox" id="play-multiple">
+                        <label for="play-multiple" data-key="playMultipleLabel">Reproduzir Múltiplos</label>
+                    </div>
+                    <div class="playback-mode control-item">
+                        <input type="checkbox" id="autokill-mode">
+                        <label for="autokill-mode" data-key="autokillLabel">Auto-Kill Anterior</label>
+                    </div>
+                </div>
             </div>
-            <div class="playback-mode">
-                <input type="checkbox" id="play-multiple">
-                <label for="play-multiple" data-key="playMultipleLabel">Reproduzir Múltiplos</label>
+
+            <div class="control-group-section global-actions">
+                <h3 data-key="globalActionsTitle">Ações Globais</h3>
+                <div class="control-items-wrapper">
+                    <button id="load-sounds-button-general" data-key="loadMultipleSoundsButton">Carregar Múltiplos Sons</button>
+                    <button id="stop-all-sounds" data-key="stopAllSoundsButton">Parar Todos os Sons (ESC)</button>
+                </div>
             </div>
-            <div class="playback-mode">
-                <input type="checkbox" id="autokill-mode">
-                <label for="autokill-mode" data-key="autokillLabel">Auto-Kill Anterior</label>
+
+            <div class="control-group-section fade-settings-section">
+                <h3 data-key="fadeSettingsTitle">Configurações de Fade</h3>
+                <div class="control-items-wrapper">
+                    <div class="fadein-settings control-item">
+                        <label for="fadeIn-range" data-key="fadeInLabel">Fade In:</label>
+                        <input type="range" id="fadeIn-range" min="0" max="10" step="0.01" value="0">
+                        <span id="fadeIn-display">0s (Início Imediato)</span>
+                    </div>
+                    <div class="fadeout-settings control-item">
+                        <label for="fadeOut-range" data-key="fadeOutLabel">Fade Out:</label>
+                        <input type="range" id="fadeOut-range" min="0" max="10" step="0.01" value="0">
+                        <span id="fadeout-display">0s (Paragem Imediata)</span>
+                    </div>
+                </div>
             </div>
-            <button id="load-sounds-button-general" data-key="loadMultipleSoundsButton">Carregar Múltiplos Sons</button>
-            <button id="stop-all-sounds" data-key="stopAllSoundsButton">Parar Todos os Sons (ESC)</button>
-            
-            <div class="fadein-settings control-group">
-                <label for="fadeIn-range" data-key="fadeInLabel">Fade In:</label>
-                <input type="range" id="fadeIn-range" min="0" max="10" step="0.01" value="0">
-                <span id="fadeIn-display">0s (Início Imediato)</span>
-            </div>
-            <div class="fadeout-settings control-group">
-                <label for="fadeOut-range" data-key="fadeOutLabel">Fade Out:</label>
-                <input type="range" id="fadeOut-range" min="0" max="10" step="0.01" value="0">
-                <span id="fadeout-display">0s (Paragem Imediata)</span>
-            </div>
-            </div>
+        </div>
 
         <div class="soundboard-grid">
             <div class="keyboard-row" id="row-top"></div>
@@ -56,7 +72,6 @@
         <div class="help-button-container">
             <button id="toggle-help-button" data-key="toggleHelpButton">Mostrar Ajuda</button>
         </div>
-
 
         <div class="help-text" id="help-text-content">
             <h3 data-key="howToUseTitle">Como Usar:</h3>
