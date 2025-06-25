@@ -1110,8 +1110,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    ---
-    // --- NOVO CÓDIGO (Integração Limpar Todas as Células) ---
+
+    //  NOVO CÓDIGO (Integração Limpar Todas as Células) 
 
     /**
      * Limpa todas as células do soundboard, parando quaisquer sons ativos,
