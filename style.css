@@ -599,3 +599,50 @@ input[type="checkbox"]:checked::after {
         margin-left: 20px;
     }
 }
+/* Para o cabeçalho clicável */
+.help-text h3 {
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center; /* Centralizar o texto e o ícone */
+    gap: 8px; /* Espaço entre o texto e o ícone */
+    padding: 10px;
+    background-color: #333; /* Cor de fundo para destacar */
+    border-radius: 5px;
+    margin-bottom: 10px;
+    user-select: none; /* Evita seleção de texto ao clicar */
+}
+
+.help-text h3:hover {
+    background-color: #444;
+}
+
+/* Estilo do ícone */
+.help-text h3 .expand-icon {
+    transition: transform 0.3s ease; /* Animação suave para a rotação */
+}
+
+/* Classe para esconder a lista */
+#help-list.hidden {
+    display: none; /* Ou 'max-height: 0; overflow: hidden;' com transição para um efeito mais suave */
+}
+
+/* Classe para o ícone rodar quando expandido */
+.help-text h3.expanded .expand-icon {
+    transform: rotate(180deg);
+}
+
+/* Se preferir um efeito de slide para a lista, use isto em vez de display: none; */
+/*
+#help-list {
+    max-height: 500px; /* Um valor grande o suficiente para o conteúdo */
+    overflow: hidden;
+    transition: max-height 0.3s ease-out, opacity 0.3s ease-out;
+    opacity: 1;
+}
+
+#help-list.hidden {
+    max-height: 0;
+    opacity: 0;
+}
+*/
