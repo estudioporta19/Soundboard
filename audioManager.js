@@ -22,6 +22,19 @@ window.soundboardApp.audioManager = (function() {
 
     async function loadSoundFromDataURL(audioDataUrl, cell, index, name, key, color, isLooping, isCued, soundData, audioContext, updateCellDisplay, getTranslation, saveSettingsCallback) {
         initAudioContext(window.soundboardApp.volumeRange); // Ensure context is initialized
+
+        if (!audioDataUrl || typeof audioDataUrl !== 'string') {
+            console.error(`audioDataUrl inválida para célula ${index}.`);
+            // Treat as empty cell if data URL is invalid
+            if (soundData[index]) {
+                clearSoundData(index, soundData, audioContext, window.soundboardApp.globalActivePlayingInstances);
+            }
+            updateCellDisplay(cell, { name: getTranslation('cellEmptyDefault'), key: key || '', isLooping: false, isCued: false }, true, getTranslation);
+            soundData[index] = null;
+            saveSettingsCallback(soundData, window.soundboardApp.volumeRange, window.soundboardApp.playMultipleCheckbox, window.soundboardApp.autokillModeCheckbox, window.soundboardApp.fadeOutRange, window.soundboardApp.fadeInRange, window.soundboardApp.isHelpVisible);
+            return; // Exit early
+        }
+
         const arrayBuffer = base64ToArrayBuffer(audioDataUrl.split(',')[1]); // Decode base64 to ArrayBuffer
 
         try {
@@ -67,10 +80,12 @@ window.soundboardApp.audioManager = (function() {
 
         const reader = new FileReader();
         reader.onload = async (e) => {
-            const audioDataUrl = e.target.result;
-            const arrayBuffer = e.target.result; // FileReader result is ArrayBuffer when readAsArrayBuffer
+            const audioDataUrl = e.target.result; // This will be a Data URL string
 
             try {
+                // When reading as ArrayBuffer, e.target.result is already the ArrayBuffer
+                // So, no need to convert from Data URL string to ArrayBuffer again here.
+                const arrayBuffer = e.target.result;
                 const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
 
                 const defaultName = file.name.replace(/\.[^/.]+$/, "");
@@ -86,7 +101,7 @@ window.soundboardApp.audioManager = (function() {
                     name: defaultName,
                     key: fixedKey,
                     audioBuffer: audioBuffer,
-                    audioDataUrl: audioDataUrl,
+                    audioDataUrl: audioDataUrl, // Save the Data URL string here
                     activePlayingInstances: new Set(),
                     color: cellColor,
                     isLooping: false,
@@ -102,7 +117,7 @@ window.soundboardApp.audioManager = (function() {
                 saveSettingsCallback(soundData, window.soundboardApp.volumeRange, window.soundboardApp.playMultipleCheckbox, window.soundboardApp.autokillModeCheckbox, window.soundboardApp.fadeOutRange, window.soundboardApp.fadeInRange, window.soundboardApp.isHelpVisible);
             }
         };
-        reader.readAsArrayBuffer(file);
+        reader.readAsDataURL(file); // Changed to readAsDataURL to ensure audioDataUrl is a string Data URL
     }
 
     function playSound(index, soundData, audioContext, playMultipleCheckbox, autokillModeCheckbox, globalActivePlayingInstances, currentFadeInDuration, currentFadeOutDuration, volumeRange) {
