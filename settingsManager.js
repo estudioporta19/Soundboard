@@ -93,10 +93,8 @@ window.soundboardApp.settingsManager = (function() {
             currentFadeInDuration: parseFloat(fadeInRange.value),
             helpVisible: isHelpVisible, // Save help text visibility
             sounds: soundData.map(data => ({
-                // Ensure audioDataUrl is null for empty cells, not undefined
                 name: data ? data.name : null,
                 key: data ? data.key : null,
-                audioDataUrl: data ? data.audioDataUrl : null,
                 color: data ? data.color : null,
                 isLooping: data ? data.isLooping : false,
                 isCued: data ? data.isCued : false // Save cued state
