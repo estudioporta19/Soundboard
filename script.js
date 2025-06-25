@@ -46,7 +46,7 @@ document.addEventListener('DOMContentLoaded', () => {
             setLanguage(savedLang);
         } catch (error) {
             console.error('Erro ao carregar traduções:', error);
-            // Fallback para traduções embutidas caso o ficheiro não carregue
+            // Fallback para traduções embutidas caso o ficheiro não carregue ou haja erro de rede
             translations = {
                 pt: {
                     title: "Soundboard QWERTY", mainTitle: "Soundboard QWERTY", volumeLabel: "Volume:", playMultipleLabel: "Reproduzir Múltiplos", autokillLabel: "Auto-Kill Anterior", loadMultipleSoundsButton: "Carregar Múltiplos Sons", stopAllSoundsButton: "Parar Todos os Sons (ESC)", fadeInLabel: "Fade In:", immediateStart: " (Início Imediato)", fadeOutLabel: "Fade Out:", immediateStop: " (Paragem Imediata)", howToUseTitle: "Como Usar:", dragDropHelp: "<strong>Arrastar e Largar:</strong> Arraste ficheiros de áudio (MP3, WAV, OGG) para as células para as preencher.", clickHelp: "<strong>Clicar:</strong> Clique numa célula vazia para abrir um diálogo de seleção de ficheiro. Clique numa célula preenchida para reproduzir o som.", shortcutsHelp: "<strong>Atalhos de Teclado:</strong> Pressione a tecla correspondente no seu teclado para reproduzir o som. (Ex: Q para a primeira célula).", navigationHelp: "<strong>Navegação (Modo QLab):</strong> Pressione <kbd>Espaço</kbd> para tocar o próximo som disponível. Pressione <kbd>Ctrl</kbd> + <kbd>Espaço</kbd> para tocar o som disponível anterior. Células vazias são ignoradas.", stopAllHelp: "<strong>Parar Sons:</strong> Pressione <kbd>ESC</kbd> para parar todos os sons a tocar.", volumeHelp: "<strong>Ajustar Volume:</strong> Use o slider de volume ou as teclas <kbd>⬆️</kbd> e <kbd>⬇️</kbd> para controlar o volume global.", deleteSoundHelp: "<strong>Apagar Som:</strong> Clique no <span style=\"font-size:1.1em;\">❌</span> no canto superior direito de uma célula para a esvaziar. *Um clique rápido apaga; um clique longo (>0.5s) faz fade out.*", replaceSoundHelp: "<strong>Substituir Som:</strong> Clique no <span class=\"material-symbols-outlined\" style=\"vertical-align: middle; font-size: 1.1em;\">upload_file</span> para carregar um novo som para a célula.", renameHelp: "<strong>Mudar Nome:</strong> Clique no nome do som para editá-lo.", fadeInHelp: "<strong>Controlar Fade In:</strong> Use o slider de Fade In, ou as teclas <kbd>Ctrl</kbd> + teclas numéricas <kbd>0</kbd>-<kbd>9</kbd> para definir a duração do fade in em segundos.", fadeOutControlHelp: "<strong>Controlar Fade Out:</strong> Use o slider de Fade Out, ou as teclas numéricas <kbd>0</kbd>-<kbd>9</kbd> para definir a duração do fade out em segundos.", playMultipleModeHelp: "<strong>Modo Reproduzir Múltiplos:</strong> Permite que vários sons toquem ao mesmo tempo se a caixa estiver marcada.", autokillModeHelp: "<strong>Modo Auto-Kill Anterior:</strong> Ao tocar um novo som, o som anteriormente ativo (se houver) será parado com um fade out rápido.", alertInvalidFile: "Tipo de ficheiro inválido. Por favor, arraste ficheiros de áudio (MP3, WAV, OGG).", alertLoadError: "Não foi possível carregar o áudio '{fileName}'.", alertDecodeError: "Erro ao descodificar o áudio '{soundName}'.", alertNoEmptyCells: "Não há mais células vazias para carregar o ficheiro '{fileName}'.", cellEmptyText: "Clique para carregar o som", cellNoName: "Sem Nome", cellEmptyDefault: "Vazio", loopButtonTitle: "Ativar/Desativar Loop", cueHelp: "<strong>CUE / GO:</strong> Pressione <kbd>Ctrl</kbd> + <kbd>Enter</kbd> para 'cue' (marcar) um som. Pressione <kbd>Enter</kbd> para tocar todos os sons em 'cue' com fade-in. Pressione <kbd>Shift</kbd> + <kbd>Enter</kbd> para parar todos os sons em 'cue' com fade-out.", cueSingleHelp: "<strong>CUE Individual:</strong> Pressione <kbd>Ctrl</kbd> + clique na célula para adicionar/remover um som do 'cue'.", removeCueHelp: "<strong>Remover CUE:</strong> Pressione <kbd>Alt</kbd> + <kbd>Enter</kbd> para remover todos os sons do 'cue' sem os parar.",
@@ -55,7 +55,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     title: "Soundboard QWERTY", mainTitle: "Soundboard QWERTY", volumeLabel: "Volume:", playMultipleLabel: "Play Multiple", autokillLabel: "Auto-Kill Previous", loadMultipleSoundsButton: "Load Multiple Sounds", stopAllSoundsButton: "Stop All Sounds (ESC)", fadeInLabel: "Fade In:", immediateStart: " (Immediate Start)", fadeOutLabel: "Fade Out:", immediateStop: " (Immediate Stop)", howToUseTitle: "How To Use:", dragDropHelp: "<strong>Drag & Drop:</strong> Drag audio files (MP3, WAV, OGG) onto cells to fill them.", clickHelp: "<strong>Click:</strong> Click an empty cell to open a file selection dialog. Click a filled cell to play the sound.", shortcutsHelp: "<strong>Keyboard Shortcuts:</strong> Press the corresponding key on your keyboard to play the sound. (e.g., Q for the first cell).", navigationHelp: "<strong>Navigation (QLab Mode):</strong> Press <kbd>Space</kbd> to play the next available sound. Press <kbd>Ctrl</kbd> + <kbd>Space</kbd> to play the previous available sound. Empty cells are skipped.", stopAllHelp: "<strong>Stop Sounds:</strong> Press <kbd>ESC</kbd> to stop all playing sounds.", volumeHelp: "<strong>Adjust Volume:</strong> Use the volume slider or the <kbd>⬆️</kbd> and <kbd>⬇️</kbd> keys to control global volume.", deleteSoundHelp: "<strong>Delete Sound:</strong> Click the <span style=\"font-size:1.1em;\">❌</span> in the top right corner of a cell to clear it. *A quick click deletes; a long click (>0.5s) fades out.*", replaceSoundHelp: "<strong>Replace Sound:</strong> Click the <span class=\"material-symbols-outlined\" style=\"vertical-align: middle; font-size: 1.1em;\">upload_file</span> to upload a new sound to the cell.", renameHelp: "<strong>Rename Sound:</strong> Click the sound's name to edit it.", fadeInHelp: "<strong>Control Fade In:</strong> Use the Fade In slider, or press <kbd>Ctrl</kbd> + number keys <kbd>0</kbd>-<kbd>9</kbd> to set fade-in duration in seconds.", fadeOutControlHelp: "<strong>Control Fade Out:</strong> Use the Fade Out slider, or press number keys <kbd>0</kbd>-<kbd>9</kbd> to set fade-out duration in seconds.", playMultipleModeHelp: "<strong>Play Multiple Mode:</strong> Allows multiple sounds to play simultaneously if checked.", autokillModeHelp: "<strong>Auto-Kill Previous Mode:</strong> When playing a new sound, the previously active sound (if any) will be stopped with a quick fade out.", alertInvalidFile: "Invalid file type. Please drag audio files (MP3, WAV, OGG).", alertLoadError: "Could not load audio '{fileName}'.", alertDecodeError: "Error decoding audio '{soundName}'.", alertNoEmptyCells: "No more empty cells to load file '{fileName}'.", cellEmptyText: "Click to load sound", cellNoName: "No Name", cellEmptyDefault: "Empty", loopButtonTitle: "Loop (Toggle)", cueHelp: "<strong>CUE / GO:</strong> Press <kbd>Ctrl</kbd> + <kbd>Enter</kbd> to 'cue' (mark) a sound. Press <kbd>Enter</kbd> to play all 'cued' sounds with fade-in. Press <kbd>Shift</kbd> + <kbd>Enter</kbd> to stop all 'cued' sounds with fade-out.", cueSingleHelp: "<strong>CUE Individual:</strong> Press <kbd>Ctrl</kbd> + click on the cell to add/remove a sound from 'cue'.", removeCueHelp: "<strong>Remove CUE:</strong> Press <kbd>Alt</kbd> + <kbd>Enter</kbd> to remove all cued sounds without stopping them.",
                 },
                 it: {
-                    title: "Soundboard QWERTY", mainTitle: "Soundboard QWERTY", volumeLabel: "Volume:", playMultipleLabel: "Riproduci Multipli", autokillLabel: "Auto-Stop Precedente", loadMultipleSoundsButton: "Carica Più Suoni", stopAllSoundsButton: "Ferma Tutti i Suoni (ESC)", fadeInLabel: "Fade In:", immediateStart: " (Avvio Immediato)", fadeOutLabel: "Fade Out:", immediateStop: " (Arresto Immediato)", howToUseTitle: "Come Usare:", dragDropHelp: "<strong>Trascina e Rilascia:</strong> Trascina file audio (MP3, WAV, OGG) sulle celle per riempirle.", clickHelp: "<strong>Clicca:</strong> Clicca una cella vuota per aprire una finestra di selezione file. Clicca una cella piena per riprodurre il suono.", shortcutsHelp: "<strong>Scorciatoie da Tastiera:</strong> Premi il tasto corrispondente sulla tastiera per riprodurre il suono. (Es: Q per la prima cella).", navigationHelp: "<strong>Navigazione (Modalità QLab):</strong> Premi <kbd>Spazio</kbd> per riprodurre il prossimo suono disponibile. Premi <kbd>Ctrl</kbd> + <kbd>Spazio</kbd> per riprodurre il suono disponibile precedente. Le celle vuote vengono saltate.", stopAllHelp: "<strong>Ferma Suoni:</strong> Premi <kbd>ESC</kbd> per fermare tutti i suoni in riproduzione.", volumeHelp: "<strong>Regola Volume:</strong> Usa il cursore del volume o i tasti <kbd>⬆️</kbd> e <kbd>⬇️</kbd> per controllare il volume globale.", deleteSoundHelp: "<strong>Elimina Suono:</strong> Clicca sulla <span style=\"font-size:1.1em;\">❌</span> nell'angolo in alto a destra di una cella per svuotarla. *Un clic rapido elimina; un clic lungo (>0.5s) esegue il fade out.*", replaceSoundHelp: "<strong>Sostituisci Suono:</strong> Clicca su <span class=\"material-symbols-outlined\" style=\"vertical-align: middle; font-size: 1.1em;\">upload_file</span> para carregar um novo suono na cella.", renameHelp: "<strong>Rinomina Suono:</strong> Clicca sul nome del suono per modificarlo.", fadeInHelp: "<strong>Controlla Fade In:</strong> Usa lo slider Fade In, o premi <kbd>Ctrl</kbd> + tasti numerici <kbd>0</kbd>-<kbd>9</kbd> per impostare a durata do fade-in em segundos.", fadeOutControlHelp: "<strong>Controlla Fade Out:</strong> Usa lo slider Fade Out, o premi i tasti numerici <kbd>0</kbd>-<kbd>9</kbd> para definir a duração do fade-out em segundos.", playMultipleModeHelp: "<strong>Modalità Riproduci Multipli:</strong> Permette a più suoni di essere riprodotti contemporaneamente se la casella è selezionata.", autokillModeHelp: "<strong>Modalità Auto-Stop Precedente:</strong> Quando viene riprodotto un nuovo suono, il suono precedentemente attivo (se presente) verrà fermato con un rapido fade out.", alertInvalidFile: "Tipo de file non valido. Si prega de trascinare file audio (MP3, WAV, OGG).", alertLoadError: "Impossibile caricare l'audio '{fileName}'.", alertDecodeError: "Errore durante la decodifica dell'audio '{soundName}'.", alertNoEmptyCells: "Non ci sono più celle vuote per caricare il file '{fileName}'.", cellEmptyText: "Clicca per caricare il suono", cellNoName: "Senza Nome", cellEmptyDefault: "Vuoto", loopButtonTitle: "Loop (Attiva/Disattiva)", cueHelp: "<strong>CUE / GO:</strong> Premi <kbd>Ctrl</kbd> + <kbd>Invio</kbd> per 'cue' (segnare) un suono. Premi <kbd>Invio</kbd> per riprodurre tutti i suoni in 'cue' con fade-in. Premi <kbd>Shift</kbd> + <kbd>Invio</kbd> per fermare tutti i suoni in 'cue' con fade-out.", cueSingleHelp: "<strong>CUE Individuale:</strong> Premi <kbd>Ctrl</kbd> + clic sulla cella per aggiungere/rimuovere un suono dal 'cue'.", removeCueHelp: "<strong>Rimuovi CUE:</strong> Premi <kbd>Alt</kbd> + <kbd>Invio</kbd> per rimuovere tutti i suoni in cue senza fermarli.",
+                    title: "Soundboard QWERTY", mainTitle: "Soundboard QWERTY", volumeLabel: "Volume:", playMultipleLabel: "Riproduci Multipli", autokillLabel: "Auto-Stop Precedente", loadMultipleSoundsButton: "Carica Più Suoni", stopAllSoundsButton: "Ferma Tutti i Suoni (ESC)", fadeInLabel: "Fade In:", immediateStart: " (Avvio Immediato)", fadeOutLabel: "Fade Out:", immediateStop: " (Arresto Immediato)", howToUseTitle: "Come Usare:", dragDropHelp: "<strong>Trascina e Rilascia:</strong> Trascina file audio (MP3, WAV, OGG) sulle celle per riempirle.", clickHelp: "<strong>Clicca:</strong> Clicca una cella vuota per aprire una finestra di selezione file. Clicca una cella piena per riprodurre il suono.", shortcutsHelp: "<strong>Scorciatoie da Tastiera:</strong> Premi il tasto corrispondente sulla tastiera per riprodurre il suono. (Es: Q per la prima cella).", navigationHelp: "<strong>Navigazione (Modalità QLab):</strong> Premi <kbd>Spazio</kbd> per riprodurre il prossimo suono disponibile. Premi <kbd>Ctrl</kbd> + <kbd>Spazio</kbd> per riprodurre il suono disponibile precedente. Le celle vuote vengono saltate.", stopAllHelp: "<strong>Ferma Suoni:</strong> Premi <kbd>ESC</kbd> per fermare tutti i suoni in riproduzione.", volumeHelp: "<strong>Regola Volume:</strong> Usa il cursore del volume o i tasti <kbd>⬆️</kbd> e <kbd>⬇️</kbd> per controllare il volume globale.", deleteSoundHelp: "<strong>Elimina Suono:</strong> Clicca sulla <span style=\"font-size:1.1em;\">❌</span> nell'angolo in alto a destra di una cella per svuotarla. *Un clic rapido elimina; un clic lungo (>0.5s) esegue il fade out.*", replaceSoundHelp: "<strong>Sostituisci Suono:</strong> Clicca su <span class=\"material-symbols-outlined\" style=\"vertical-align: middle; font-size: 1.1em;\">upload_file</span> para carregar um novo suono na cella.", renameHelp: "<strong>Rinomina Suono:</strong> Clicca sul nome del suono per modificarlo.", fadeInHelp: "<strong>Controlla Fade In:</strong> Usa lo slider Fade In, o premi <kbd>Ctrl</kbd> + tasti numerici <kbd>0</kbd>-<kbd>9</kbd> per impostare a durata do fade-in em segundos.", fadeOutControlHelp: "<strong>Controlla Fade Out:</strong> Usa lo slider Fade Out, o premi i tasti numerici <kbd>0</kbd>-<kbd>9</kbd> para definir a duração do fade-out em segundos.", playMultipleModeHelp: "<strong>Modalità Riproduci Multipli:</strong> Permette a più suoni di essere riprodotti contemporaneamente se la casella è selezionata.", autokillModeHelp: "<strong>Modalità Auto-Stop Precedente:</strong> Quando viene riprodotto un nuovo suono, o som anteriormente ativo (se presente) verrà fermato com um rapido fade out.", alertInvalidFile: "Tipo de file non valido. Si prega de trascinare file audio (MP3, WAV, OGG).", alertLoadError: "Impossibile caricare l'audio '{fileName}'.", alertDecodeError: "Errore durante la decodifica dell'audio '{soundName}'.", alertNoEmptyCells: "Non ci sono più celle vuote per caricare il file '{fileName}'.", cellEmptyText: "Clicca per caricare il suono", cellNoName: "Senza Nome", cellEmptyDefault: "Vuoto", loopButtonTitle: "Loop (Attiva/Disattiva)", cueHelp: "<strong>CUE / GO:</strong> Premi <kbd>Ctrl</kbd> + <kbd>Invio</kbd> per 'cue' (segnare) un suono. Premi <kbd>Invio</kbd> per riprodurre tutti i suoni in 'cue' con fade-in. Premi <kbd>Shift</kbd> + <kbd>Invio</kbd> per fermare tutti i suoni in 'cue' con fade-out.", cueSingleHelp: "<strong>CUE Individuale:</strong> Premi <kbd>Ctrl</kbd> + clic sulla cella per aggiungere/rimuovere un suono dal 'cue'.", removeCueHelp: "<strong>Rimuovi CUE:</strong> Premi <kbd>Alt</kbd> + <kbd>Invio</kbd> per rimuovere tutti i suoni in cue senza fermarli.",
                 }
             };
             setLanguage('pt'); // Tenta definir PT como padrão, se não houver um guardado
@@ -143,6 +143,18 @@ document.addEventListener('DOMContentLoaded', () => {
         return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
     }
 
+    // Função auxiliar para converter Data URL para ArrayBuffer
+    function dataURLToArrayBuffer(dataURL) {
+        const base64 = dataURL.split(',')[1];
+        const binaryString = window.atob(base64);
+        const len = binaryString.length;
+        const bytes = new Uint8Array(len);
+        for (let i = 0; i < len; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+        }
+        return bytes.buffer;
+    }
+
     // --- Gestão do AudioContext (Crucial para evitar erros de autoplay) ---
     function initAudioContext() {
         if (!audioContext) {
@@ -177,18 +189,18 @@ document.addEventListener('DOMContentLoaded', () => {
             const cellData = savedSounds[i];
             const cell = createSoundCell(i); // Cria a célula, que é inicialmente vazia
 
-            const fixedKey = defaultKeys[i];
+            const fixedKey = defaultKeys[i]; // Define fixedKey aqui para que esteja sempre disponível
 
             if (cellData && cellData.audioDataUrl) {
                 const color = cellData.color || getRandomHSLColor();
                 const isLooping = cellData.isLooping !== undefined ? cellData.isLooping : false;
                 const isCued = cellData.isCued !== undefined ? cellData.isCued : false; // Carrega também o estado de cue
-                // loadSoundFromDataURL não precisa do audioContext ativo para decodificar
+                // loadSoundFromDataURL agora espera um dataURL completo
                 loadSoundFromDataURL(cellData.audioDataUrl, cell, i, cellData.name, fixedKey, color, isLooping, isCued);
             } else {
                 // Certifica-se de que a soundData para esta célula está vazia
                 soundData[i] = null;
-                updateCellDisplay(cell, { name: translations[currentLanguage].cellEmptyDefault, key: fixedKey || '', isLooping: false, isCued: false }, true);
+                updateCellDisplay(cell, { name: translations[currentLanguage].cellEmptyDefault, key: fixedKey, isLooping: false, isCued: false }, true);
             }
         }
         // Se houver sons em cue no localStorage, restaurá-los
@@ -215,7 +227,7 @@ document.addEventListener('DOMContentLoaded', () => {
             sounds: soundData.map(data => ({
                 name: data ? data.name : null,
                 key: data ? data.key : null,
-                audioDataUrl: data ? data.audioDataUrl : null,
+                audioDataUrl: data ? data.audioDataUrl : null, // Salva a data URL completa
                 color: data ? data.color : null,
                 isLooping: data ? data.isLooping : false,
                 isCued: data ? data.isCued : false // Salva o estado de cue por célula também
@@ -296,7 +308,7 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
             cell.classList.remove('drag-over');
             const file = e.dataTransfer.files[0];
-            if (file && (file.type === 'audio/wav' || file.type === 'audio/mp3' || file.type === 'audio/ogg')) {
+            if (file && (file.type.startsWith('audio/'))) { // Verifica se é um tipo de áudio
                 loadFileIntoCell(file, cell, index);
             } else {
                 alert(translations[currentLanguage].alertInvalidFile);
@@ -425,92 +437,89 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Funções de Carregamento de Áudio ---
     async function loadFileIntoCell(file, cell, index, nameOverride = null) {
-        // Não é necessário chamar initAudioContext aqui, pois a decodificação não requer um contexto "ativo"
-        // A ativação ocorrerá no primeiro clique do utilizador.
+        const readerArrayBuffer = new FileReader();
+        const readerDataURL = new FileReader(); // Segundo FileReader para a Data URL
 
-        const reader = new FileReader();
-        reader.onload = async (e) => {
-            const audioDataUrl = e.target.result;
-            const arrayBuffer = e.target.result; // FileReader.readAsArrayBuffer retorna um ArrayBuffer
+        // Promessas para garantir que ambos os FileReaders terminam
+        const arrayBufferPromise = new Promise(resolve => {
+            readerArrayBuffer.onload = (e) => resolve(e.target.result);
+            readerArrayBuffer.readAsArrayBuffer(file);
+        });
 
-            try {
-                // decodeAudioData pode ser chamado mesmo com o AudioContext suspenso
-                const audioBuffer = await (audioContext || new AudioContext()).decodeAudioData(arrayBuffer);
+        const dataURLPromise = new Promise(resolve => {
+            readerDataURL.onload = (e) => resolve(e.target.result);
+            readerDataURL.readAsDataURL(file);
+        });
 
-                const defaultName = nameOverride || file.name.replace(/\.[^/.]+$/, "");
-                const fixedKey = defaultKeys[index];
-
-                const cellColor = getRandomHSLColor();
-
-                // Limpa qualquer som anterior nesta célula
-                if (soundData[index]) {
-                    clearSoundData(index);
-                }
-
-                soundData[index] = {
-                    name: defaultName,
-                    key: fixedKey,
-                    audioBuffer: audioBuffer,
-                    audioDataUrl: audioDataUrl,
-                    activePlayingInstances: new Set(), // Conjunto para controlar instâncias a tocar
-                    color: cellColor,
-                    isLooping: false,
-                    isCued: false
-                };
-                updateCellDisplay(cell, soundData[index], false);
-                saveSettings();
-            } catch (error) {
-                console.error(`Erro ao decodificar o áudio para célula ${index}:`, error);
-                alert(translations[currentLanguage].alertLoadError.replace('{fileName}', file.name));
-                soundData[index] = null; // Garante que a célula é tratada como vazia
-                updateCellDisplay(cell, { name: translations[currentLanguage].cellEmptyDefault, key: fixedKey || '', isLooping: false, isCued: false }, true);
-                saveSettings();
-            }
-        };
-        reader.readAsArrayBuffer(file);
-    }
-
-    async function loadSoundFromDataURL(dataUrl, cell, index, name, key, color, isLoopingState, isCuedState) {
-        // Não é necessário chamar initAudioContext aqui, apenas para decodificar
         try {
-            const base64Audio = dataUrl.split(',')[1];
-            const arrayBuffer = base64ToArrayBuffer(base64Audio);
+            const arrayBuffer = await arrayBufferPromise;
+            const dataUrl = await dataURLPromise; // Obtém a Data URL completa
+
             // decodeAudioData pode ser chamado mesmo com o AudioContext suspenso
             const audioBuffer = await (audioContext || new AudioContext()).decodeAudioData(arrayBuffer);
 
+            const defaultName = nameOverride || file.name.replace(/\.[^/.]+$/, "");
             const fixedKey = defaultKeys[index];
+
+            const cellColor = getRandomHSLColor();
+
+            // Limpa qualquer som anterior nesta célula
+            if (soundData[index]) {
+                clearSoundData(index);
+            }
+
+            soundData[index] = {
+                name: defaultName,
+                key: fixedKey,
+                audioBuffer: audioBuffer,
+                audioDataUrl: dataUrl, // Armazena a Data URL completa para persistência
+                activePlayingInstances: new Set(),
+                color: cellColor,
+                isLooping: false,
+                isCued: false
+            };
+            updateCellDisplay(cell, soundData[index], false);
+            saveSettings();
+
+        } catch (error) {
+            console.error(`Erro ao decodificar o áudio para célula ${index}:`, error);
+            const fixedKey = defaultKeys[index]; // Garante que fixedKey está disponível aqui
+            alert(translations[currentLanguage].alertLoadError.replace('{fileName}', file.name));
+            soundData[index] = null;
+            updateCellDisplay(cell, { name: translations[currentLanguage].cellEmptyDefault, key: fixedKey, isLooping: false, isCued: false }, true);
+            saveSettings();
+        }
+    }
+
+    async function loadSoundFromDataURL(dataUrl, cell, index, name, key, color, isLoopingState, isCuedState) {
+        const fixedKey = defaultKeys[index]; // Garante que fixedKey está sempre disponível
+
+        try {
+            // Converte o Data URL para ArrayBuffer para decodificar
+            const arrayBuffer = dataURLToArrayBuffer(dataUrl);
+            const audioBuffer = await (audioContext || new AudioContext()).decodeAudioData(arrayBuffer);
 
             soundData[index] = {
                 name: name || translations[currentLanguage].cellNoName,
                 key: fixedKey,
                 audioBuffer: audioBuffer,
-                audioDataUrl: dataUrl,
+                audioDataUrl: dataUrl, // Mantém a dataURL completa
                 activePlayingInstances: new Set(),
                 color: color,
                 isLooping: isLoopingState,
                 isCued: isCuedState
             };
             updateCellDisplay(cell, soundData[index], false);
-            if (isCuedState) { // Adiciona ao conjunto de sons em cue se estiver cued no localStorage
+            if (isCuedState) {
                 cuedSounds.add(index);
             }
         } catch (error) {
             console.error('Erro ao decodificar áudio do Data URL:', error);
-            alert(translations[currentLanguage].alertDecodeError.replace('{soundName}', name || ''));
-            soundData[index] = null; // Garante que a célula é tratada como vazia
-            updateCellDisplay(cell, { name: translations[currentLanguage].cellEmptyDefault, key: fixedKey || '', isLooping: false, isCued: false }, true);
+            alert(translations[currentLanguage].alertDecodeError.replace('{soundName}', name || translations[currentLanguage].cellNoName));
+            soundData[index] = null;
+            updateCellDisplay(cell, { name: translations[currentLanguage].cellEmptyDefault, key: fixedKey, isLooping: false, isCued: false }, true);
             saveSettings();
         }
-    }
-
-    function base64ToArrayBuffer(base64) {
-        const binaryString = window.atob(base64);
-        const len = binaryString.length;
-        const bytes = new Uint8Array(len);
-        for (let i = 0; i < len; i++) {
-            bytes[i] = binaryString.charCodeAt(i);
-        }
-        return bytes.buffer;
     }
 
     // --- Atualização Visual da Célula ---
@@ -644,10 +653,11 @@ document.addEventListener('DOMContentLoaded', () => {
                         cell.classList.remove('active');
                         sound.activePlayingInstances.delete(playingInstance);
                         globalActivePlayingInstances.delete(playingInstance);
-                        // Apenas desconecta se não houver outras referências ativas
-                        if (sound.activePlayingInstances.size === 0) {
-                            source.disconnect();
-                            gainNode.disconnect();
+                        // Apenas desconecta se não houver outras referências ativas (para evitar desconectar antes de outros stop)
+                        // ou se a sourceNode não foi já desconectada (e.g. por um stopAllSounds ou autokill)
+                        if (source.numberOfOutputs > 0) { // Verifica se ainda está conectado
+                           source.disconnect();
+                           gainNode.disconnect();
                         }
                     }, 50); // Ajuste este valor se a transição parecer brusca
                 }
@@ -680,8 +690,10 @@ document.addEventListener('DOMContentLoaded', () => {
             } catch (e) {
                 console.warn("Erro ao parar sourceNode:", e);
             }
-            sourceNode.disconnect();
-            gainNode.disconnect();
+            if (sourceNode.numberOfOutputs > 0) {
+                sourceNode.disconnect();
+                gainNode.disconnect();
+            }
         } else {
             gainNode.gain.cancelScheduledValues(now);
             gainNode.gain.setValueAtTime(gainNode.gain.value, now); // Começa do valor atual
@@ -694,27 +706,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.warn("Erro ao agendar stop para sourceNode:", e);
             }
 
-            sourceNode.onended = () => {
-                sourceNode.disconnect();
-                gainNode.disconnect();
-                // Limpeza adicional caso o onended não seja confiável em todos os browsers/condições
-                if (soundData[sourceNode._soundIndex]) {
-                    soundData[sourceNode._soundIndex].activePlayingInstances.delete({ source: sourceNode, gain: gainNode });
-                }
-                globalActivePlayingInstances.delete({ source: sourceNode, gain: gainNode });
-            };
-
-            // Timeout de segurança caso o onended não dispare corretamente
+            // Garante desconexão após o fade-out
             setTimeout(() => {
                 if (sourceNode.numberOfOutputs > 0) { // Verifica se ainda está conectado
                     sourceNode.disconnect();
                     gainNode.disconnect();
                 }
-                if (soundData[sourceNode._soundIndex]) {
-                    soundData[sourceNode._soundIndex].activePlayingInstances.delete({ source: sourceNode, gain: gainNode });
-                }
-                globalActivePlayingInstances.delete({ source: sourceNode, gain: gainNode });
-            }, duration * 1000 + 100); // Dá um pequeno tempo extra
+            }, duration * 1000 + 100); // Dá um pequeno tempo extra para o fade terminar
         }
     }
 
@@ -781,8 +779,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (instance.source && typeof instance.source.stop === 'function') {
                         instance.source.stop(0);
                     }
-                    if (instance.source) instance.source.disconnect();
-                    if (instance.gain) instance.gain.disconnect();
+                    if (instance.source && instance.source.numberOfOutputs > 0) instance.source.disconnect();
+                    if (instance.gain && instance.gain.numberOfOutputs > 0) instance.gain.disconnect();
                 } catch (e) {
                     console.warn("Erro ao desconectar instância de áudio ao limpar dados:", e);
                 }
@@ -885,7 +883,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function findNextSoundIndex(startIndex, direction) {
         let currentIndex = startIndex;
         let attempts = 0;
-        const maxAttempts = NUM_CELLS * 2; // Aumentado para garantir a varredura completa se necessário
+        const maxAttempts = NUM_CELLS; // Limitar tentativas ao número de células
 
         while (attempts < maxAttempts) {
             currentIndex += direction;
@@ -904,20 +902,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
             attempts++;
 
-            // Se passamos por todas as células e voltamos ao ponto inicial (sem encontrar nada),
-            // ou se o ponto inicial era o único com som e tentamos passar por ele novamente,
-            // significa que não há mais sons na direção desejada.
-            // Para casos como apenas 1 som carregado e 2x Space ou Ctrl+Space
-            if (attempts >= NUM_CELLS && !soundData[currentIndex]) { // Se já varremos todo o grid
+            // Se já varremos todas as células e não encontramos nada, ou voltamos ao ponto de partida
+            if (attempts === NUM_CELLS) {
                 return null;
             }
-            if (attempts > 0 && currentIndex === startIndex) { // Evita loop infinito se startIndex for a única opção e estiver vazia
-                 if (!soundData[currentIndex] || !soundData[currentIndex].audioBuffer) { // Se a única célula é vazia, ou a última não tinha som
-                     return null;
-                 }
-            }
         }
-        return null; // Não encontrou nenhum som em todas as tentativas
+        return null; // Não encontrou nenhum som
     }
 
 
@@ -935,8 +925,8 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
             let targetIndex;
 
-            if (lastPlayedSoundIndex === null) {
-                // Se nenhum som foi tocado ainda, começa a procurar a partir do -1 para encontrar o 0 ou o próximo
+            if (lastPlayedSoundIndex === null || soundData[lastPlayedSoundIndex] === null) {
+                // Se nenhum som foi tocado ainda ou o último tocado foi apagado, começa a procurar a partir do -1
                 targetIndex = findNextSoundIndex(-1, 1);
             } else {
                 targetIndex = findNextSoundIndex(lastPlayedSoundIndex, 1);
@@ -952,8 +942,8 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
             let targetIndex;
 
-            if (lastPlayedSoundIndex === null) {
-                // Se nenhum som foi tocado ainda, começa a procurar a partir do NUM_CELLS para encontrar o último ou o anterior
+            if (lastPlayedSoundIndex === null || soundData[lastPlayedSoundIndex] === null) {
+                // Se nenhum som foi tocado ainda ou o último tocado foi apagado, começa a procurar a partir do NUM_CELLS
                 targetIndex = findNextSoundIndex(NUM_CELLS, -1);
             } else {
                 targetIndex = findNextSoundIndex(lastPlayedSoundIndex, -1);
@@ -1086,7 +1076,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // Botão "Parar Todos os Sons"
     function stopAllSounds() {
         if (audioContext && audioContext.state !== 'closed') {
-            const now = audioContext.currentTime;
             const fadeDuration = 0.2; // Fade out rápido para todos
 
             // Criar uma cópia do Set para iterar, pois ele será modificado
@@ -1101,8 +1090,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         // Fallback para parada imediata se o fade falhar
                         if (instance.source && typeof instance.source.stop === 'function') {
                             instance.source.stop();
-                            instance.source.disconnect();
-                            instance.gain.disconnect();
+                            if (instance.source.numberOfOutputs > 0) instance.source.disconnect();
+                            if (instance.gain.numberOfOutputs > 0) instance.gain.disconnect();
                         }
                     }
                 }
