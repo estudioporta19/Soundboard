@@ -273,25 +273,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
         input.onchange = async (e) => {
             const files = Array.from(e.target.files);
-            let startIndex = 0;
-
-            for (const file of files) {
-                let foundEmptyCell = false;
-                // Encontra a próxima célula vazia, começando de startIndex
-                for (let i = startIndex; i < sb.NUM_CELLS; i++) {
-                    if (sb.soundData[i] === null || (sb.soundData[i] && sb.soundData[i].audioBuffer === null)) {
-                        const cell = document.querySelector(`.sound-cell[data-index="${i}"]`);
-                        await sb.audioManager.loadFileIntoCell(file, cell, i, sb.soundData, sb.audioContext, sb.cellManager.updateCellDisplay, sb.i18n.getTranslation, sb.settingsManager.saveSettings);
-                        startIndex = i + 1; // Atualiza o índice inicial para o próximo ficheiro
-                        foundEmptyCell = true;
-                        break;
-                    }
-                }
-                if (!foundEmptyCell) {
-                    alert(sb.i18n.getTranslation('alertNoEmptyCells').replace('{fileName}', file.name));
-                    break; // Para o carregamento se não houver mais células vazias
-                }
+            // Encontra o índice da primeira célula vazia disponível para começar a carregar
+            let startIndex = sb.soundData.findIndex(s => s === null || (s && s.audioBuffer === null));
+            if (startIndex === -1) { // Se não encontrar nenhuma célula vazia, começa do 0
+                startIndex = 0;
             }
+
+            // Chama a nova função do audioManager para lidar com o carregamento de múltiplos ficheiros
+            await sb.audioManager.loadMultipleFilesIntoCells(
+                files,
+                startIndex,
+                sb.soundData,
+                sb.audioContext,
+                sb.cellManager.updateCellDisplay,
+                sb.i18n.getTranslation,
+                sb.settingsManager.saveSettings
+            );
         };
         input.click();
     });
