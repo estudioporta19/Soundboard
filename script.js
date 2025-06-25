@@ -1185,10 +1185,10 @@ document.addEventListener('DOMContentLoaded', () => {
         console.warn("Elemento com ID 'clear-all-cells' não encontrado. O botão 'Limpar Todas as Células' não funcionará.");
     }
 
-    // --- FIM DO NOVO CÓDIGO ---
-    ---
 
-    // --- Event Listeners Globais ---
+    
+
+   
 
     document.addEventListener('keydown', (e) => {
         const pressedKey = e.key.toLowerCase();
