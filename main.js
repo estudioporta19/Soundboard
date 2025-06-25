@@ -60,7 +60,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // 2. Carregar Traduções e Configurações Iniciais
     sb.i18n.loadTranslations((lang) => {
         sb.currentLanguage = lang; // Define a língua global atual
-        sb.settingsManager.loadSettings(sb); // Carrega as configurações depois que as traduções estiverem prontas
+        // Passa o callback loadMultipleFilesIntoCells para loadSettings
+        sb.settingsManager.loadSettings(sb, sb.audioManager.loadMultipleFilesIntoCells); // *** ALTERAÇÃO AQUI ***
 
         // Re-consulta as células de som, pois são criadas dinamicamente por loadSettings
         sb.soundCells = document.querySelectorAll('.sound-cell');
