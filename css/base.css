@@ -33,6 +33,7 @@ h1 {
 .footer-attribution {
     text-align: center; /* Centraliza o texto */
     margin-top: 40px; /* Espaço acima do rodapé */
+    margin-left: 5px; /* Espaço acima do rodapé */
     padding-bottom: 20px; /* Espaço abaixo do rodapé */
 }
 
