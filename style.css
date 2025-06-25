@@ -1,98 +1,104 @@
-/* style.css */
-
-/* --- Geral --- */
 body {
-    font-family: 'Roboto', sans-serif;
-    background-color: #2c2c2c;
-    color: #f0f0f0;
+    font-family: 'Montserrat', sans-serif;
+    background-color: #222;
+    color: #eee;
     margin: 0;
     padding: 20px;
     display: flex;
-    flex-direction: column;
-    align-items: center;
+    justify-content: center;
+    align-items: flex-start; /* Alinha o conteúdo ao topo */
     min-height: 100vh;
+    overflow-y: auto; /* Permite scroll se o conteúdo for muito longo */
+    box-sizing: border-box; /* Inclui padding no tamanho total */
+}
+
+.container {
+    background-color: #333;
+    border-radius: 12px;
+    padding: 30px;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+    text-align: center;
+    width: 100%;
+    max-width: 1200px; /* Aumentado para acomodar mais elementos */
     box-sizing: border-box;
-    overflow-x: hidden;
 }
 
 h1 {
-    color: #4CAF50;
-    margin-bottom: 20px;
-    text-align: center;
+    color: #00bcd4;
+    margin-bottom: 25px;
     font-size: 2.5em;
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+    text-shadow: 0 0 10px rgba(0, 188, 212, 0.6);
 }
 
-/* --- Header e Língua --- */
-.container {
-    width: 100%;
-    max-width: 1200px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
-
+/* Language Switcher */
 .language-switcher {
-    align-self: flex-end;
-    display: flex;
-    gap: 5px;
     margin-bottom: 20px;
+    display: flex;
+    justify-content: center;
+    gap: 10px;
 }
 
 .lang-button {
     background-color: #555;
-    color: white;
-    border: 1px solid #777;
-    border-radius: 5px;
-    padding: 5px 10px;
+    color: #eee;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 8px;
     cursor: pointer;
-    font-weight: bold;
-    transition: background-color 0.2s ease, border-color 0.2s ease;
+    font-size: 0.9em;
+    transition: background-color 0.2s, transform 0.1s;
 }
 
 .lang-button:hover {
     background-color: #666;
-    border-color: #999;
+    transform: translateY(-1px);
 }
 
 .lang-button.active {
-    background-color: #4CAF50;
-    border-color: #388E3C;
-    box-shadow: 0 0 5px rgba(76, 175, 80, 0.5);
+    background-color: #00bcd4;
+    color: #fff;
+    box-shadow: 0 0 8px rgba(0, 188, 212, 0.5);
 }
 
-/* --- Controles Globais --- */
+
+/* Controls Section */
 .controls {
-    background-color: #3a3a3a;
-    padding: 15px 20px;
+    background-color: #444;
+    padding: 20px;
     border-radius: 10px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-    margin-bottom: 25px;
+    margin-bottom: 30px;
     display: flex;
-    flex-wrap: wrap;
-    gap: 15px 25px;
+    flex-wrap: wrap; /* Permite que os itens quebrem para a próxima linha */
+    gap: 15px; /* Espaço entre os itens */
     justify-content: center;
-    width: 100%;
-    max-width: 900px;
-    box-sizing: border-box;
+    align-items: center;
+    box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.3);
 }
 
-.volume-control, .playback-mode, .fadein-settings, .fadeout-settings {
+.controls label {
+    margin-right: 10px;
+    font-weight: bold;
+    color: #ccc;
+    white-space: nowrap; /* Evita quebra de linha para labels curtas */
+}
+
+.volume-control, .playback-mode, .fadein-settings, .fadeout-settings, .control-group {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 5px;
+    background-color: #555;
+    padding: 8px 15px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
-.volume-control label, .playback-mode label, .fadein-settings span, .fadeout-settings span {
-    font-weight: bold;
-    white-space: nowrap;
-}
 
+/* Range sliders */
 input[type="range"] {
-    width: 120px;
     -webkit-appearance: none;
-    background: #555;
+    width: 120px; /* Ajuste a largura conforme necessário */
     height: 8px;
+    background: #666;
     border-radius: 5px;
     outline: none;
     transition: opacity .2s;
@@ -101,33 +107,36 @@ input[type="range"] {
 input[type="range"]::-webkit-slider-thumb {
     -webkit-appearance: none;
     appearance: none;
-    width: 18px;
-    height: 18px;
+    width: 20px;
+    height: 20px;
     border-radius: 50%;
-    background: #4CAF50;
-    cursor: grab;
-    box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+    background: #00bcd4;
+    cursor: pointer;
+    box-shadow: 0 0 5px rgba(0, 188, 212, 0.7);
+    transition: background 0.2s, box-shadow 0.2s;
 }
 
-input[type="range"]::-webkit-slider-thumb:active {
-    cursor: grabbing;
+input[type="range"]::-webkit-slider-thumb:hover {
+    background: #00a0b7;
+    box-shadow: 0 0 8px rgba(0, 188, 212, 1);
 }
 
-#volume-display, #fadeout-display, #fadeIn-display {
-    min-width: 50px;
-    text-align: center;
+#volume-display, #fadeIn-display, #fadeout-display {
+    min-width: 70px; /* Garante que o texto não "dance" muito */
+    text-align: right;
+    font-weight: bold;
+    color: #00bcd4;
 }
 
-/* Estilo para checkboxes */
+/* Checkboxes */
 input[type="checkbox"] {
     -webkit-appearance: none;
-    -moz-appearance: none;
     appearance: none;
     width: 20px;
     height: 20px;
-    border: 2px solid #555;
+    border: 2px solid #00bcd4;
     border-radius: 4px;
-    background-color: #444;
+    background-color: #555;
     cursor: pointer;
     position: relative;
     outline: none;
@@ -135,451 +144,380 @@ input[type="checkbox"] {
 }
 
 input[type="checkbox"]:checked {
-    background-color: #4CAF50;
-    border-color: #388E3C;
-}
-
-input[type="checkbox"]:focus {
-    box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.4);
-}
-
-input[type="checkbox"]::after {
-    content: '✔';
-    color: white;
-    font-size: 14px;
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%) scale(0);
-    transition: transform 0.2s ease-in-out;
+    background-color: #00bcd4;
+    border-color: #00bcd4;
 }
 
 input[type="checkbox"]:checked::after {
-    transform: translate(-50%, -50%) scale(1);
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 6px;
+    width: 6px;
+    height: 10px;
+    border: solid #fff;
+    border-width: 0 3px 3px 0;
+    transform: rotate(45deg);
 }
 
-.general-buttons button, #load-sounds-button-general, #stop-all-sounds {
-    background-color: #555;
-    color: white;
+/* Buttons in controls */
+.controls button {
+    background-color: #00bcd4;
+    color: #fff;
     border: none;
-    border-radius: 5px;
-    padding: 10px 15px;
+    padding: 10px 20px;
+    border-radius: 8px;
     cursor: pointer;
     font-size: 1em;
-    transition: background-color 0.2s ease, transform 0.1s ease;
-    white-space: nowrap;
+    font-weight: bold;
+    transition: background-color 0.2s, transform 0.1s, box-shadow 0.2s;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
 
-.general-buttons button:hover, #load-sounds-button-general:hover, #stop-all-sounds:hover {
-    background-color: #666;
+.controls button:hover {
+    background-color: #00a0b7;
     transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
 }
 
-.general-buttons button:active, #load-sounds-button-general:active, #stop-all-sounds:active {
+.controls button:active {
     transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
-/* --- Soundboard Grid (CORRIGIDO) --- */
+/* Soundboard Grid */
 .soundboard-grid {
     display: flex;
     flex-direction: column;
-    gap: 15px;
-    width: 100%;
-    max-width: 1000px;
-    align-items: center; /* Centraliza as linhas */
+    gap: 15px; /* Espaço entre as linhas do teclado */
+    margin-bottom: 30px;
 }
 
 .keyboard-row {
     display: flex;
     justify-content: center;
-    gap: 10px;
-    flex-wrap: nowrap; /* Evita quebra de linha dentro da row */
+    gap: 10px; /* Espaço entre as células */
 }
 
-/* Ajustes para simular o layout QWERTY */
-.keyboard-row:nth-child(1) {
-    /* Primeira linha: Q W E R T Y U I O P */
-    margin-left: 0;
-}
-
-.keyboard-row:nth-child(2) {
-    /* Segunda linha: A S D F G H J K L */
-    margin-left: 25px; /* Deslocamento para simular stagger do QWERTY */
-}
-
-.keyboard-row:nth-child(3) {
-    /* Terceira linha: Z X C V B N M */
-    margin-left: 50px; /* Maior deslocamento */
-}
-
-/* IDs específicos para controle fino */
-#row-top {
-    margin-left: 0;
-}
-
-#row-home {
-    margin-left: 25px;
-}
-
-#row-bottom {
-    margin-left: 50px;
-}
-
-/* --- Célula de Som --- */
 .sound-cell {
-    flex: 0 0 90px; /* Não cresce nem encolhe, largura fixa de 90px */
-    height: 90px;
-    background-color: #444;
+    width: 100px;
+    height: 100px;
+    background-color: #555;
+    border: 3px solid #666;
     border-radius: 10px;
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    justify-content: space-between; /* Distribute content */
     align-items: center;
-    padding: 5px;
+    padding: 10px;
     box-sizing: border-box;
     cursor: pointer;
     position: relative;
-    overflow: hidden;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-    transition: transform 0.1s ease, box-shadow 0.1s ease, background-color 0.2s ease;
+    transition: transform 0.1s, box-shadow 0.1s, background-color 0.3s, border-color 0.3s;
+    user-select: none; /* Prevent text selection */
+    overflow: hidden; /* Hide overflowing text */
+    flex-shrink: 0; /* Prevents cells from shrinking */
 }
 
-.sound-cell.empty {
-    background-color: #333;
-    border: 2px dashed #555;
-    color: #aaa;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-style: italic;
-    font-size: 0.9em;
-    text-align: center;
-    cursor: pointer;
-}
-
-.sound-cell:not(.empty):hover {
+.sound-cell:hover {
     transform: translateY(-3px);
     box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
 }
 
 .sound-cell.active {
-    transform: scale(0.98);
-    box-shadow: 0 0 15px #4CAF50, 0 0 20px rgba(76, 175, 80, 0.6);
-    border: 2px solid #4CAF50;
-    filter: brightness(1.1);
+    transform: scale(1.05);
+    box-shadow: 0 0 20px rgba(0, 188, 212, 0.8), 0 0 30px rgba(0, 188, 212, 0.6);
+    background-color: #00bcd4; /* Cor mais vibrante ao tocar */
+    border-color: #00bcd4;
+    z-index: 1; /* Garante que a célula ativa esteja por cima */
 }
 
-.sound-cell.drag-over {
-    border: 2px dashed #4CAF50;
-    background-color: #555;
+.sound-cell.cued {
+    border-color: #ffeb3b; /* Amarelo para cued */
+    box-shadow: 0 0 15px rgba(255, 235, 59, 0.7);
+    transform: scale(1.02);
 }
 
-.sound-name {
-    width: calc(100% - 10px);
-    font-size: 0.8em;
+/* Key Display */
+.key-display {
+    font-size: 1.2em;
     font-weight: bold;
-    text-align: center;
-    color: white;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    user-select: none;
-    cursor: text;
+    color: rgba(255, 255, 255, 0.6); /* Mais suave */
+    position: absolute; /* Posição absoluta para o canto superior esquerdo */
+    top: 5px;
+    left: 8px;
     padding: 2px 5px;
-    border-radius: 3px;
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 5px;
+    z-index: 10;
+}
+
+
+/* Sound Name */
+.sound-name {
+    font-size: 0.9em;
+    font-weight: bold;
+    color: #fff;
+    white-space: nowrap; /* Evita quebra de linha */
+    overflow: hidden;
+    text-overflow: ellipsis; /* Adiciona "..." se o texto for muito longo */
+    width: 90%; /* Ajuste para o nome */
+    text-align: center;
+    padding-top: 20px; /* Espaço para o key-display */
+    flex-grow: 1; /* Permite que o nome ocupe espaço */
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .sound-name:focus {
+    outline: 2px solid #00bcd4;
     background-color: rgba(255, 255, 255, 0.1);
-    outline: none;
-    box-shadow: 0 0 0 2px #4CAF50;
+    border-radius: 5px;
 }
 
-.key-display-bottom {
+/* Control Buttons (inside cell) */
+.delete-button,
+.loop-button,
+.replace-sound-button {
     position: absolute;
-    bottom: 5px;
-    right: 5px;
-    font-size: 0.8em;
-    font-weight: bold;
-    color: rgba(255, 255, 255, 0.6);
-    background: rgba(0, 0, 0, 0.3);
-    padding: 2px 5px;
-    border-radius: 3px;
-    min-width: 15px;
-    text-align: center;
-    z-index: 10;
-}
-
-/* --- Botões de Célula (Delete, Replace, Loop) --- */
-.sound-cell button {
     background: rgba(0, 0, 0, 0.4);
-    color: white;
+    color: #fff;
     border: none;
-    border-radius: 4px;
-    padding: 3px;
+    border-radius: 50%; /* Faz um círculo */
+    width: 28px;
+    height: 28px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
     cursor: pointer;
     font-size: 0.9em;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    opacity: 0.7;
-    transition: opacity 0.2s ease, transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease, border 0.2s ease;
-    z-index: 10;
-    height: 24px;
-    width: 24px;
+    font-weight: bold;
+    transition: background-color 0.2s, transform 0.1s;
+    line-height: 1; /* Ajusta o alinhamento vertical */
+    z-index: 20; /* Garante que estão acima do nome */
+    padding: 0; /* Remove padding padrão do botão */
 }
 
-.sound-cell button:hover {
-    opacity: 1;
-    transform: scale(1.1);
-}
-
-/* Botão de Apagar (X) */
 .delete-button {
-    position: absolute;
     top: 5px;
     right: 5px;
-    background: rgba(255, 0, 0, 0.5);
+    color: #ff4d4d; /* Cor vermelha para apagar */
 }
 
 .delete-button:hover {
-    background: rgba(255, 0, 0, 0.8);
-}
-
-/* Botão de Substituir Som (upload_file) */
-.replace-sound-button {
-    position: absolute;
-    top: 5px;
-    left: 5px;
-    background: rgba(0, 128, 255, 0.5);
-}
-
-.replace-sound-button:hover {
-    background: rgba(0, 128, 255, 0.8);
-}
-
-/* --- Botão de Loop --- */
-.loop-button {
-    position: absolute;
-    bottom: 5px;
-    left: 5px;
-    background: rgba(0, 0, 0, 0.4);
-    color: white;
-    border: none;
-    border-radius: 4px;
-    padding: 3px;
-    cursor: pointer;
-    font-size: 0.9em;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    opacity: 0.7;
-    transition: background 0.2s ease, opacity 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease, border 0.2s ease;
-    z-index: 10;
-}
-
-.loop-button:hover {
-    opacity: 1;
+    background-color: rgba(255, 77, 77, 0.7);
+    color: #fff;
     transform: scale(1.1);
 }
 
-.sound-cell .loop-button.active {
-    background: #4CAF50 !important;
-    opacity: 1 !important;
-    box-shadow: 0 0 8px rgba(76, 175, 80, 0.8) !important;
-    border: 1px solid rgba(255, 255, 255, 0.7) !important;
+.loop-button {
+    bottom: 5px;
+    left: 5px;
+    color: #4CAF50; /* Verde para loop */
 }
 
-/* --- Rodapé (How To Use) --- */
+.loop-button .material-symbols-outlined {
+    font-size: 1.1em; /* Ajusta o tamanho do ícone */
+}
+
+.loop-button:hover {
+    background-color: rgba(76, 175, 80, 0.7);
+    color: #fff;
+    transform: scale(1.1);
+}
+
+.loop-button.active {
+    background-color: #4CAF50;
+    color: #fff;
+    box-shadow: 0 0 8px rgba(76, 175, 80, 0.6);
+}
+
+.replace-sound-button {
+    bottom: 5px;
+    right: 5px;
+    color: #2196F3; /* Azul para substituir */
+}
+
+.replace-sound-button .material-symbols-outlined {
+    font-size: 1.1em; /* Ajusta o tamanho do ícone */
+}
+
+.replace-sound-button:hover {
+    background-color: rgba(33, 150, 243, 0.7);
+    color: #fff;
+    transform: scale(1.1);
+}
+
+/* Help Text */
 .help-text {
-    background-color: #3a3a3a;
+    background-color: #444;
     padding: 20px;
     border-radius: 10px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
     margin-top: 30px;
-    width: 100%;
-    max-width: 900px;
-    box-sizing: border-box;
+    box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.3);
+    text-align: left; /* Alinhar texto de ajuda à esquerda */
+
+    /* Regras para esconder/revelar */
+    max-height: 0; /* Inicia escondido */
+    overflow: hidden;
+    transition: max-height 0.5s ease-out, padding 0.5s ease-out, margin-top 0.5s ease-out, opacity 0.5s ease-out; /* Adicionado opacity */
+    opacity: 0;
+    pointer-events: none; /* Impede interação quando escondido */
+}
+
+.help-text.visible {
+    max-height: 1000px; /* Altura máxima suficiente para o conteúdo */
+    padding: 20px; /* Restaura padding */
+    margin-top: 30px; /* Restaura margin-top */
+    opacity: 1;
+    pointer-events: auto; /* Permite interação */
+    transition: max-height 0.7s ease-in-out, opacity 0.5s ease-in-out, padding 0.7s ease-in-out, margin-top 0.7s ease-in-out;
 }
 
 .help-text h3 {
-    color: #4CAF50;
-    text-align: center;
-    margin-bottom: 20px;
+    color: #00bcd4;
+    margin-bottom: 15px;
+    font-size: 1.5em;
 }
 
 .help-text ul {
     list-style: none;
     padding: 0;
+    margin: 0;
 }
 
 .help-text li {
-    background-color: #444;
-    border-radius: 8px;
-    padding: 12px 15px;
-    margin-bottom: 10px;
-    display: flex;
-    align-items: flex-start;
-    gap: 10px;
+    margin-bottom: 8px;
     line-height: 1.4;
-}
-
-.help-text li:last-child {
-    margin-bottom: 0;
+    color: #ccc;
+    font-size: 0.95em;
 }
 
 .help-text li strong {
-    color: #8BC34A;
-    flex-shrink: 0;
+    color: #fff;
 }
 
-.help-text li kbd {
+.help-text kbd {
     background-color: #555;
     border: 1px solid #777;
-    border-bottom: 2px solid #777;
-    border-radius: 3px;
+    border-radius: 4px;
     padding: 2px 6px;
     font-family: monospace;
     font-size: 0.9em;
-    color: #ddd;
+    color: #eee;
     white-space: nowrap;
 }
 
-/* Ajustes para ícones Material Symbols */
+/* General improvements */
 .material-symbols-outlined {
-  font-variation-settings:
-  'FILL' 0,
-  'wght' 400,
-  'GRAD' 0,
-  'opsz' 24
+    font-variation-settings:
+        'FILL' 0,
+        'wght' 400,
+        'GRAD' 0,
+        'opsz' 24;
 }
 
-/* --- Responsividade --- */
+/* Responsividade básica */
 @media (max-width: 768px) {
-    body {
-        padding: 10px;
+    .container {
+        padding: 20px;
     }
 
     h1 {
         font-size: 2em;
     }
 
-    header {
-        flex-direction: column;
-        gap: 15px;
-    }
-
-    .language-switcher {
-        align-self: center;
-        order: -1;
-        margin-bottom: 10px;
-    }
-
     .controls {
         flex-direction: column;
         align-items: stretch;
-        padding: 10px;
-        gap: 10px;
     }
 
-    .volume-control, .playback-mode, .fadein-settings, .fadeout-settings {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 5px;
+    .volume-control, .playback-mode, .fadein-settings, .fadeout-settings, .controls button, .control-group {
+        width: 100%; /* Ocupa a largura total em telas menores */
+        justify-content: space-between; /* Espaça label e input/botão */
     }
 
     input[type="range"] {
-        width: 100%;
+        width: calc(100% - 140px); /* Ajusta a largura do slider */
     }
 
-    .general-buttons {
-        display: flex;
-        flex-direction: column;
+    .soundboard-grid {
         gap: 10px;
     }
 
-    .general-buttons button {
-        width: 100%;
-    }
-
     .keyboard-row {
+        flex-wrap: wrap; /* Permite que as células quebrem em várias linhas */
+        justify-content: center;
         gap: 8px;
     }
 
     .sound-cell {
-        flex: 0 0 70px; /* Células menores em mobile */
-        height: 70px;
-        border-radius: 8px;
-        padding: 3px;
+        width: 80px;
+        height: 80px;
+        padding: 8px;
+        font-size: 0.8em;
     }
 
-    .sound-cell .delete-button,
-    .sound-cell .replace-sound-button,
-    .sound-cell .loop-button {
-        padding: 1px;
-        font-size: 0.7em;
-        border-radius: 3px;
-        height: 20px;
-        width: 20px;
+    .key-display {
+        font-size: 1em;
     }
-
-    .sound-cell .delete-button { top: 3px; right: 3px; }
-    .sound-cell .replace-sound-button { top: 3px; left: 3px; }
-    .sound-cell .loop-button { bottom: 3px; left: 3px; }
 
     .sound-name {
-        font-size: 0.7em;
+        font-size: 0.8em;
     }
 
-    .key-display-bottom {
-        font-size: 0.7em;
-        bottom: 3px;
-        right: 3px;
-        padding: 1px 4px;
-    }
-
-    /* Ajustes de margem para mobile */
-    .keyboard-row:nth-child(2), #row-home {
-        margin-left: 15px;
-    }
-
-    .keyboard-row:nth-child(3), #row-bottom {
-        margin-left: 30px;
-    }
-
-    .how-to-use {
-        padding: 15px;
-    }
-
-    .how-to-use li {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-
-    .how-to-use li strong {
-        margin-bottom: 5px;
+    .delete-button,
+    .loop-button,
+    .replace-sound-button {
+        width: 24px;
+        height: 24px;
+        font-size: 0.8em;
     }
 }
 
 @media (max-width: 480px) {
-    .keyboard-row {
-        gap: 5px;
-    }
-    
-    .sound-cell {
-        flex: 0 0 60px;
-        height: 60px;
-    }
-    
-    .keyboard-row:nth-child(2), #row-home {
-        margin-left: 10px;
+    .container {
+        padding: 15px;
     }
 
-    .keyboard-row:nth-child(3), #row-bottom {
-        margin-left: 20px;
+    h1 {
+        font-size: 1.8em;
+    }
+
+    .sound-cell {
+        width: 70px;
+        height: 70px;
+        font-size: 0.7em;
+    }
+
+    .key-display {
+        font-size: 0.9em;
+        top: 3px;
+        left: 3px;
+    }
+
+    .sound-name {
+        font-size: 0.7em;
+        padding-top: 15px;
+    }
+
+    .delete-button,
+    .loop-button,
+    .replace-sound-button {
+        width: 20px;
+        height: 20px;
+        font-size: 0.7em;
+        top: 3px;
+        right: 3px;
+        bottom: 3px;
+        left: 3px;
+    }
+
+    .loop-button {
+        left: 3px;
+    }
+    .replace-sound-button {
+        right: 3px;
     }
 }
