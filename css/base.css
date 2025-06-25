@@ -39,12 +39,12 @@ h1 {
 
 .footer-attribution p {
     font-size: 0.75em; /* Torna a letra pequena */
-    color: #888; /* Uma cor cinzenta para ser discreto */
+    color: #ffffff; /* Uma cor cinzenta para ser discreto */
     opacity: 0.7; /* Ligeiramente transparente */
 }
 
 /* Opcional: Efeito ao passar o mouse */
 .footer-attribution p:hover {
     opacity: 1; /* Fica totalmente visível */
-    color: #bbb;
+    color: #00bcd4;
 }
