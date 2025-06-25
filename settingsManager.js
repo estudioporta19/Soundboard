@@ -29,7 +29,9 @@ window.soundboardApp.settingsManager = (function() {
         if (helpTextContent && toggleHelpButton) {
             if (savedHelpVisible) {
                 helpTextContent.style.display = 'block';
-                toggleHelpButton.textContent = window.soundboardApp.i18n.getTranslation('toggleHelpButton').replace('Mostrar', 'Esconder'); // Adjust text immediately
+                // This text will be correctly set by i18n.setLanguage later
+                // For immediate visual consistency, you might want a temporary text or a partial update
+                toggleHelpButton.textContent = window.soundboardApp.i18n.getTranslation('toggleHelpButton').replace('Mostrar', 'Esconder');
             } else {
                 helpTextContent.style.display = 'none';
                 toggleHelpButton.textContent = window.soundboardApp.i18n.getTranslation('toggleHelpButton');
@@ -40,7 +42,6 @@ window.soundboardApp.settingsManager = (function() {
 
         for (let i = 0; i < appState.NUM_CELLS; i++) {
             const cellData = savedSounds[i];
-            // Pass necessary functions and appState parts for cell creation and event setup
             const cell = window.soundboardApp.cellManager.createSoundCell(
                 i,
                 appState.defaultKeys[i],
@@ -53,7 +54,8 @@ window.soundboardApp.settingsManager = (function() {
                 window.soundboardApp.i18n.getTranslation
             );
 
-            if (cellData && cellData.audioDataUrl) {
+            // Check if cellData exists and audioDataUrl is a valid string
+            if (cellData && typeof cellData.audioDataUrl === 'string' && cellData.audioDataUrl.startsWith('data:audio')) {
                 const color = cellData.color || window.soundboardApp.utils.getRandomHSLColor();
                 const isLooping = cellData.isLooping !== undefined ? cellData.isLooping : false;
                 const isCued = cellData.isCued !== undefined ? cellData.isCued : false;
@@ -64,7 +66,7 @@ window.soundboardApp.settingsManager = (function() {
                     cell,
                     i,
                     cellData.name,
-                    appState.defaultKeys[i],
+                    appState.defaultKeys[i], // Pass fixedKey
                     color,
                     isLooping,
                     isCued, // Pass isCued state
@@ -75,7 +77,9 @@ window.soundboardApp.settingsManager = (function() {
                     window.soundboardApp.settingsManager.saveSettings // Pass saveSettings callback
                 );
             } else {
-                window.soundboardApp.cellManager.updateCellDisplay(cell, { name: window.soundboardApp.i18n.getTranslation('cellEmptyDefault'), key: appState.defaultKeys[i] || '', isLooping: false, isCued: false }, true, window.soundboardApp.i18n.getTranslation);
+                // Ensure default key is passed for empty cells too
+                window.soundboardApp.cellManager.updateCellDisplay(cell, { name: window.soundboardApp.i18n.getTranslation('cellEmptyDefault'), key: appState.defaultKeys[i], isLooping: false, isCued: false }, true, window.soundboardApp.i18n.getTranslation);
+                appState.soundData[i] = null; // Explicitly set to null if no valid data
             }
         }
     }
@@ -89,6 +93,7 @@ window.soundboardApp.settingsManager = (function() {
             currentFadeInDuration: parseFloat(fadeInRange.value),
             helpVisible: isHelpVisible, // Save help text visibility
             sounds: soundData.map(data => ({
+                // Ensure audioDataUrl is null for empty cells, not undefined
                 name: data ? data.name : null,
                 key: data ? data.key : null,
                 audioDataUrl: data ? data.audioDataUrl : null,
