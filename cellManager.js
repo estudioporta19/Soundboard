@@ -89,7 +89,7 @@ window.soundboardApp.cellManager = (function() {
             if (files.length > 0) {
                 // Filtra apenas ficheiros de áudio válidos
                 const audioFiles = Array.from(files).filter(file => 
-                    file.type === 'audio/wav' || file.type === 'audio/mp3' || file.type === 'audio/ogg'
+                    file.type === 'audio/wav' || file.type === 'audio/mpeg' || file.type === 'audio/ogg' // CORRIGIDO AQUI
                 );
 
                 if (audioFiles.length === 0) {
@@ -137,14 +137,14 @@ window.soundboardApp.cellManager = (function() {
             if (cell.classList.contains('empty')) {
                 const input = document.createElement('input');
                 input.type = 'file';
-                input.accept = 'audio/mp3, audio/wav, audio/ogg';
+                input.accept = 'audio/mp3, audio/wav, audio/ogg'; // Nota: "accept" é para sugestão. A validação real é no onchange.
                 input.multiple = true; // Permite a seleção de múltiplos ficheiros
                 input.onchange = async (event) => {
                     const files = event.target.files; // Obtenha todos os ficheiros selecionados
                     if (files.length > 0) {
                         // Filtra apenas ficheiros de áudio válidos
                         const audioFiles = Array.from(files).filter(file => 
-                            file.type === 'audio/wav' || file.type === 'audio/mp3' || file.type === 'audio/ogg'
+                            file.type === 'audio/wav' || file.type === 'audio/mpeg' || file.type === 'audio/ogg' // CORRIGIDO AQUI
                         );
 
                         if (audioFiles.length === 0) {
@@ -178,7 +178,7 @@ window.soundboardApp.cellManager = (function() {
         nameDisplay.addEventListener('blur', () => {
             if (soundData[index]) {
                 soundData[index].name = nameDisplay.textContent.trim() || getTranslationCallback('cellNoName');
-                nameDisplay.textContent = soundData[index].name; // Ensure actual displayed text matches data
+                nameDisplay.textContent = soundData[Sindex].name; // Ensure actual displayed text matches data
                 window.soundboardApp.settingsManager.saveSettings(window.soundboardApp.soundData, window.soundboardApp.volumeRange, window.soundboardApp.playMultipleCheckbox, window.soundboardApp.autokillModeCheckbox, window.soundboardApp.fadeOutRange, window.soundboardApp.fadeInRange, window.soundboardApp.isHelpVisible);
             }
         });
@@ -227,11 +227,16 @@ window.soundboardApp.cellManager = (function() {
             e.stopPropagation(); // Prevent cell click event
             const input = document.createElement('input');
             input.type = 'file';
-            input.accept = 'audio/mp3, audio/wav, audio/ogg';
+            input.accept = 'audio/mp3, audio/wav, audio/ogg'; // Nota: "accept" é para sugestão. A validação real é no onchange.
             input.onchange = async (event) => {
                 const file = event.target.files[0];
                 if (file) {
-                    await loadFileIntoCellCallback(file, cell, index, soundData, window.soundboardApp.audioContext, window.soundboardApp.cellManager.updateCellDisplay, getTranslationCallback, window.soundboardApp.settingsManager.saveSettings);
+                    // Aqui também precisamos de validar o tipo MIME do ficheiro selecionado
+                    if (file.type === 'audio/wav' || file.type === 'audio/mpeg' || file.type === 'audio/ogg') { // CORRIGIDO AQUI
+                        await loadFileIntoCellCallback(file, cell, index, soundData, window.soundboardApp.audioContext, window.soundboardApp.cellManager.updateCellDisplay, getTranslationCallback, window.soundboardApp.settingsManager.saveSettings);
+                    } else {
+                        alert(getTranslationCallback('alertInvalidFile'));
+                    }
                 }
             };
             input.click();
@@ -302,4 +307,3 @@ window.soundboardApp.cellManager = (function() {
         updateCellDisplay: updateCellDisplay
     };
 })();
-
