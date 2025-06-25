@@ -275,11 +275,27 @@ document.addEventListener('DOMContentLoaded', () => {
     sb.loadSoundsButtonGeneral.addEventListener('click', () => {
         const input = document.createElement('input');
         input.type = 'file';
-        input.accept = 'audio/mp3, audio/wav, audio/ogg';
+        // FIX: Alterado 'audio/mp3' para 'audio/mpeg' para compatibilidade adequada
+        input.accept = 'audio/mpeg, audio/wav, audio/ogg';
         input.multiple = true;
 
         input.onchange = async (e) => {
             const files = Array.from(e.target.files);
+            
+            // Adiciona uma validação mais robusta do lado do cliente usando a propriedade file.type
+            const allowedMimeTypes = ['audio/mpeg', 'audio/wav', 'audio/ogg'];
+            const validFiles = files.filter(file => allowedMimeTypes.includes(file.type));
+            const invalidFiles = files.filter(file => !allowedMimeTypes.includes(file.type));
+
+            if (invalidFiles.length > 0) {
+                const invalidNames = invalidFiles.map(f => f.name).join(', ');
+                alert(sb.i18n.getTranslation('alertInvalidFileType').replace('{fileNames}', invalidNames));
+                // Se não houver ficheiros válidos, pára o processo
+                if (validFiles.length === 0) {
+                    return;
+                }
+            }
+
             // Encontra o índice da primeira célula vazia disponível para começar a carregar
             let startIndex = sb.soundData.findIndex(s => s === null || (s && s.audioBuffer === null));
             if (startIndex === -1) { // Se não encontrar nenhuma célula vazia, começa do 0
@@ -288,7 +304,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Chama a nova função do audioManager para lidar com o carregamento de múltiplos ficheiros
             await sb.audioManager.loadMultipleFilesIntoCells(
-                files,
+                validFiles, // Passa apenas os ficheiros válidos para o carregamento
                 startIndex,
                 sb.soundData,
                 sb.audioContext,
