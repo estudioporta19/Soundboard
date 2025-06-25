@@ -217,7 +217,7 @@ input[type="checkbox"]:checked::after {
 .sound-cell {
     width: 100px;
     height: 100px;
-    background-color: #555;
+    background-color: #555; /* Mantenha esta cor sólida para cobrir qualquer fundo */
     border: 3px solid #666;
     border-radius: 10px;
     display: flex;
@@ -245,6 +245,18 @@ input[type="checkbox"]:checked::after {
     background-color: #00bcd4; /* Cor mais vibrante ao tocar */
     border-color: #00bcd4;
     z-index: 1; /* Garante que a célula ativa esteja por cima */
+}
+
+/* NOVO: Estilo para células preenchidas (mas não ativas) */
+.sound-cell.filled {
+    background-color: #4a4a4a; /* Um cinzento um pouco mais escuro para células preenchidas */
+    border-color: #777;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.sound-cell.filled:hover {
+    background-color: #5a5a5a; /* Mais claro ao passar o mouse */
+    border-color: #888;
 }
 
 .sound-cell.cued {
@@ -571,7 +583,7 @@ input[type="checkbox"]:checked::after {
 
     .control-item {
         /* Para telas menores, os sliders e checkboxes voltam a alinhar label e input horizontalmente
-           com justify-content: space-between para espaçar bem */
+            com justify-content: space-between para espaçar bem */
         flex-direction: row;
         justify-content: space-between;
         align-items: center;
