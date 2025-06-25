@@ -37,14 +37,15 @@
             
             <div class="fadein-settings control-group">
                 <label for="fadeIn-range" data-key="fadeInLabel">Fade In:</label>
-                <input type="range" id="fadeIn-range" min="0" max="10" step="0.1" value="0">
+                <input type="range" id="fadeIn-range" min="0" max="10" step="0.01" value="0">
                 <span id="fadeIn-display">0s (Início Imediato)</span>
             </div>
             <div class="fadeout-settings control-group">
                 <label for="fadeOut-range" data-key="fadeOutLabel">Fade Out:</label>
-                <input type="range" id="fadeOut-range" min="0" max="10" step="0.1" value="0">
+                <input type="range" id="fadeOut-range" min="0" max="10" step="0.01" value="0">
                 <span id="fadeout-display">0s (Paragem Imediata)</span>
             </div>
+            <button id="toggle-help-button" data-key="toggleHelpButton">Esconder Ajuda</button>
         </div>
 
         <div class="soundboard-grid">
@@ -53,7 +54,7 @@
             <div class="keyboard-row" id="row-bottom"></div>
         </div>
 
-        <div class="help-text">
+        <div class="help-text" id="help-text-content">
             <h3 data-key="howToUseTitle">Como Usar:</h3>
             <ul>
                 <li data-key="dragDropHelp"><strong>Arrastar e Largar:</strong> Arraste ficheiros de áudio (MP3, WAV, OGG) para as células para as preencher.</li>
@@ -77,5 +78,6 @@
     </div>
 
     <script src="script.js"></script>
+    <script src="toggleMenu.js"></script> 
 </body>
 </html>
