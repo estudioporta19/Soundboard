@@ -326,7 +326,14 @@ window.soundboardApp.audioManager = (function() {
         }
     }
 
-    function stopAllSounds(audioContextParam, globalActivePlayingInstances, soundData) {
+    /**
+     * Para todos os sons a tocar, opcionalmente com um fade out.
+     * @param {AudioContext} audioContextParam - O contexto de áudio.
+     * @param {Set<Object>} globalActivePlayingInstances - O conjunto global de instâncias de som ativas.
+     * @param {Array} soundData - O array de dados de som global.
+     * @param {number} [fadeDuration=0] - A duração do fade out em segundos. Padrão é 0 (paragem imediata).
+     */
+    function stopAllSounds(audioContextParam, globalActivePlayingInstances, soundData, fadeDuration = 0) { // <--- ALTERAÇÃO AQUI: Adicionado fadeDuration com valor padrão
         const currentAudioContext = audioContextParam || window.soundboardApp.audioContext;
         if (!currentAudioContext) {
             console.warn("AudioContext não disponível para parar todos os sons.");
@@ -334,13 +341,13 @@ window.soundboardApp.audioManager = (function() {
         }
 
         const now = currentAudioContext.currentTime;
-        const fadeDuration = 0.2; // Quick fade out for stopping all
+        // A fadeDuration é agora um parâmetro, não mais uma constante fixa aqui.
 
         // Clone set to iterate safely, as instances might be removed during iteration
         const instancesToStop = new Set(globalActivePlayingInstances);
 
         instancesToStop.forEach(instance => {
-            stopSoundInstance(instance, now, fadeDuration);
+            stopSoundInstance(instance, now, fadeDuration); // <--- Usando o fadeDuration do parâmetro
         });
 
         // Ensure the global set is cleared after all attempts to stop
@@ -379,10 +386,10 @@ window.soundboardApp.audioManager = (function() {
 
     function clearAllSoundCells(soundData, audioContextParam, globalActivePlayingInstances, NUM_CELLS, updateCellDisplay, getTranslation, saveSettingsCallback) {
         const currentAudioContext = audioContextParam || window.soundboardApp.audioContext;
-        const fadeDuration = 0.2; // A small fade duration for clearing all
+        // const fadeDuration = 0.2; // Esta constante não é mais usada aqui, pois stopAllSounds recebe a sua própria duração
 
-        // Stop all currently playing sounds
-        stopAllSounds(currentAudioContext, globalActivePlayingInstances, soundData);
+        // Stop all currently playing sounds (agora com um fade de 0.2s padrão para esta função)
+        stopAllSounds(currentAudioContext, globalActivePlayingInstances, soundData, 0.2); // Passa 0.2s para fade out aqui
 
         // Then clear the data for each cell
         for (let i = 0; i < NUM_CELLS; i++) {
@@ -433,12 +440,10 @@ window.soundboardApp.audioManager = (function() {
         initAudioContext: initAudioContext,
         loadFileIntoCell: loadFileIntoCell,
         loadSoundFromDataURL: loadSoundFromDataURL,
-        // --- NOVA FUNÇÃO ---
         loadMultipleFilesIntoCells: loadMultipleFilesIntoCells,
-        // --- FIM NOVA FUNÇÃO ---
         playSound: playSound,
         fadeoutSound: fadeoutSound,
-        stopAllSounds: stopAllSounds,
+        stopAllSounds: stopAllSounds, // Agora aceita um fadeDuration
         clearSoundCell: clearSoundCell,
         clearAllSoundCells: clearAllSoundCells,
         clearSoundData: clearSoundData,
