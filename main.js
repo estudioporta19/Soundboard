@@ -10,7 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const sb = window.soundboardApp; // Alias for convenience
 
     // Elementos principais do DOM
-    sb.soundboardGrid = document.querySelector('.soundboard-grid'); // Changed from ID to class based on your HTML
+    sb.soundboardGrid = document.querySelector('.soundboard-grid');
     sb.rowTop = document.getElementById('row-top');
     sb.rowHome = document.getElementById('row-home');
     sb.rowBottom = document.getElementById('row-bottom');
@@ -28,9 +28,9 @@ document.addEventListener('DOMContentLoaded', () => {
     sb.langButtons = document.querySelectorAll('.lang-button');
     sb.titleElement = document.querySelector('title');
     sb.allDataKeyElements = document.querySelectorAll('[data-key]');
-    sb.soundCells = document.querySelectorAll('.sound-cell'); // Will be populated by cellManager initially, and then re-queried
+    sb.soundCells = document.querySelectorAll('.sound-cell'); // Será populado pelo cellManager inicialmente
 
-    // New DOM elements
+    // Novos elementos DOM relacionados ao popup de confirmação (agora não mais usados para parar sons)
     sb.clearAllCellsBtn = document.getElementById('clear-all-cells');
     sb.toggleHelpButton = document.getElementById('toggle-help-button');
     sb.helpTextContent = document.getElementById('help-text-content');
@@ -40,13 +40,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     // Estado da Aplicação
-    sb.audioContext = null; // Initialized by audioManager.initAudioContext
-    sb.masterGainNode = null; // Will be set by audioManager.initAudioContext
+    sb.audioContext = null; // Inicializado por audioManager.initAudioContext
+    sb.masterGainNode = null; // Definido por audioManager.initAudioContext
     sb.soundData = []; // { name, key, audioBuffer, audioDataUrl, activePlayingInstances: Set<{source: AudioBufferSourceNode, gain: GainNode}>, color, isLooping, isCued }
-    sb.globalActivePlayingInstances = new Set(); // Armazena {source, gainNode} de todas as instâncias a tocar
+    sb.globalActivePlayingInstances = new Set(); // Rastreia todas as instâncias de som atualmente a tocar
     sb.currentFadeOutDuration = 0;
     sb.currentFadeInDuration = 0;
-    sb.isHelpVisible = true; // Default state for help text visibility
+    sb.isHelpVisible = true; // Estado padrão para visibilidade do texto de ajuda
 
 
     sb.defaultKeys = [
@@ -59,13 +59,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 2. Carregar Traduções e Configurações Iniciais
     sb.i18n.loadTranslations((lang) => {
-        sb.currentLanguage = lang; // Set global currentLanguage
-        sb.settingsManager.loadSettings(sb); // Load settings after translations are ready
+        sb.currentLanguage = lang; // Define a língua global atual
+        sb.settingsManager.loadSettings(sb); // Carrega as configurações depois que as traduções estiverem prontas
 
-        // Re-query soundCells as they are created dynamically by loadSettings
+        // Re-consulta as células de som, pois são criadas dinamicamente por loadSettings
         sb.soundCells = document.querySelectorAll('.sound-cell');
 
-        // Re-apply language specific texts after settings are loaded and cells are created/updated
+        // Reaplica textos específicos da língua após as configurações serem carregadas e as células criadas/atualizadas
         sb.i18n.setLanguage(
             sb.currentLanguage,
             {
@@ -75,7 +75,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 fadeOutDisplay: sb.fadeOutDisplay,
                 fadeInRange: sb.fadeInRange,
                 fadeInDisplay: sb.fadeInDisplay,
-                soundCells: sb.soundCells, // Use the re-queried list
+                soundCells: sb.soundCells, // Usa a lista re-consultada
                 langButtons: sb.langButtons
             },
             sb.soundData,
@@ -83,27 +83,27 @@ document.addEventListener('DOMContentLoaded', () => {
             sb.utils
         );
 
-        // After all cells are created and potentially loaded, update cues from saved settings
+        // Após todas as células serem criadas e potencialmente carregadas, atualiza os cues a partir das configurações salvas
         const savedSettings = JSON.parse(localStorage.getItem('soundboardSettings')) || {};
         const savedSounds = savedSettings.sounds || [];
         const cuedIndicesFromSave = savedSounds.filter(s => s && s.isCued).map((s, idx) => idx);
-        sb.cueGoSystem.setCuedSounds(cuedIndicesFromSave, sb.soundData); // Set cued state based on saved data
+        sb.cueGoSystem.setCuedSounds(cuedIndicesFromSave, sb.soundData); // Define o estado "cued" com base nos dados salvos
     });
 
 
     // 3. Ouvintes de Eventos Globais
 
-    // Keyboard shortcuts
+    // Atalhos de teclado
     document.addEventListener('keydown', (e) => {
         const pressedKey = e.key.toLowerCase();
 
-        // Prevent default actions for editable elements
+        // Previne ações padrão para elementos editáveis
         if (e.target.isContentEditable || ['INPUT', 'TEXTAREA'].includes(e.target.tagName)) {
             return;
         }
 
-        // Logic for Space and Ctrl + Space (QLab style navigation)
-        if (pressedKey === ' ' && !e.ctrlKey && !e.shiftKey && !e.altKey) { // Just Space (GO)
+        // Lógica para Espaço e Ctrl + Espaço (navegação estilo QLab)
+        if (pressedKey === ' ' && !e.ctrlKey && !e.shiftKey && !e.altKey) { // Apenas Espaço (GO)
             e.preventDefault();
             let targetIndex;
             const lastPlayed = sb.audioManager.getLastPlayedSoundIndex();
@@ -117,7 +117,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (targetIndex !== null) {
                 sb.audioManager.playSound(targetIndex, sb.soundData, sb.audioContext, sb.playMultipleCheckbox, sb.autokillModeCheckbox, sb.globalActivePlayingInstances, sb.currentFadeInDuration, sb.currentFadeOutDuration, sb.volumeRange);
             } else {
-                // If no sound is found after the last played, wrap around to the first, if any
+                // Se nenhum som for encontrado após o último tocado, volta para o primeiro, se houver
                 const firstSound = sb.cueGoSystem.findNextSoundIndex(-1, 1, sb.soundData, sb.NUM_CELLS);
                 if (firstSound !== null) {
                     sb.audioManager.playSound(firstSound, sb.soundData, sb.audioContext, sb.playMultipleCheckbox, sb.autokillModeCheckbox, sb.globalActivePlayingInstances, sb.currentFadeInDuration, sb.currentFadeOutDuration, sb.volumeRange);
@@ -126,12 +126,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
             return;
-        } else if (pressedKey === ' ' && e.ctrlKey) { // Ctrl + Space (GO-)
+        } else if (pressedKey === ' ' && e.ctrlKey) { // Ctrl + Espaço (GO-)
             e.preventDefault();
             let targetIndex;
             const lastPlayed = sb.audioManager.getLastPlayedSoundIndex();
 
-            if (lastPlayed === null) { // If nothing played, start from the end and go backwards
+            if (lastPlayed === null) { // Se nada tocou, começa do fim e vai para trás
                 targetIndex = sb.cueGoSystem.findNextSoundIndex(sb.NUM_CELLS, -1, sb.soundData, sb.NUM_CELLS);
             } else {
                 targetIndex = sb.cueGoSystem.findNextSoundIndex(lastPlayed, -1, sb.soundData, sb.NUM_CELLS);
@@ -140,7 +140,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (targetIndex !== null) {
                 sb.audioManager.playSound(targetIndex, sb.soundData, sb.audioContext, sb.playMultipleCheckbox, sb.autokillModeCheckbox, sb.globalActivePlayingInstances, sb.currentFadeInDuration, sb.currentFadeOutDuration, sb.volumeRange);
             } else {
-                // If no sound is found before the last played, wrap around to the last, if any
+                // Se nenhum som for encontrado antes do último tocado, volta para o último, se houver
                 const lastSound = sb.cueGoSystem.findNextSoundIndex(sb.NUM_CELLS, -1, sb.soundData, sb.NUM_CELLS);
                 if (lastSound !== null) {
                     sb.audioManager.playSound(lastSound, sb.soundData, sb.audioContext, sb.playMultipleCheckbox, sb.autokillModeCheckbox, sb.globalActivePlayingInstances, sb.currentFadeInDuration, sb.currentFadeOutDuration, sb.volumeRange);
@@ -151,25 +151,25 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // Keyboard shortcuts for Cue/Go
+        // Atalhos de teclado para Cue/Go
         if (e.key === 'Enter') {
             e.preventDefault();
-            if (e.ctrlKey) { // Ctrl + Enter: Toggle cue for the last played sound
+            if (e.ctrlKey) { // Ctrl + Enter: Ativa/desativa cue para o último som tocado
                 const lastPlayed = sb.audioManager.getLastPlayedSoundIndex();
                 if (lastPlayed !== null && sb.soundData[lastPlayed]) {
                     sb.cueGoSystem.toggleCue(lastPlayed, sb.soundData, sb.cueGoSystem.getCuedSounds());
                 }
-            } else if (e.shiftKey) { // Shift + Enter: Stop all cued sounds
+            } else if (e.shiftKey) { // Shift + Enter: Para todos os sons em cue
                 sb.cueGoSystem.stopCuedSounds(sb.soundData, sb.audioContext, sb.audioManager.fadeoutSound, sb.globalActivePlayingInstances);
-            } else if (e.altKey) { // Alt + Enter: Remove all cues without stopping
+            } else if (e.altKey) { // Alt + Enter: Remove todos os cues sem parar
                 sb.cueGoSystem.removeAllCues(sb.soundData);
-            } else { // Enter (no modifiers): Play all cued sounds
+            } else { // Enter (sem modificadores): Toca todos os sons em cue
                 sb.cueGoSystem.playCuedSounds(sb.soundData, sb.audioContext, sb.audioManager.playSound, sb.globalActivePlayingInstances, sb.currentFadeInDuration, sb.currentFadeOutDuration, sb.volumeRange);
             }
             return;
         }
 
-        // Volume control with arrow keys
+        // Controlo de volume com teclas de seta
         if (pressedKey === 'arrowup') {
             e.preventDefault();
             sb.volumeRange.value = Math.min(1, parseFloat(sb.volumeRange.value) + 0.05);
@@ -187,22 +187,24 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             sb.settingsManager.saveSettings(sb.soundData, sb.volumeRange, sb.playMultipleCheckbox, sb.autokillModeCheckbox, sb.fadeOutRange, sb.fadeInRange, sb.isHelpVisible);
         } else if (pressedKey === 'escape') {
-            // Show confirmation popup for stopping all sounds
-            sb.stopConfirmationPopup.style.display = 'flex';
-        } else if (e.ctrlKey && pressedKey >= '0' && pressedKey <= '9') { // Ctrl + 0-9 for Fade In
+            e.preventDefault(); // Previne o comportamento padrão (ex: sair do fullscreen)
+            // CHAMA DIRETAMENTE A FUNÇÃO PARA PARAR TODOS OS SONS
+            sb.audioManager.stopAllSounds(sb.audioContext, sb.globalActivePlayingInstances, sb.soundData);
+            console.log("ESC pressionado: Todos os sons parados diretamente."); // Mensagem de depuração
+        } else if (e.ctrlKey && pressedKey >= '0' && pressedKey <= '9') { // Ctrl + 0-9 para Fade In
             e.preventDefault();
             sb.fadeInRange.value = parseInt(pressedKey);
             sb.currentFadeInDuration = parseFloat(sb.fadeInRange.value);
             sb.utils.updateFadeInDisplay(sb.fadeInRange, sb.fadeInDisplay, sb.i18n.getTranslationsObject(), sb.i18n.getCurrentLanguage());
             sb.settingsManager.saveSettings(sb.soundData, sb.volumeRange, sb.playMultipleCheckbox, sb.autokillModeCheckbox, sb.fadeOutRange, sb.fadeInRange, sb.isHelpVisible);
-        } else if (pressedKey >= '0' && pressedKey <= '9' && !e.ctrlKey && !e.altKey && !e.shiftKey) { // 0-9 for Fade Out
+        } else if (pressedKey >= '0' && pressedKey <= '9' && !e.ctrlKey && !e.altKey && !e.shiftKey) { // 0-9 para Fade Out
             e.preventDefault();
             sb.fadeOutRange.value = parseInt(pressedKey);
             sb.currentFadeOutDuration = parseFloat(sb.fadeOutRange.value);
             sb.utils.updateFadeOutDisplay(sb.fadeOutRange, sb.fadeOutDisplay, sb.i18n.getTranslationsObject(), sb.i18n.getCurrentLanguage());
             sb.settingsManager.saveSettings(sb.soundData, sb.volumeRange, sb.playMultipleCheckbox, sb.autokillModeCheckbox, sb.fadeOutRange, sb.fadeInRange, sb.isHelpVisible);
         } else {
-            // Play sound via QWERTY key
+            // Toca o som pela tecla QWERTY
             const indexToPlay = sb.defaultKeys.indexOf(pressedKey);
             if (indexToPlay !== -1 && sb.soundData[indexToPlay] && sb.soundData[indexToPlay].audioBuffer) {
                 sb.audioManager.playSound(indexToPlay, sb.soundData, sb.audioContext, sb.playMultipleCheckbox, sb.autokillModeCheckbox, sb.globalActivePlayingInstances, sb.currentFadeInDuration, sb.currentFadeOutDuration, sb.volumeRange);
@@ -210,7 +212,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Control panel listeners
+    // Ouvintes do painel de controlo
     sb.fadeInRange.addEventListener('input', () => {
         sb.currentFadeInDuration = parseFloat(sb.fadeInRange.value);
         sb.utils.updateFadeInDisplay(sb.fadeInRange, sb.fadeInDisplay, sb.i18n.getTranslationsObject(), sb.i18n.getCurrentLanguage());
@@ -239,21 +241,20 @@ document.addEventListener('DOMContentLoaded', () => {
         sb.settingsManager.saveSettings(sb.soundData, sb.volumeRange, sb.playMultipleCheckbox, sb.autokillModeCheckbox, sb.fadeOutRange, sb.fadeInRange, sb.isHelpVisible);
     });
 
-    // Stop All Sounds Button (with confirmation)
+    // Botão Parar Todos os Sons (AGORA SEM CONFIRMAÇÃO DO POPUP)
     sb.stopAllSoundsBtn.addEventListener('click', () => {
-        sb.stopConfirmationPopup.style.display = 'flex';
-    });
-
-    sb.confirmStopYesBtn.addEventListener('click', () => {
-        sb.stopConfirmationPopup.style.display = 'none';
+        // CHAMA DIRETAMENTE A FUNÇÃO PARA PARAR TODOS OS SONS
         sb.audioManager.stopAllSounds(sb.audioContext, sb.globalActivePlayingInstances, sb.soundData);
+        console.log("Botão 'Parar Todos os Sons' clicado: Todos os sons parados diretamente."); // Mensagem de depuração
     });
 
-    sb.confirmStopNoBtn.addEventListener('click', () => {
-        sb.stopConfirmationPopup.style.display = 'none';
-    });
+    // Os listeners e a exibição do popup de confirmação não são mais necessários para a funcionalidade de parar sons.
+    // Pode remover o elemento popup do seu HTML se não for usado para mais nada.
+    // sb.confirmStopYesBtn.addEventListener('click', () => { ... });
+    // sb.confirmStopNoBtn.addEventListener('click', () => { ... });
+    // Para garantir que o popup não aparece, pode adicionar ao seu CSS: #stop-confirmation-popup { display: none !important; }
 
-    // Load Multiple Sounds Button
+    // Botão Carregar Múltiplos Sons
     sb.loadSoundsButtonGeneral.addEventListener('click', () => {
         const input = document.createElement('input');
         input.type = 'file';
@@ -266,31 +267,31 @@ document.addEventListener('DOMContentLoaded', () => {
 
             for (const file of files) {
                 let foundEmptyCell = false;
-                // Find the next empty cell, starting from startIndex
+                // Encontra a próxima célula vazia, começando de startIndex
                 for (let i = startIndex; i < sb.NUM_CELLS; i++) {
                     if (sb.soundData[i] === null || (sb.soundData[i] && sb.soundData[i].audioBuffer === null)) {
                         const cell = document.querySelector(`.sound-cell[data-index="${i}"]`);
                         await sb.audioManager.loadFileIntoCell(file, cell, i, sb.soundData, sb.audioContext, sb.cellManager.updateCellDisplay, sb.i18n.getTranslation, sb.settingsManager.saveSettings);
-                        startIndex = i + 1; // Update start index for next file
+                        startIndex = i + 1; // Atualiza o índice inicial para o próximo ficheiro
                         foundEmptyCell = true;
                         break;
                     }
                 }
                 if (!foundEmptyCell) {
                     alert(sb.i18n.getTranslation('alertNoEmptyCells').replace('{fileName}', file.name));
-                    break; // Stop loading if no more empty cells
+                    break; // Para o carregamento se não houver mais células vazias
                 }
             }
         };
         input.click();
     });
 
-    // Clear All Cells Button
+    // Botão Limpar Todas as Células
     sb.clearAllCellsBtn.addEventListener('click', () => {
         sb.audioManager.clearAllSoundCells(sb.soundData, sb.audioContext, sb.globalActivePlayingInstances, sb.NUM_CELLS, sb.cellManager.updateCellDisplay, sb.i18n.getTranslation, sb.settingsManager.saveSettings);
     });
 
-    // Language Buttons
+    // Botões de Idioma
     sb.langButtons.forEach(button => {
         button.addEventListener('click', () => {
             sb.i18n.setLanguage(
@@ -302,7 +303,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     fadeOutDisplay: sb.fadeOutDisplay,
                     fadeInRange: sb.fadeInRange,
                     fadeInDisplay: sb.fadeInDisplay,
-                    soundCells: document.querySelectorAll('.sound-cell'), // Re-query after language change if cells updated
+                    soundCells: document.querySelectorAll('.sound-cell'), // Re-consulta após mudança de idioma se as células foram atualizadas
                     langButtons: sb.langButtons
                 },
                 sb.soundData,
@@ -312,7 +313,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Toggle Help Button
+    // Botão Alternar Ajuda
     sb.toggleHelpButton.addEventListener('click', () => {
         sb.isHelpVisible = !sb.isHelpVisible;
         if (sb.isHelpVisible) {
@@ -325,7 +326,7 @@ document.addEventListener('DOMContentLoaded', () => {
         sb.settingsManager.saveSettings(sb.soundData, sb.volumeRange, sb.playMultipleCheckbox, sb.autokillModeCheckbox, sb.fadeOutRange, sb.fadeInRange, sb.isHelpVisible);
     });
 
-    // Resume AudioContext on first user interaction
+    // Retomar AudioContext na primeira interação do utilizador
     document.body.addEventListener('click', () => {
         if (sb.audioContext && sb.audioContext.state === 'suspended') {
             sb.audioContext.resume().then(() => {
