@@ -61,7 +61,7 @@ document.addEventListener('DOMContentLoaded', () => {
     sb.i18n.loadTranslations((lang) => {
         sb.currentLanguage = lang; // Define a língua global atual
         // Passa o callback loadMultipleFilesIntoCells para loadSettings
-        sb.settingsManager.loadSettings(sb, sb.audioManager.loadMultipleFilesIntoCells); // *** ALTERAÇÃO AQUI ***
+        sb.settingsManager.loadSettings(sb, sb.audioManager.loadMultipleFilesIntoCells);
 
         // Re-consulta as células de som, pois são criadas dinamicamente por loadSettings
         sb.soundCells = document.querySelectorAll('.sound-cell');
@@ -199,10 +199,16 @@ document.addEventListener('DOMContentLoaded', () => {
             sb.settingsManager.saveSettings(sb.soundData, sb.volumeRange, sb.playMultipleCheckbox, sb.autokillModeCheckbox, sb.fadeOutRange, sb.fadeInRange, sb.isHelpVisible);
         } else if (pressedKey === 'escape') {
             e.preventDefault(); // Previne o comportamento padrão (ex: sair do fullscreen)
-            // CHAMA DIRETAMENTE A FUNÇÃO PARA PARAR TODOS OS SONS
-            sb.audioManager.stopAllSounds(sb.audioContext, sb.globalActivePlayingInstances, sb.soundData);
+            // CHAMA DIRETAMENTE A FUNÇÃO PARA PARAR TODOS OS SONS sem fade
+            sb.audioManager.stopAllSounds(sb.audioContext, sb.globalActivePlayingInstances, sb.soundData); // Chamada sem duração de fade
             console.log("ESC pressionado: Todos os sons parados diretamente."); // Mensagem de depuração
-        } else if (e.ctrlKey && pressedKey >= '0' && pressedKey <= '9') { // Ctrl + 0-9 para Fade In
+        } else if (pressedKey === 'backspace') { // <--- NOVO: Fade out de todos os sons com Backspace
+            e.preventDefault(); // Previne o comportamento padrão do Backspace (ex: navegar para trás no histórico)
+            // Chama a função para parar todos os sons, passando a duração de fade out atual
+            sb.audioManager.stopAllSounds(sb.audioContext, sb.globalActivePlayingInstances, sb.soundData, sb.currentFadeOutDuration);
+            console.log("Backspace pressionado: Todos os sons a fazer fade out.");
+        }
+        else if (e.ctrlKey && pressedKey >= '0' && pressedKey <= '9') { // Ctrl + 0-9 para Fade In
             e.preventDefault();
             sb.fadeInRange.value = parseInt(pressedKey);
             sb.currentFadeInDuration = parseFloat(sb.fadeInRange.value);
@@ -254,7 +260,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Botão Parar Todos os Sons (AGORA SEM CONFIRMAÇÃO DO POPUP)
     sb.stopAllSoundsBtn.addEventListener('click', () => {
-        // CHAMA DIRETAMENTE A FUNÇÃO PARA PARAR TODOS OS SONS
+        // CHAMA DIRETAMENTE A FUNÇÃO PARA PARAR TODOS OS SONS (sem fade)
         sb.audioManager.stopAllSounds(sb.audioContext, sb.globalActivePlayingInstances, sb.soundData);
         console.log("Botão 'Parar Todos os Sons' clicado: Todos os sons parados diretamente."); // Mensagem de depuração
     });
