@@ -57,7 +57,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let longPressTimer;
     let isLongPress = false;
 
-    // --- Funções de Inicialização e Carregamento ---
+    //  Funções de Inicialização e Carregamento 
 
     function initAudioContext() {
         if (!audioContext) {
@@ -614,7 +614,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- Funções do Modal de Configurações da Célula ---
+    //  Funções do Modal de Configurações da Célula 
     // (Estas funções só funcionarão se tiver o HTML para o modal `cellSettingsModal`)
 
     function openCellSettingsModal(index) {
@@ -716,7 +716,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- Funções de Reprodução de Áudio ---
+    //  Funções de Reprodução de Áudio 
 
     function playSound(index) {
         const sound = soundData[index];
@@ -1038,7 +1038,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return null; // Não encontrou nenhum som após várias tentativas
     }
 
-    // --- Funções de Controlo Global ---
+    //  Funções de Controlo Global 
 
     function stopAllSounds() {
         // Mostra o pop-up de confirmação
