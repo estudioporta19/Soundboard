@@ -102,7 +102,6 @@ window.soundboardApp.audioManager = (function() {
                 const arrayBuffer = base64ToArrayBuffer(audioDataUrl.split(',')[1]);
                 const audioBuffer = await currentAudioContext.decodeAudioData(arrayBuffer); // Use currentAudioContext
 
-                // --- Correção para ReferenceError: fixedKey is not defined ---
                 // Obter fixedKey do array global defaultKeys
                 const fixedKey = window.soundboardApp.defaultKeys[index];
 
@@ -137,6 +136,44 @@ window.soundboardApp.audioManager = (function() {
         };
         reader.readAsDataURL(file); // Changed to readAsDataURL to ensure audioDataUrl is a string Data URL
     }
+
+    /**
+     * Carrega múltiplos ficheiros de áudio em células sequenciais a partir de um índice de início.
+     * @param {File[]} files - Um array de objetos File a serem carregados.
+     * @param {number} startIndex - O índice da célula a partir da qual o carregamento deve começar.
+     * @param {Array} soundData - O array de dados de som global.
+     * @param {AudioContext} audioContextParam - O contexto de áudio.
+     * @param {Function} updateCellDisplay - Callback para atualizar o display da célula.
+     * @param {Function} getTranslation - Callback para obter traduções.
+     * @param {Function} saveSettingsCallback - Callback para salvar as configurações.
+     */
+    async function loadMultipleFilesIntoCells(files, startIndex, soundData, audioContextParam, updateCellDisplay, getTranslation, saveSettingsCallback) {
+        initAudioContext(window.soundboardApp.volumeRange);
+        const currentAudioContext = audioContextParam || window.soundboardApp.audioContext;
+
+        if (!currentAudioContext) {
+            console.error("AudioContext não inicializado ao tentar carregar múltiplos ficheiros.");
+            alert(getTranslation('alertLoadError').replace('{fileName}', 'Múltiplos Ficheiros') + " (AudioContext não pronto)");
+            return;
+        }
+
+        let currentIndex = startIndex;
+        for (const file of files) {
+            if (currentIndex >= window.soundboardApp.NUM_CELLS) {
+                alert(getTranslation('alertNoEmptyCells').replace('{fileName}', file.name));
+                break; // Não há mais células para carregar
+            }
+
+            const cell = document.querySelector(`.sound-cell[data-index="${currentIndex}"]`);
+            if (cell) {
+                await loadFileIntoCell(file, cell, currentIndex, soundData, currentAudioContext, updateCellDisplay, getTranslation, saveSettingsCallback);
+            } else {
+                console.warn(`Célula com índice ${currentIndex} não encontrada. Ignorando ficheiro ${file.name}.`);
+            }
+            currentIndex++; // Move para a próxima célula
+        }
+    }
+
 
     function playSound(index, soundData, audioContextParam, playMultipleCheckbox, autokillModeCheckbox, globalActivePlayingInstances, currentFadeInDuration, currentFadeOutDuration, volumeRange) {
         initAudioContext(volumeRange);
@@ -186,7 +223,7 @@ window.soundboardApp.audioManager = (function() {
         source.connect(gainNode);
         gainNode.connect(masterGainNode); // Connect to the master gain
 
-        const initialVolume = volumeRange.value; // Get current global volume
+        const initialVolume = window.soundboardApp.volumeRange.value; // Get current global volume from appState
 
         if (currentFadeInDuration > 0) {
             gainNode.gain.linearRampToValueAtTime(initialVolume, now + currentFadeInDuration);
@@ -230,29 +267,39 @@ window.soundboardApp.audioManager = (function() {
     function stopSoundInstance(instance, now, fadeDuration) {
         if (instance && instance.source && instance.gain && typeof instance.gain.gain === 'object') {
             try {
+                // Cancel any pending automations on the gain node
                 instance.gain.gain.cancelScheduledValues(now);
+                // Set the current value as the base for the ramp
                 instance.gain.gain.setValueAtTime(instance.gain.gain.value, now);
-                instance.gain.gain.linearRampToValueAtTime(0.0001, now + fadeDuration); // Fade to near silence
+                // Ramp down to near silence
+                instance.gain.gain.linearRampToValueAtTime(0.0001, now + fadeDuration);
 
-                // Ensure the source actually stops after the fade.
-                // It's important to schedule the stop _after_ the fade finishes.
-                instance.source.stop(now + fadeDuration + 0.05); // Stop slightly after fade ends
-                instance.source.onended = null; // Clear onended to prevent re-triggering removal
+                // Stop the source after the fade duration plus a small buffer
+                instance.source.stop(now + fadeDuration + 0.05);
+                instance.source.onended = null; // Clear onended to prevent re-triggering logic
+
             } catch (error) {
                 console.warn("Erro ao parar instância de som ou aplicar fade-out:", error);
+                // Fallback to immediate stop if scheduled fade fails
                 if (instance.source && typeof instance.source.stop === 'function') {
-                    instance.source.stop(); // Fallback to immediate stop if fade fails
+                    instance.source.stop();
                 }
             }
-            // Disconnect immediately to free resources after a short delay to allow fade to start
+            // Disconnect nodes after a short delay to allow the fade to start
             setTimeout(() => {
-                if (instance.source) {
-                    try { instance.source.disconnect(); } catch (e) { console.warn("Error disconnecting source:", e); }
+                try {
+                    if (instance.source && instance.source.disconnect) {
+                        instance.source.disconnect();
+                    }
+                    if (instance.gain && instance.gain.disconnect) {
+                        instance.gain.disconnect();
+                    }
+                } catch (disconnectError) {
+                    console.warn("Erro ao desconectar nós de áudio:", disconnectError);
                 }
-                if (instance.gain) {
-                    try { instance.gain.disconnect(); } catch (e) { console.warn("Error disconnecting gain:", e); }
-                }
-            }, (fadeDuration * 1000) + 100); // Give a bit more time for disconnect
+            }, (fadeDuration * 1000) + 100); // Wait a bit more than the fade duration
+        } else {
+             console.warn("Instância de som inválida ou incompleta:", instance);
         }
     }
 
@@ -264,7 +311,8 @@ window.soundboardApp.audioManager = (function() {
         if (!sound || sound.activePlayingInstances.size === 0) return;
 
         const now = currentAudioContext.currentTime;
-        const instancesToFade = new Set(sound.activePlayingInstances); // Clone the set to avoid modification issues
+        // Clone set to iterate safely, as instances might be removed during iteration
+        const instancesToFade = new Set(sound.activePlayingInstances);
 
         instancesToFade.forEach(instance => {
             stopSoundInstance(instance, now, duration);
@@ -280,30 +328,36 @@ window.soundboardApp.audioManager = (function() {
 
     function stopAllSounds(audioContextParam, globalActivePlayingInstances, soundData) {
         const currentAudioContext = audioContextParam || window.soundboardApp.audioContext;
-        if (currentAudioContext) {
-            const now = currentAudioContext.currentTime;
-            const fadeDuration = 0.2; // Quick fade out for stopping all
-
-            const instancesToStop = new Set(globalActivePlayingInstances); // Clone set to iterate safely
-
-            instancesToStop.forEach(instance => {
-                stopSoundInstance(instance, now, fadeDuration);
-            });
-
-            globalActivePlayingInstances.clear(); // Clear the global set
-
-            document.querySelectorAll('.sound-cell.active').forEach(cell => {
-                cell.classList.remove('active');
-            });
-
-            // Ensure individual sound active instances are also cleared
-            soundData.forEach(sound => {
-                if (sound && sound.activePlayingInstances) {
-                    sound.activePlayingInstances.clear();
-                }
-            });
-            lastPlayedSoundIndex = null; // Reset last played index
+        if (!currentAudioContext) {
+            console.warn("AudioContext não disponível para parar todos os sons.");
+            return;
         }
+
+        const now = currentAudioContext.currentTime;
+        const fadeDuration = 0.2; // Quick fade out for stopping all
+
+        // Clone set to iterate safely, as instances might be removed during iteration
+        const instancesToStop = new Set(globalActivePlayingInstances);
+
+        instancesToStop.forEach(instance => {
+            stopSoundInstance(instance, now, fadeDuration);
+        });
+
+        // Ensure the global set is cleared after all attempts to stop
+        globalActivePlayingInstances.clear();
+
+        document.querySelectorAll('.sound-cell.active').forEach(cell => {
+            cell.classList.remove('active');
+        });
+
+        // Ensure individual sound active instances are also cleared
+        soundData.forEach(sound => {
+            if (sound && sound.activePlayingInstances) {
+                sound.activePlayingInstances.clear();
+            }
+        });
+        lastPlayedSoundIndex = null; // Reset last played index
+        console.log("Todos os sons parados e instâncias limpas.");
     }
 
     function clearSoundCell(index, fadeDuration, soundData, audioContextParam, globalActivePlayingInstances, updateCellDisplay, getTranslation, saveSettingsCallback) {
@@ -379,6 +433,9 @@ window.soundboardApp.audioManager = (function() {
         initAudioContext: initAudioContext,
         loadFileIntoCell: loadFileIntoCell,
         loadSoundFromDataURL: loadSoundFromDataURL,
+        // --- NOVA FUNÇÃO ---
+        loadMultipleFilesIntoCells: loadMultipleFilesIntoCells,
+        // --- FIM NOVA FUNÇÃO ---
         playSound: playSound,
         fadeoutSound: fadeoutSound,
         stopAllSounds: stopAllSounds,
