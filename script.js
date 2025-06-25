@@ -522,26 +522,30 @@ document.addEventListener('DOMContentLoaded', () => {
 
         initAudioContext();
 
-function playSound(index) {
-        const sound = soundData[index];
-
-        if (!sound || !sound.audioBuffer) {
-            return false;
+        // Aplicar auto-kill ao som anteriormente tocado, se houver e o modo estiver ativado.
+        if (autokillModeCheckbox.checked && lastPlayedSoundIndex !== null && lastPlayedSoundIndex !== index) {
+            const lastSound = soundData[lastPlayedSoundIndex];
+            if (lastSound) {
+                lastSound.activePlayingInstances.forEach(instance => {
+                    const cell = document.querySelector(`.sound-cell[data-index="${lastPlayedSoundIndex}"]`);
+                    if (cell) cell.classList.remove('active');
+                    fadeoutInstance(instance.source, instance.gain, 0.2); // Fade out rápido
+                });
+                lastSound.activePlayingInstances.clear();
+            }
         }
-
-        initAudioContext();
 
         if (audioContext.state === 'suspended') {
             audioContext.resume().then(() => {
                 console.log('AudioContext resumed successfully');
                 playActualSound(sound, index, currentFadeInDuration);
-                lastPlayedSoundIndex = index;
+                lastPlayedSoundIndex = index; // Atualiza o cursor APÓS tocar
             }).catch(e => console.error('Erro ao retomar AudioContext:', e));
         } else {
             playActualSound(sound, index, currentFadeInDuration);
-            lastPlayedSoundIndex = index;
+            lastPlayedSoundIndex = index; // Atualiza o cursor APÓS tocar
         }
-        return true;
+        return true; // Um som foi iniciado
     }
 
     function playActualSound(sound, index, fadeInDuration = 0) {
@@ -567,23 +571,6 @@ function playSound(index) {
 
         const cell = document.querySelector(`.sound-cell[data-index="${index}"]`);
         if (cell) {
-            // Aplicar auto-kill ao som anteriormente tocado, se houver e o modo estiver ativado.
-            // MOVEMOS ESTA LÓGICA PARA DENTRO DE playSound() para que seja aplicada ANTES de tocar o som atual
-            // No seu código anterior, essa lógica estava no início de playSound(), o que é correto.
-            // Vou garantir que ela esteja lá na reedição completa.
-            if (autokillModeCheckbox.checked && lastPlayedSoundIndex !== null && lastPlayedSoundIndex !== index) {
-                const lastSound = soundData[lastPlayedSoundIndex];
-                if (lastSound) {
-                    lastSound.activePlayingInstances.forEach(instance => {
-                        const prevCell = document.querySelector(`.sound-cell[data-index="${lastPlayedSoundIndex}"]`);
-                        if (prevCell) prevCell.classList.remove('active');
-                        fadeoutInstance(instance.source, instance.gain, 0.2); // Fade out rápido
-                    });
-                    lastSound.activePlayingInstances.clear();
-                }
-            }
-
-
             cell.classList.add('active');
             if (sound.isCued) {
                 sound.isCued = false;
@@ -592,6 +579,7 @@ function playSound(index) {
             }
             source.onended = () => {
                 if (!source.loop) {
+                    // Pequeno atraso para garantir que a transição visual é suave
                     setTimeout(() => {
                         cell.classList.remove('active');
                         sound.activePlayingInstances.delete(playingInstance);
@@ -609,6 +597,7 @@ function playSound(index) {
         if (playMultipleCheckbox.checked) {
             source.start(0);
         } else {
+            // Parar outras instâncias ativas do MESMO som
             sound.activePlayingInstances.forEach(instance => {
                 if (instance !== playingInstance) {
                     fadeoutInstance(instance.source, instance.gain, 0.1);
@@ -788,67 +777,38 @@ function playSound(index) {
         saveSettings();
     }
 
-    // Função auxiliar para encontrar a próxima/anterior célula com som
+    // NOVO: Função auxiliar para encontrar a próxima/anterior célula com som
     function findNextSoundIndex(startIndex, direction) {
         let currentIndex = startIndex;
         let attempts = 0;
-        const maxAttempts = NUM_CELLS;
+        const maxAttempts = NUM_CELLS; // Evita loop infinito em caso de todas as células vazias
 
         while (attempts < maxAttempts) {
             currentIndex += direction;
 
             if (currentIndex >= NUM_CELLS) {
-                currentIndex = 0;
+                currentIndex = 0; // Wrap around to start
             } else if (currentIndex < 0) {
-                currentIndex = NUM_CELLS - 1;
+                currentIndex = NUM_CELLS - 1; // Wrap around to end
             }
 
+            // Se encontrarmos um som carregado, retornamos o índice
             if (soundData[currentIndex] && soundData[currentIndex].audioBuffer) {
                 return currentIndex;
             }
 
+            // Se, ao avançar, chegarmos novamente ao ponto de partida
+            // (e o ponto de partida estava vazio ou não tinha som),
+            // isso significa que não há mais sons na direção desejada.
+            // Isso acontece se start index for null e a primeira célula não tiver som,
+            // ou se só houver uma célula com som e você tentar avançar/retroceder.
             if (startIndex !== null && currentIndex === startIndex && attempts > 0) {
-                return null;
+                return null; // Não há mais sons para encontrar
             }
 
             attempts++;
         }
-        return null;
-    }
-
-    /**
-     * Carrega múltiplos arquivos em células, começando de um índice específico.
-     * Se uma célula já estiver preenchida, o som existente será substituído.
-     * @param {File[]} files - Array de objetos File a serem carregados.
-     * @param {number} startIndex - O índice da célula onde o carregamento deve começar.
-     */
-    async function loadMultipleFilesIntoCells(files, startIndex) {
-        let currentIndex = startIndex;
-        for (const file of files) {
-            if (!file || !(file.type === 'audio/wav' || file.type === 'audio/mp3' || file.type === 'audio/ogg')) {
-                alert(translations[currentLanguage].alertInvalidFile);
-                continue; // Pular para o próximo arquivo se o tipo for inválido
-            }
-
-            let foundTargetCell = false;
-            // Procurar por uma célula disponível a partir do currentIndex
-            for (let i = currentIndex; i < NUM_CELLS; i++) {
-                const cell = document.querySelector(`.sound-cell[data-index="${i}"]`);
-                if (cell) { // Certifica-se de que a célula existe
-                    // Se a célula já tem um som, vamos substituí-lo.
-                    // Não precisamos checar se está vazia, apenas usar o índice.
-                    await loadFileIntoCell(file, cell, i);
-                    currentIndex = i + 1; // Mover o cursor para a próxima célula
-                    foundTargetCell = true;
-                    break; // Passar para o próximo arquivo
-                }
-            }
-
-            if (!foundTargetCell) {
-                alert(translations[currentLanguage].alertNoEmptyCells.replace('{fileName}', file.name));
-                break; // Parar de carregar se não houver mais células disponíveis
-            }
-        }
+        return null; // Não encontrou nenhum som em todas as tentativas
     }
 
 
@@ -859,52 +819,64 @@ function playSound(index) {
             return;
         }
 
-        if (pressedKey === ' ' && !e.ctrlKey && !e.shiftKey && !e.altKey) {
+        // Lógica para Space e Ctrl + Space (Qlab style)
+        if (pressedKey === ' ' && !e.ctrlKey && !e.shiftKey && !e.altKey) { // Apenas Space (GO)
             e.preventDefault();
             let targetIndex;
 
             if (lastPlayedSoundIndex === null) {
+                // Se nenhum som foi tocado ainda, começa a procurar a partir do -1 para encontrar o 0 ou o próximo
                 targetIndex = findNextSoundIndex(-1, 1);
             } else {
                 targetIndex = findNextSoundIndex(lastPlayedSoundIndex, 1);
             }
 
             if (targetIndex !== null) {
-                playSound(targetIndex);
+                const played = playSound(targetIndex);
+                // lastPlayedSoundIndex é atualizado dentro de playSound SE o som for reproduzido.
+                // Se playSound retornar false (célula vazia), não atualizamos lastPlayedSoundIndex aqui,
+                // mas a lógica de findNextSoundIndex já garantiu que saltamos vazios.
             } else {
                 console.log("Não há mais sons para tocar para a frente.");
+                // O que fazer se não houver mais sons para tocar?
+                // Podemos manter lastPlayedSoundIndex como está ou redefini-lo para o início/fim.
+                // Por agora, vou mantê-lo, para que o próximo GO procure de novo a partir do último ponto.
+                // O QLab geralmente para de avançar se não há mais deixas.
             }
             return;
-        } else if (pressedKey === ' ' && e.ctrlKey) {
+        } else if (pressedKey === ' ' && e.ctrlKey) { // Ctrl + Space (GO-)
             e.preventDefault();
             let targetIndex;
 
             if (lastPlayedSoundIndex === null) {
+                // Se nenhum som foi tocado ainda, começa a procurar a partir do NUM_CELLS para encontrar o último ou o anterior
                 targetIndex = findNextSoundIndex(NUM_CELLS, -1);
             } else {
                 targetIndex = findNextSoundIndex(lastPlayedSoundIndex, -1);
             }
 
             if (targetIndex !== null) {
-                playSound(targetIndex);
+                const played = playSound(targetIndex);
+                // lastPlayedSoundIndex é atualizado dentro de playSound SE o som for reproduzido.
             } else {
                 console.log("Não há mais sons para tocar para trás.");
             }
             return;
         }
 
+        // Atalhos de teclado para Cue/Go
         if (e.key === 'Enter') {
             e.preventDefault();
-            if (e.ctrlKey) {
+            if (e.ctrlKey) { // Ctrl + Enter: Adiciona/remove o último som tocado do cue
                 if (lastPlayedSoundIndex !== null && soundData[lastPlayedSoundIndex]) {
                     toggleCue(lastPlayedSoundIndex);
                 }
-            } else if (e.shiftKey) {
+            } else if (e.shiftKey) { // Shift + Enter: Para todos os sons em cue
                 stopCuedSounds();
-            } else if (e.altKey) {
+            } else if (e.altKey) { // Alt + Enter: Remove todos os cues sem parar
                 removeAllCues();
             }
-            else {
+            else { // Enter (sem modificadores): Toca todos os sons em cue
                 playCuedSounds();
             }
             return;
@@ -1054,17 +1026,32 @@ function playSound(index) {
 
     stopAllSoundsBtn.addEventListener('click', stopAllSounds);
 
-    // ALTERAÇÃO AQUI: loadSoundsButtonGeneral agora usa a nova função loadMultipleFilesIntoCells
     loadSoundsButtonGeneral.addEventListener('click', () => {
         const input = document.createElement('input');
         input.type = 'file';
         input.accept = 'audio/mp3, audio/wav, audio/ogg';
-        input.multiple = true; // Permite seleção de múltiplos arquivos
+        input.multiple = true;
 
         input.onchange = async (e) => {
             const files = Array.from(e.target.files);
-            // Começa a carregar os arquivos a partir do índice 0 (primeira célula disponível)
-            await loadMultipleFilesIntoCells(files, 0);
+            let startIndex = 0;
+
+            for (const file of files) {
+                let foundEmptyCell = false;
+                for (let i = startIndex; i < NUM_CELLS; i++) {
+                    if (soundData[i] === null || (soundData[i] && soundData[i].audioBuffer === null)) {
+                        const cell = document.querySelector(`.sound-cell[data-index="${i}"]`);
+                        await loadFileIntoCell(file, cell, i);
+                        startIndex = i + 1;
+                        foundEmptyCell = true;
+                        break;
+                    }
+                }
+                if (!foundEmptyCell) {
+                    alert(translations[currentLanguage].alertNoEmptyCells.replace('{fileName}', file.name));
+                    break;
+                }
+            }
         };
         input.click();
     });
@@ -1087,5 +1074,4 @@ function playSound(index) {
             });
         }
     }, { once: true });
-
-}); // Fim do DOMContentLoaded
+});
