@@ -399,3 +399,17 @@ input[type="checkbox"]:checked::after {
     color: #eee;
     white-space: nowrap;
 }
+
+---
+/* Feedback Visual para Células a Tocar */
+.sound-cell.playing-feedback {
+    background-color: #66ff66 !important; /* Um verde brilhante ou outra cor que goste */
+    box-shadow: 0 0 15px 5px rgba(102, 255, 102, 0.7); /* Efeito de brilho */
+    transform: scale(1.02); /* Pequena expansão para destaque */
+    transition: background-color 0.1s ease-out, box-shadow 0.1s ease-out, transform 0.1s ease-out; /* Transição suave */
+}
+
+/* Opcional: Efeito de retorno suave (já deve existir para .sound-cell, mas se não tiver, adicione) */
+.sound-cell {
+    transition: transform 0.1s, box-shadow 0.1s, background-color 0.2s ease-in, border-color 0.3s;
+}
