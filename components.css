@@ -1,0 +1,399 @@
+/* Estilos para componentes UI */
+
+/* Language Switcher */
+.language-switcher {
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+}
+
+.lang-button {
+    background-color: #555;
+    color: #eee;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.9em;
+    transition: background-color 0.2s, transform 0.1s;
+}
+
+.lang-button:hover {
+    background-color: #666;
+    transform: translateY(-1px);
+}
+
+.lang-button.active {
+    background-color: #00bcd4;
+    color: #fff;
+    box-shadow: 0 0 8px rgba(0, 188, 212, 0.5);
+}
+
+/* Itens de controle (sliders, checkboxes, etc.) */
+.control-item {
+    display: flex;
+    align-items: center;
+    gap: 10px; /* Espaço entre label/input/checkbox */
+    background-color: #555; /* Fundo mais claro para os itens */
+    padding: 10px 15px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    width: 100%; /* Ocupa a largura total da sua coluna */
+    box-sizing: border-box;
+}
+
+.control-item label {
+    font-weight: bold;
+    color: #ccc;
+    white-space: nowrap;
+    flex-shrink: 0; /* Impede que a label encolha */
+}
+
+/* Range sliders */
+input[type="range"] {
+    -webkit-appearance: none;
+    width: 100%; /* Ocupa o restante do espaço */
+    height: 8px;
+    background: #666;
+    border-radius: 5px;
+    outline: none;
+    transition: opacity .2s;
+    flex-grow: 1; /* Permite que o slider preencha o espaço disponível */
+}
+
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #00bcd4;
+    cursor: pointer;
+    box-shadow: 0 0 5px rgba(0, 188, 212, 0.7);
+    transition: background 0.2s, box-shadow 0.2s;
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+    background: #00a0b7;
+    box-shadow: 0 0 8px rgba(0, 188, 212, 1);
+}
+
+#volume-display, #fadeIn-display, #fadeout-display {
+    min-width: 70px;
+    text-align: right;
+    font-weight: bold;
+    color: #00bcd4;
+    flex-shrink: 0; /* Impede que o display encolha */
+}
+
+/* Checkboxes */
+input[type="checkbox"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border: 2px solid #00bcd4;
+    border-radius: 4px;
+    background-color: #555;
+    cursor: pointer;
+    position: relative;
+    outline: none;
+    transition: background-color 0.2s, border-color 0.2s;
+    flex-shrink: 0;
+}
+
+input[type="checkbox"]:checked {
+    background-color: #00bcd4;
+    border-color: #00bcd4;
+}
+
+input[type="checkbox"]:checked::after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 6px;
+    width: 6px;
+    height: 10px;
+    border: solid #fff;
+    border-width: 0 3px 3px 0;
+    transform: rotate(45deg);
+}
+
+/* Botões da coluna direita ("Carregar Múltiplos Sons", "Parar Todos os Sons") */
+.right-column button {
+    background-color: #00bcd4;
+    color: #fff;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1em;
+    font-weight: bold;
+    transition: background-color 0.2s, transform 0.1s, box-shadow 0.2s;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    width: 100%; /* Faz os botões ocuparem a largura total da coluna */
+    box-sizing: border-box;
+}
+
+.right-column button:hover {
+    background-color: #00a0b7;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+}
+
+.right-column button:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* Células da Soundboard */
+.sound-cell {
+    width: 100px;
+    height: 100px;
+    background-color: #555;
+    border: 3px solid #666;
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    box-sizing: border-box;
+    cursor: pointer;
+    position: relative;
+    transition: transform 0.1s, box-shadow 0.1s, background-color 0.3s, border-color 0.3s;
+    user-select: none;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.sound-cell:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+}
+
+.sound-cell.active {
+    transform: scale(1.05);
+    box-shadow: 0 0 20px rgba(0, 188, 212, 0.8), 0 0 30px rgba(0, 188, 212, 0.6);
+    background-color: #00bcd4;
+    border-color: #00bcd4;
+    z-index: 1;
+}
+
+.sound-cell.filled {
+    background-color: #4a4a4a;
+    border-color: #777;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.sound-cell.filled:hover {
+    background-color: #5a5a5a;
+    border-color: #888;
+}
+
+.sound-cell.cued {
+    border-color: #ffeb3b;
+    box-shadow: 0 0 15px rgba(255, 235, 59, 0.7);
+    transform: scale(1.02);
+}
+
+/* Display da Tecla */
+.key-display {
+    font-size: 1.2em;
+    font-weight: bold;
+    color: rgba(255, 255, 255, 0.6);
+    position: absolute;
+    top: 5px;
+    left: 8px;
+    padding: 2px 5px;
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 5px;
+    z-index: 10;
+}
+
+/* Nome do Som */
+.sound-name {
+    font-size: 0.9em;
+    font-weight: bold;
+    color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    width: 90%;
+    text-align: center;
+    padding-top: 20px;
+    flex-grow: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.sound-name:focus {
+    outline: 2px solid #00bcd4;
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 5px;
+}
+
+/* Botões de controle dentro da célula (Delete, Loop, Replace) */
+.delete-button,
+.loop-button,
+.replace-sound-button {
+    position: absolute;
+    background: rgba(0, 0, 0, 0.4);
+    color: #fff;
+    border: none;
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    font-size: 0.9em;
+    font-weight: bold;
+    transition: background-color 0.2s, transform 0.1s;
+    line-height: 1;
+    z-index: 20;
+    padding: 0;
+}
+
+.delete-button {
+    top: 5px;
+    right: 5px;
+    color: #ff4d4d;
+}
+
+.delete-button:hover {
+    background-color: rgba(255, 77, 77, 0.7);
+    color: #fff;
+    transform: scale(1.1);
+}
+
+.loop-button {
+    bottom: 5px;
+    left: 5px;
+    color: #4CAF50;
+}
+
+.loop-button .material-symbols-outlined {
+    font-size: 1.1em;
+}
+
+.loop-button:hover {
+    background-color: rgba(76, 175, 80, 0.7);
+    color: #fff;
+    transform: scale(1.1);
+}
+
+.loop-button.active {
+    background-color: #4CAF50;
+    color: #fff;
+    box-shadow: 0 0 8px rgba(76, 175, 80, 0.6);
+}
+
+.replace-sound-button {
+    bottom: 5px;
+    right: 5px;
+    color: #2196F3;
+}
+
+.replace-sound-button .material-symbols-outlined {
+    font-size: 1.1em;
+}
+
+.replace-sound-button:hover {
+    background-color: rgba(33, 150, 243, 0.7);
+    color: #fff;
+    transform: scale(1.1);
+}
+
+/* Container e botão de ajuda */
+.help-button-container {
+    margin-top: 20px;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.help-button-container #toggle-help-button {
+    background-color: #00bcd4;
+    color: #fff;
+    border: none;
+    padding: 12px 25px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1.1em;
+    font-weight: bold;
+    transition: background-color 0.2s, transform 0.1s, box-shadow 0.2s;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.help-button-container #toggle-help-button:hover {
+    background-color: #00a0b7;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+}
+
+.help-button-container #toggle-help-button:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* Help Text */
+.help-text {
+    background-color: #444;
+    padding: 20px;
+    border-radius: 10px;
+    margin-top: 30px;
+    box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.3);
+    text-align: left;
+
+    max-height: 0; /* Inicia escondido */
+    overflow: hidden;
+    transition: max-height 0.5s ease-out, padding 0.5s ease-out, margin-top 0.5s ease-out, opacity 0.5s ease-out;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.help-text.visible {
+    max-height: 1000px;
+    padding: 20px;
+    margin-top: 30px;
+    opacity: 1;
+    pointer-events: auto;
+    transition: max-height 0.7s ease-in-out, opacity 0.5s ease-in-out, padding 0.7s ease-in-out, margin-top 0.7s ease-in-out;
+}
+
+.help-text h3 {
+    color: #00bcd4;
+    margin-bottom: 15px;
+    font-size: 1.5em;
+}
+
+.help-text ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.help-text li {
+    margin-bottom: 8px;
+    line-height: 1.4;
+    color: #ccc;
+    font-size: 0.95em;
+}
+
+.help-text li strong {
+    color: #fff;
+}
+
+.help-text kbd {
+    background-color: #555;
+    border: 1px solid #777;
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-family: monospace;
+    font-size: 0.9em;
+    color: #eee;
+    white-space: nowrap;
+}
