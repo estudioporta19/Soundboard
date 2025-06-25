@@ -1,5 +1,4 @@
 body {
-    font-family: 'Montserrat', sans-serif;body {
     font-family: 'Montserrat', sans-serif;
     background-color: #222;
     color: #eee;
@@ -61,7 +60,7 @@ h1 {
     box-shadow: 0 0 8px rgba(0, 188, 212, 0.5);
 }
 
-/* Novo Wrapper para os Controles em Colunas */
+/* Wrapper para os Controles em Duas Colunas */
 .controls-wrapper {
     background-color: #444;
     padding: 20px;
@@ -201,7 +200,6 @@ input[type="checkbox"]:checked::after {
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
-
 /* Soundboard Grid */
 .soundboard-grid {
     display: flex;
@@ -268,7 +266,6 @@ input[type="checkbox"]:checked::after {
     border-radius: 5px;
     z-index: 10;
 }
-
 
 /* Sound Name */
 .sound-name {
@@ -398,7 +395,6 @@ input[type="checkbox"]:checked::after {
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
-
 /* Help Text */
 .help-text {
     background-color: #444;
@@ -466,6 +462,89 @@ input[type="checkbox"]:checked::after {
         'wght' 400,
         'GRAD' 0,
         'opsz' 24;
+}
+
+/* NOVO: Estilos para o Popup de Confirmação */
+.popup-overlay {
+    position: fixed; /* Fixa na viewport */
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7); /* Fundo semi-transparente escuro */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000; /* Garante que esteja acima de tudo */
+    visibility: hidden; /* Escondido por padrão */
+    opacity: 0; /* Transparência para animação */
+    transition: visibility 0.3s, opacity 0.3s;
+}
+
+.popup-overlay.visible {
+    visibility: visible;
+    opacity: 1;
+}
+
+.popup-content {
+    background-color: #333;
+    color: #eee;
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+    text-align: center;
+    max-width: 400px;
+    width: 90%;
+    transform: scale(0.9); /* Inicia um pouco menor para animação */
+    transition: transform 0.3s ease-out;
+}
+
+.popup-overlay.visible .popup-content {
+    transform: scale(1); /* Animação para o tamanho normal */
+}
+
+.popup-content p {
+    font-size: 1.2em;
+    margin-bottom: 20px;
+}
+
+.popup-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+}
+
+.popup-buttons button {
+    background-color: #00bcd4;
+    color: #fff;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1em;
+    font-weight: bold;
+    transition: background-color 0.2s, transform 0.1s, box-shadow 0.2s;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+}
+
+.popup-buttons button:hover {
+    background-color: #00a0b7;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+}
+
+.popup-buttons button:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+/* Estilo para o botão "Não" (pode ser diferente) */
+#confirm-stop-no {
+    background-color: #666; /* Uma cor mais neutra para "Não" */
+}
+
+#confirm-stop-no:hover {
+    background-color: #777;
 }
 
 /* Responsividade básica */
@@ -491,8 +570,10 @@ input[type="checkbox"]:checked::after {
     }
 
     .control-item {
-        flex-direction: row; /* Volta a ser row em telas menores para sliders/checkboxes */
-        justify-content: space-between; /* Espaça label e input/value */
+        /* Para telas menores, os sliders e checkboxes voltam a alinhar label e input horizontalmente
+           com justify-content: space-between para espaçar bem */
+        flex-direction: row;
+        justify-content: space-between;
         align-items: center;
         padding: 10px 15px;
     }
@@ -511,7 +592,12 @@ input[type="checkbox"]:checked::after {
         text-align: right; /* Alinha à direita */
     }
 
-    .playback-mode label { /* Apenas para os checkboxes em telas menores */
+    /* Ajuste específico para os checkboxes para alinhar bem a label e o checkbox */
+    .playback-mode {
+        justify-content: space-between; /* Espaça a label e o checkbox */
+    }
+
+    .playback-mode label {
         flex-grow: 1; /* Permite que a label cresça */
         text-align: left;
     }
@@ -519,7 +605,6 @@ input[type="checkbox"]:checked::after {
         order: 2; /* Move o checkbox para a direita */
     }
 
-
     .soundboard-grid {
         gap: 10px;
     }
@@ -563,626 +648,16 @@ input[type="checkbox"]:checked::after {
         font-size: 1.8em;
     }
 
-    .sound-cell {
-        width: 70px;
-        height: 70px;
-        font-size: 0.7em;
-    }
-
-    .key-display {
-        font-size: 0.9em;
-        top: 3px;
-        left: 3px;
-    }
-
-    .sound-name {
-        font-size: 0.7em;
-        padding-top: 15px;
-    }
-
-    .delete-button,
-    .loop-button,
-    .replace-sound-button {
-        width: 20px;
-        height: 20px;
-        font-size: 0.7em;
-        top: 3px;
-        right: 3px;
-        bottom: 3px;
-        left: 3px;
-    }
-
-    .loop-button {
-        left: 3px;
-    }
-    .replace-sound-button {
-        right: 3px;
-    }
-}
-    background-color: #222;
-    color: #eee;
-    margin: 0;
-    padding: 20px;
-    display: flex;
-    justify-content: center;
-    align-items: flex-start; /* Alinha o conteúdo ao topo */
-    min-height: 100vh;
-    overflow-y: auto; /* Permite scroll se o conteúdo for muito longo */
-    box-sizing: border-box; /* Inclui padding no tamanho total */
-}
-
-.container {
-    background-color: #333;
-    border-radius: 12px;
-    padding: 30px;
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
-    text-align: center;
-    width: 100%;
-    max-width: 1200px; /* Aumentado para acomodar mais elementos */
-    box-sizing: border-box;
-}
-
-h1 {
-    color: #00bcd4;
-    margin-bottom: 25px;
-    font-size: 2.5em;
-    text-shadow: 0 0 10px rgba(0, 188, 212, 0.6);
-}
-
-/* Language Switcher */
-.language-switcher {
-    margin-bottom: 20px;
-    display: flex;
-    justify-content: center;
-    gap: 10px;
-}
-
-.lang-button {
-    background-color: #555;
-    color: #eee;
-    border: none;
-    padding: 8px 15px;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 0.9em;
-    transition: background-color 0.2s, transform 0.1s;
-}
-
-.lang-button:hover {
-    background-color: #666;
-    transform: translateY(-1px);
-}
-
-.lang-button.active {
-    background-color: #00bcd4;
-    color: #fff;
-    box-shadow: 0 0 8px rgba(0, 188, 212, 0.5);
-}
-
-/* Controls Section - Layout geral dos grupos */
-.controls {
-    background-color: #444;
-    padding: 20px;
-    border-radius: 10px;
-    margin-bottom: 30px;
-    box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.3);
-
-    display: flex; /* Usamos flexbox para organizar as sub-secções */
-    flex-wrap: wrap; /* Permite que as secções quebrem para a próxima linha */
-    gap: 20px; /* Espaço entre as secções */
-    justify-content: center; /* Centraliza as secções */
-}
-
-/* Estilo para cada grupo de controle */
-.control-group-section {
-    background-color: #3d3d3d; /* Um fundo um pouco mais escuro para o grupo */
-    border-radius: 8px;
-    padding: 15px 20px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-    flex: 1; /* Permite que os grupos cresçam e se distribuam */
-    min-width: 280px; /* Largura mínima para evitar que fiquem muito pequenos */
-    max-width: 350px; /* Largura máxima para cada grupo */
-    display: flex;
-    flex-direction: column; /* Organiza título e itens em coluna */
-    gap: 15px; /* Espaço entre o título e os itens */
-}
-
-.control-group-section h3 {
-    color: #00bcd4;
-    margin: 0 0 10px 0; /* Ajuste a margem do título do grupo */
-    font-size: 1.2em;
-    border-bottom: 1px solid rgba(0, 188, 212, 0.3); /* Linha divisória sutil */
-    padding-bottom: 8px;
-}
-
-/* Wrapper para os itens dentro de cada grupo */
-.control-items-wrapper {
-    display: flex;
-    flex-direction: column; /* Coloca os itens em coluna */
-    gap: 12px; /* Espaço entre os itens */
-}
-
-/* Estilo para itens individuais (volume, checkboxes, etc.) */
-.volume-control, .playback-mode, .fadein-settings, .fadeout-settings, .control-item {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    background-color: #555; /* Fundo mais claro para os itens */
-    padding: 8px 15px;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-    width: 100%; /* Ocupa a largura total do seu grupo */
-    box-sizing: border-box; /* Garante que padding não adicione à largura total */
-}
-
-.controls label {
-    margin-right: 10px;
-    font-weight: bold;
-    color: #ccc;
-    white-space: nowrap;
-}
-
-/* Range sliders */
-input[type="range"] {
-    -webkit-appearance: none;
-    width: 120px; /* Ajuste a largura conforme necessário */
-    height: 8px;
-    background: #666;
-    border-radius: 5px;
-    outline: none;
-    transition: opacity .2s;
-    flex-grow: 1; /* Permite que o slider preencha o espaço disponível */
-    min-width: 80px; /* Garante uma largura mínima para o slider */
-}
-
-input[type="range"]::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    background: #00bcd4;
-    cursor: pointer;
-    box-shadow: 0 0 5px rgba(0, 188, 212, 0.7);
-    transition: background 0.2s, box-shadow 0.2s;
-}
-
-input[type="range"]::-webkit-slider-thumb:hover {
-    background: #00a0b7;
-    box-shadow: 0 0 8px rgba(0, 188, 212, 1);
-}
-
-#volume-display, #fadeIn-display, #fadeout-display {
-    min-width: 70px;
-    text-align: right;
-    font-weight: bold;
-    color: #00bcd4;
-}
-
-/* Checkboxes */
-input[type="checkbox"] {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 20px;
-    height: 20px;
-    border: 2px solid #00bcd4;
-    border-radius: 4px;
-    background-color: #555;
-    cursor: pointer;
-    position: relative;
-    outline: none;
-    transition: background-color 0.2s, border-color 0.2s;
-}
-
-input[type="checkbox"]:checked {
-    background-color: #00bcd4;
-    border-color: #00bcd4;
-}
-
-input[type="checkbox"]:checked::after {
-    content: '';
-    position: absolute;
-    top: 3px;
-    left: 6px;
-    width: 6px;
-    height: 10px;
-    border: solid #fff;
-    border-width: 0 3px 3px 0;
-    transform: rotate(45deg);
-}
-
-/* Buttons in control-group-section (Ações Globais) */
-.control-group-section button {
-    background-color: #00bcd4;
-    color: #fff;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 1em;
-    font-weight: bold;
-    transition: background-color 0.2s, transform 0.1s, box-shadow 0.2s;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-    width: 100%; /* Faz os botões ocuparem a largura total dentro do seu grupo */
-    box-sizing: border-box;
-}
-
-.control-group-section button:hover {
-    background-color: #00a0b7;
-    transform: translateY(-2px);
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
-}
-
-.control-group-section button:active {
-    transform: translateY(0);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-}
-
-/* Soundboard Grid */
-.soundboard-grid {
-    display: flex;
-    flex-direction: column;
-    gap: 15px; /* Espaço entre as linhas do teclado */
-    margin-bottom: 30px;
-}
-
-.keyboard-row {
-    display: flex;
-    justify-content: center;
-    gap: 10px; /* Espaço entre as células */
-}
-
-.sound-cell {
-    width: 100px;
-    height: 100px;
-    background-color: #555;
-    border: 3px solid #666;
-    border-radius: 10px;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between; /* Distribute content */
-    align-items: center;
-    padding: 10px;
-    box-sizing: border-box;
-    cursor: pointer;
-    position: relative;
-    transition: transform 0.1s, box-shadow 0.1s, background-color 0.3s, border-color 0.3s;
-    user-select: none; /* Prevent text selection */
-    overflow: hidden; /* Hide overflowing text */
-    flex-shrink: 0; /* Prevents cells from shrinking */
-}
-
-.sound-cell:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
-}
-
-.sound-cell.active {
-    transform: scale(1.05);
-    box-shadow: 0 0 20px rgba(0, 188, 212, 0.8), 0 0 30px rgba(0, 188, 212, 0.6);
-    background-color: #00bcd4; /* Cor mais vibrante ao tocar */
-    border-color: #00bcd4;
-    z-index: 1; /* Garante que a célula ativa esteja por cima */
-}
-
-.sound-cell.cued {
-    border-color: #ffeb3b; /* Amarelo para cued */
-    box-shadow: 0 0 15px rgba(255, 235, 59, 0.7);
-    transform: scale(1.02);
-}
-
-/* Key Display */
-.key-display {
-    font-size: 1.2em;
-    font-weight: bold;
-    color: rgba(255, 255, 255, 0.6); /* Mais suave */
-    position: absolute; /* Posição absoluta para o canto superior esquerdo */
-    top: 5px;
-    left: 8px;
-    padding: 2px 5px;
-    background-color: rgba(0, 0, 0, 0.2);
-    border-radius: 5px;
-    z-index: 10;
-}
-
-
-/* Sound Name */
-.sound-name {
-    font-size: 0.9em;
-    font-weight: bold;
-    color: #fff;
-    white-space: nowrap; /* Evita quebra de linha */
-    overflow: hidden;
-    text-overflow: ellipsis; /* Adiciona "..." se o texto for muito longo */
-    width: 90%; /* Ajuste para o nome */
-    text-align: center;
-    padding-top: 20px; /* Espaço para o key-display */
-    flex-grow: 1; /* Permite que o nome ocupe espaço */
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.sound-name:focus {
-    outline: 2px solid #00bcd4;
-    background-color: rgba(255, 255, 255, 0.1);
-    border-radius: 5px;
-}
-
-/* Control Buttons (inside cell) */
-.delete-button,
-.loop-button,
-.replace-sound-button {
-    position: absolute;
-    background: rgba(0, 0, 0, 0.4);
-    color: #fff;
-    border: none;
-    border-radius: 50%; /* Faz um círculo */
-    width: 28px;
-    height: 28px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    cursor: pointer;
-    font-size: 0.9em;
-    font-weight: bold;
-    transition: background-color 0.2s, transform 0.1s;
-    line-height: 1; /* Ajusta o alinhamento vertical */
-    z-index: 20; /* Garante que estão acima do nome */
-    padding: 0; /* Remove padding padrão do botão */
-}
-
-.delete-button {
-    top: 5px;
-    right: 5px;
-    color: #ff4d4d; /* Cor vermelha para apagar */
-}
-
-.delete-button:hover {
-    background-color: rgba(255, 77, 77, 0.7);
-    color: #fff;
-    transform: scale(1.1);
-}
-
-.loop-button {
-    bottom: 5px;
-    left: 5px;
-    color: #4CAF50; /* Verde para loop */
-}
-
-.loop-button .material-symbols-outlined {
-    font-size: 1.1em; /* Ajusta o tamanho do ícone */
-}
-
-.loop-button:hover {
-    background-color: rgba(76, 175, 80, 0.7);
-    color: #fff;
-    transform: scale(1.1);
-}
-
-.loop-button.active {
-    background-color: #4CAF50;
-    color: #fff;
-    box-shadow: 0 0 8px rgba(76, 175, 80, 0.6);
-}
-
-.replace-sound-button {
-    bottom: 5px;
-    right: 5px;
-    color: #2196F3; /* Azul para substituir */
-}
-
-.replace-sound-button .material-symbols-outlined {
-    font-size: 1.1em; /* Ajusta o tamanho do ícone */
-}
-
-.replace-sound-button:hover {
-    background-color: rgba(33, 150, 243, 0.7);
-    color: #fff;
-    transform: scale(1.1);
-}
-
-/* Estilo para o container do botão de ajuda */
-.help-button-container {
-    margin-top: 20px; /* Espaço acima do botão */
-    margin-bottom: 20px; /* Espaço abaixo do botão */
-    text-align: center; /* Centraliza o botão */
-}
-
-/* Estilo para o botão de ajuda */
-.help-button-container #toggle-help-button {
-    background-color: #00bcd4;
-    color: #fff;
-    border: none;
-    padding: 12px 25px; /* Um pouco maior para se destacar */
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 1.1em; /* Fonte um pouco maior */
-    font-weight: bold;
-    transition: background-color 0.2s, transform 0.1s, box-shadow 0.2s;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-}
-
-.help-button-container #toggle-help-button:hover {
-    background-color: #00a0b7;
-    transform: translateY(-2px);
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
-}
-
-.help-button-container #toggle-help-button:active {
-    transform: translateY(0);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-}
-
-
-/* Help Text */
-.help-text {
-    background-color: #444;
-    padding: 20px;
-    border-radius: 10px;
-    margin-top: 30px;
-    box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.3);
-    text-align: left; /* Alinhar texto de ajuda à esquerda */
-
-    /* Regras para esconder/revelar */
-    max-height: 0; /* Inicia escondido */
-    overflow: hidden;
-    transition: max-height 0.5s ease-out, padding 0.5s ease-out, margin-top 0.5s ease-out, opacity 0.5s ease-out; /* Adicionado opacity */
-    opacity: 0;
-    pointer-events: none; /* Impede interação quando escondido */
-}
-
-.help-text.visible {
-    max-height: 1000px; /* Altura máxima suficiente para o conteúdo */
-    padding: 20px; /* Restaura padding */
-    margin-top: 30px; /* Restaura margin-top */
-    opacity: 1;
-    pointer-events: auto; /* Permite interação */
-    transition: max-height 0.7s ease-in-out, opacity 0.5s ease-in-out, padding 0.7s ease-in-out, margin-top 0.7s ease-in-out;
-}
-
-.help-text h3 {
-    color: #00bcd4;
-    margin-bottom: 15px;
-    font-size: 1.5em;
-}
-
-.help-text ul {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-}
-
-.help-text li {
-    margin-bottom: 8px;
-    line-height: 1.4;
-    color: #ccc;
-    font-size: 0.95em;
-}
-
-.help-text li strong {
-    color: #fff;
-}
-
-.help-text kbd {
-    background-color: #555;
-    border: 1px solid #777;
-    border-radius: 4px;
-    padding: 2px 6px;
-    font-family: monospace;
-    font-size: 0.9em;
-    color: #eee;
-    white-space: nowrap;
-}
-
-/* General improvements */
-.material-symbols-outlined {
-    font-variation-settings:
-        'FILL' 0,
-        'wght' 400,
-        'GRAD' 0,
-        'opsz' 24;
-}
-
-/* Responsividade básica */
-@media (max-width: 768px) {
-    .container {
+    .popup-content {
         padding: 20px;
+        max-width: 90%;
     }
-
-    h1 {
-        font-size: 2em;
-    }
-
-    /* Controles flexíveis para telas menores */
-    .controls {
-        flex-direction: column; /* Pilha as secções verticalmente */
-        gap: 15px; /* Reduz o gap entre as secções */
-    }
-
-    .control-group-section {
-        min-width: unset; /* Remove o min-width em telas menores */
-        max-width: 100%; /* Ocupa a largura total */
-        padding: 12px 15px; /* Ajusta o padding do grupo */
-    }
-
-    .control-group-section h3 {
-        font-size: 1.1em; /* Ajusta o tamanho do título do grupo */
-    }
-
-    .control-items-wrapper {
-        gap: 10px; /* Reduz o espaço entre os itens */
-    }
-
-    .volume-control, .playback-mode, .fadein-settings, .fadeout-settings, .control-item {
-        flex-direction: column; /* Pilha label e input/botão verticalmente */
-        align-items: flex-start; /* Alinha os itens à esquerda */
-        gap: 5px;
-        padding: 10px;
-    }
-
-    .controls label {
-        margin-right: 0; /* Remove margem direita para labels */
-        margin-bottom: 5px; /* Adiciona margem abaixo da label */
-    }
-
-    input[type="range"] {
-        width: 100%; /* Slider ocupa a largura total */
-        min-width: unset;
-    }
-
-    #volume-display, #fadeIn-display, #fadeout-display {
-        min-width: unset;
-        text-align: left; /* Alinha o texto à esquerda */
-    }
-
-    /* Botões dentro do control-group-section */
-    .control-group-section button {
-        width: 100%; /* Ocupa a largura total */
-    }
-
-
-    .soundboard-grid {
-        gap: 10px;
-    }
-
-    .keyboard-row {
-        flex-wrap: wrap; /* Permite que as células quebrem em várias linhas */
-        justify-content: center;
-        gap: 8px;
-    }
-
-    .sound-cell {
-        width: 80px;
-        height: 80px;
-        padding: 8px;
-        font-size: 0.8em;
-    }
-
-    .key-display {
+    .popup-content p {
         font-size: 1em;
     }
-
-    .sound-name {
-        font-size: 0.8em;
-    }
-
-    .delete-button,
-    .loop-button,
-    .replace-sound-button {
-        width: 24px;
-        height: 24px;
-        font-size: 0.8em;
-    }
-}
-
-@media (max-width: 480px) {
-    .container {
-        padding: 15px;
-    }
-
-    h1 {
-        font-size: 1.8em;
+    .popup-buttons button {
+        padding: 8px 15px;
+        font-size: 0.9em;
     }
 
     .sound-cell {
