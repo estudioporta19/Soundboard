@@ -6,7 +6,8 @@ window.soundboardApp = window.soundboardApp || {};
 
 window.soundboardApp.cellManager = (function() {
 
-    function createSoundCell(index, fixedKey, soundData, playSoundCallback, loadFileIntoCellCallback, clearSoundCellCallback, fadeoutSoundCallback, toggleCueCallback, getTranslationCallback) {
+    // Adicionado loadMultipleFilesIntoCellsCallback como um novo parâmetro
+    function createSoundCell(index, fixedKey, soundData, playSoundCallback, loadFileIntoCellCallback, clearSoundCellCallback, fadeoutSoundCallback, toggleCueCallback, getTranslationCallback, loadMultipleFilesIntoCellsCallback) {
         const cell = document.createElement('div');
         cell.classList.add('sound-cell', 'empty');
         cell.dataset.index = index;
@@ -56,7 +57,8 @@ window.soundboardApp.cellManager = (function() {
             window.soundboardApp.soundboardGrid.appendChild(cell);
         }
 
-        setupCellEvents(cell, index, soundData, playSoundCallback, loadFileIntoCellCallback, clearSoundCellCallback, fadeoutSoundCallback, toggleCueCallback, getTranslationCallback);
+        // Passa o novo callback para setupCellEvents
+        setupCellEvents(cell, index, soundData, playSoundCallback, loadFileIntoCellCallback, clearSoundCellCallback, fadeoutSoundCallback, toggleCueCallback, getTranslationCallback, loadMultipleFilesIntoCellsCallback);
 
         // Initialize soundData slot as null (empty)
         soundData[index] = null;
@@ -64,7 +66,8 @@ window.soundboardApp.cellManager = (function() {
         return cell;
     }
 
-    function setupCellEvents(cell, index, soundData, playSoundCallback, loadFileIntoCellCallback, clearSoundCellCallback, fadeoutSoundCallback, toggleCueCallback, getTranslationCallback) {
+    // Adicionado loadMultipleFilesIntoCellsCallback como um novo parâmetro
+    function setupCellEvents(cell, index, soundData, playSoundCallback, loadFileIntoCellCallback, clearSoundCellCallback, fadeoutSoundCallback, toggleCueCallback, getTranslationCallback, loadMultipleFilesIntoCellsCallback) {
         const longPressDuration = 500;
         let pressTimer;
 
@@ -81,11 +84,34 @@ window.soundboardApp.cellManager = (function() {
         cell.addEventListener('drop', async (e) => {
             e.preventDefault();
             cell.classList.remove('drag-over');
-            const file = e.dataTransfer.files[0];
-            if (file && (file.type === 'audio/wav' || file.type === 'audio/mp3' || file.type === 'audio/ogg')) {
-                await loadFileIntoCellCallback(file, cell, index, soundData, window.soundboardApp.audioContext, window.soundboardApp.cellManager.updateCellDisplay, getTranslationCallback, window.soundboardApp.settingsManager.saveSettings);
+            const files = e.dataTransfer.files; // Obtenha todos os ficheiros
+            
+            if (files.length > 0) {
+                // Filtra apenas ficheiros de áudio válidos
+                const audioFiles = Array.from(files).filter(file => 
+                    file.type === 'audio/wav' || file.type === 'audio/mp3' || file.type === 'audio/ogg'
+                );
+
+                if (audioFiles.length === 0) {
+                    alert(getTranslationCallback('alertInvalidFile'));
+                    return;
+                }
+
+                if (audioFiles.length === 1) {
+                    // Se apenas um ficheiro, use a lógica existente de carregamento de ficheiro único
+                    await loadFileIntoCellCallback(audioFiles[0], cell, index, soundData, window.soundboardApp.audioContext, window.soundboardApp.cellManager.updateCellDisplay, getTranslationCallback, window.soundboardApp.settingsManager.saveSettings);
+                } else {
+                    // Se múltiplos ficheiros, use a nova lógica de carregamento múltiplo
+                    // Verifica se o callback existe antes de chamar
+                    if (loadMultipleFilesIntoCellsCallback) {
+                        await loadMultipleFilesIntoCellsCallback(audioFiles, index, soundData, window.soundboardApp.audioContext, window.soundboardApp.cellManager.updateCellDisplay, getTranslationCallback, window.soundboardApp.settingsManager.saveSettings);
+                    } else {
+                        console.error("loadMultipleFilesIntoCellsCallback não definido. Não é possível carregar múltiplos ficheiros.");
+                        alert(getTranslationCallback('alertFeatureNotAvailable')); // Mensagem de erro adequada
+                    }
+                }
             } else {
-                alert(getTranslationCallback('alertInvalidFile'));
+                alert(getTranslationCallback('alertNoFileDropped')); // Mensagem se nenhum ficheiro for largado
             }
         });
 
@@ -112,10 +138,33 @@ window.soundboardApp.cellManager = (function() {
                 const input = document.createElement('input');
                 input.type = 'file';
                 input.accept = 'audio/mp3, audio/wav, audio/ogg';
+                input.multiple = true; // Permite a seleção de múltiplos ficheiros
                 input.onchange = async (event) => {
-                    const file = event.target.files[0];
-                    if (file) {
-                        await loadFileIntoCellCallback(file, cell, index, soundData, window.soundboardApp.audioContext, window.soundboardApp.cellManager.updateCellDisplay, getTranslationCallback, window.soundboardApp.settingsManager.saveSettings);
+                    const files = event.target.files; // Obtenha todos os ficheiros selecionados
+                    if (files.length > 0) {
+                        // Filtra apenas ficheiros de áudio válidos
+                        const audioFiles = Array.from(files).filter(file => 
+                            file.type === 'audio/wav' || file.type === 'audio/mp3' || file.type === 'audio/ogg'
+                        );
+
+                        if (audioFiles.length === 0) {
+                            alert(getTranslationCallback('alertInvalidFile'));
+                            return;
+                        }
+
+                        if (audioFiles.length === 1) {
+                            // Se apenas um ficheiro, use a lógica existente de carregamento de ficheiro único
+                            await loadFileIntoCellCallback(audioFiles[0], cell, index, soundData, window.soundboardApp.audioContext, window.soundboardApp.cellManager.updateCellDisplay, getTranslationCallback, window.soundboardApp.settingsManager.saveSettings);
+                        } else {
+                            // Se múltiplos ficheiros, use a nova lógica de carregamento múltiplo
+                            // Verifica se o callback existe antes de chamar
+                            if (loadMultipleFilesIntoCellsCallback) {
+                                await loadMultipleFilesIntoCellsCallback(audioFiles, index, soundData, window.soundboardApp.audioContext, window.soundboardApp.cellManager.updateCellDisplay, getTranslationCallback, window.soundboardApp.settingsManager.saveSettings);
+                            } else {
+                                console.error("loadMultipleFilesIntoCellsCallback não definido. Não é possível carregar múltiplos ficheiros.");
+                                alert(getTranslationCallback('alertFeatureNotAvailable')); // Mensagem de erro adequada
+                            }
+                        }
                     }
                 };
                 input.click();
