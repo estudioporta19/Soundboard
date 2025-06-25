@@ -18,7 +18,8 @@
 
         <h1 data-key="mainTitle">Soundboard QWERTY</h1>
 
-        <div class="controls-wrapper"> <div class="control-column left-column">
+        <div class="controls-wrapper">
+            <div class="control-column left-column">
                 <div class="volume-control control-item">
                     <label for="volume-range" data-key="volumeLabel">Volume:</label>
                     <input type="range" id="volume-range" min="0" max="1" step="0.01" value="0.75">
@@ -46,7 +47,7 @@
                     <label for="autokill-mode" data-key="autokillLabel">Auto-Kill Anterior</label>
                 </div>
                 <button id="load-sounds-button-general" data-key="loadMultipleSoundsButton">Carregar Múltiplos Sons</button>
-                <button id="stop-all-sounds" data-key="stopAllSoundsButton">Parar Todos os Sons (ESC)</button>
+                <button id="stop-all-sounds" data-key="stopAllSoundsButton">Parar Todos os Sons (ESC)</button> 
             </div>
         </div>
 
@@ -80,6 +81,16 @@
                 <li data-key="cueSingleHelp"><strong>CUE Individual:</strong> Pressione <kbd>Ctrl</kbd> + clique na célula para adicionar/remover um som do 'cue'.</li>
                 <li data-key="removeCueHelp"><strong>Remover CUE:</strong> Pressione <kbd>Alt</kbd> + <kbd>Enter</kbd> para remover todos os sons do 'cue' sem os parar.</li>
             </ul>
+        </div>
+    </div>
+
+    <div id="stop-confirmation-popup" class="popup-overlay">
+        <div class="popup-content">
+            <p data-key="confirmStopAll">Tem certeza que deseja parar todos os sons?</p>
+            <div class="popup-buttons">
+                <button id="confirm-stop-yes" data-key="yesButton">Sim</button>
+                <button id="confirm-stop-no" data-key="noButton">Não</button>
+            </div>
         </div>
     </div>
 
