@@ -276,11 +276,18 @@ document.addEventListener('DOMContentLoaded', () => {
         const input = document.createElement('input');
         input.type = 'file';
         // FIX: Alterado 'audio/mp3' para 'audio/mpeg' para compatibilidade adequada
-        input.accept = 'audio/mp3, audio/wav, audio/ogg';
+        input.accept = 'audio/mpeg, audio/wav, audio/ogg';
         input.multiple = true;
 
         input.onchange = async (e) => {
             const files = Array.from(e.target.files);
+
+            // --- INÍCIO: Adições para Depuração e Validação de Ficheiros ---
+            console.log("Ficheiros selecionados:", files); // Veja todos os ficheiros
+            files.forEach(file => {
+                console.log(`Nome do Ficheiro: ${file.name}, Tipo MIME detetado pelo navegador: ${file.type}`);
+            });
+            // --- FIM: Adições para Depuração e Validação de Ficheiros ---
             
             // Adiciona uma validação mais robusta do lado do cliente usando a propriedade file.type
             const allowedMimeTypes = ['audio/mpeg', 'audio/wav', 'audio/ogg'];
@@ -289,7 +296,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (invalidFiles.length > 0) {
                 const invalidNames = invalidFiles.map(f => f.name).join(', ');
-                alert(sb.i18n.getTranslation('alertInvalidFileType').replace('{fileNames}', invalidNames));
+                // Temporariamente desativamos o alert para vermos os logs na consola
+                // alert(sb.i18n.getTranslation('alertInvalidFileType').replace('{fileNames}', invalidNames));
+                console.warn(`Ficheiros inválidos detectados: ${invalidNames}. Tipos MIME esperados: ${allowedMimeTypes.join(', ')}`);
                 // Se não houver ficheiros válidos, pára o processo
                 if (validFiles.length === 0) {
                     return;
