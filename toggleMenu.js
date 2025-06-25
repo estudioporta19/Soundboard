@@ -1,5 +1,3 @@
-// toggleMenu.js
-
 document.addEventListener('DOMContentLoaded', () => {
     const toggleHelpButton = document.getElementById('toggle-help-button');
     const helpTextContent = document.getElementById('help-text-content');
