@@ -88,6 +88,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const savedSounds = savedSettings.sounds || [];
         const cuedIndicesFromSave = savedSounds.filter(s => s && s.isCued).map((s, idx) => idx);
         sb.cueGoSystem.setCuedSounds(cuedIndicesFromSave, sb.soundData); // Define o estado "cued" com base nos dados salvos
+
+        // AJUSTE PARA O TEXTO DE AJUDA: Usa classes CSS para visibilidade inicial
+        if (sb.isHelpVisible) {
+            sb.helpTextContent.classList.add('visible'); // Adiciona a classe 'visible'
+            sb.toggleHelpButton.textContent = sb.i18n.getTranslation('toggleHelpButton').replace('Mostrar', 'Esconder');
+        } else {
+            sb.helpTextContent.classList.remove('visible'); // Remove a classe 'visible'
+            sb.toggleHelpButton.textContent = sb.i18n.getTranslation('toggleHelpButton');
+        }
+
     });
 
 
@@ -313,14 +323,14 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Botão Alternar Ajuda
+    // Toggle Help Button - AJUSTADO PARA USAR CLASSES CSS
     sb.toggleHelpButton.addEventListener('click', () => {
         sb.isHelpVisible = !sb.isHelpVisible;
         if (sb.isHelpVisible) {
-            sb.helpTextContent.style.display = 'block';
+            sb.helpTextContent.classList.add('visible'); // Adiciona a classe 'visible'
             sb.toggleHelpButton.textContent = sb.i18n.getTranslation('toggleHelpButton').replace('Mostrar', 'Esconder');
         } else {
-            sb.helpTextContent.style.display = 'none';
+            sb.helpTextContent.classList.remove('visible'); // Remove a classe 'visible'
             sb.toggleHelpButton.textContent = sb.i18n.getTranslation('toggleHelpButton');
         }
         sb.settingsManager.saveSettings(sb.soundData, sb.volumeRange, sb.playMultipleCheckbox, sb.autokillModeCheckbox, sb.fadeOutRange, sb.fadeInRange, sb.isHelpVisible);
