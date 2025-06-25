@@ -83,7 +83,7 @@ h1 {
     gap: 10px;
 }
 
-.volume-control label, .playback-mode label, .fadein-settings label, .fadeout-settings label { /* MODIFICADO: Adicionado labels para fade settings */
+.volume-control label, .playback-mode label, .fadein-settings span, .fadeout-settings span {
     font-weight: bold;
     white-space: nowrap;
 }
@@ -268,22 +268,6 @@ input[type="checkbox"]:checked::after {
     border: 2px solid #4CAF50;
     filter: brightness(1.1);
 }
-
-/* NOVO: Estilo para a célula em cue (pronta para ser tocada com GO/GO-) */
-.sound-cell.cued {
-    box-shadow: 0 0 10px 5px rgba(255, 255, 0, 0.5); /* Amarelo suave */
-    border: 2px solid yellow; /* Borda amarela para indicar cue */
-    transform: scale(1.02);
-    transition: transform 0.1s ease-out, box-shadow 0.1s ease-out, border 0.1s ease-out;
-}
-
-/* NOVO: Garante que o cueing é removido quando o som está ativo, para não haver conflito visual */
-.sound-cell.cued.active {
-    box-shadow: 0 0 15px #4CAF50, 0 0 20px rgba(76, 175, 80, 0.6); /* Volta ao estilo 'active' */
-    border: 2px solid #4CAF50;
-    filter: brightness(1.1);
-}
-
 
 .sound-cell.drag-over {
     border: 2px dashed #4CAF50;
@@ -599,50 +583,3 @@ input[type="checkbox"]:checked::after {
         margin-left: 20px;
     }
 }
-/* Para o cabeçalho clicável */
-.help-text h3 {
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center; /* Centralizar o texto e o ícone */
-    gap: 8px; /* Espaço entre o texto e o ícone */
-    padding: 10px;
-    background-color: #333; /* Cor de fundo para destacar */
-    border-radius: 5px;
-    margin-bottom: 10px;
-    user-select: none; /* Evita seleção de texto ao clicar */
-}
-
-.help-text h3:hover {
-    background-color: #444;
-}
-
-/* Estilo do ícone */
-.help-text h3 .expand-icon {
-    transition: transform 0.3s ease; /* Animação suave para a rotação */
-}
-
-/* Classe para esconder a lista */
-#help-list.hidden {
-    display: none; /* Ou 'max-height: 0; overflow: hidden;' com transição para um efeito mais suave */
-}
-
-/* Classe para o ícone rodar quando expandido */
-.help-text h3.expanded .expand-icon {
-    transform: rotate(180deg);
-}
-
-/* Se preferir um efeito de slide para a lista, use isto em vez de display: none; */
-/*
-#help-list {
-    max-height: 500px; /* Um valor grande o suficiente para o conteúdo */
-    overflow: hidden;
-    transition: max-height 0.3s ease-out, opacity 0.3s ease-out;
-    opacity: 1;
-}
-
-#help-list.hidden {
-    max-height: 0;
-    opacity: 0;
-}
-*/
