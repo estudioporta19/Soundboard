@@ -28,3 +28,22 @@ h1 {
     'GRAD' 0,
     'opsz' 24;
 }
+
+/* --- Atribuição de Autoria --- */
+.footer-attribution {
+    text-align: center; /* Centraliza o texto */
+    margin-top: 40px; /* Espaço acima do rodapé */
+    padding-bottom: 20px; /* Espaço abaixo do rodapé */
+}
+
+.footer-attribution p {
+    font-size: 0.75em; /* Torna a letra pequena */
+    color: #888; /* Uma cor cinzenta para ser discreto */
+    opacity: 0.7; /* Ligeiramente transparente */
+}
+
+/* Opcional: Efeito ao passar o mouse */
+.footer-attribution p:hover {
+    opacity: 1; /* Fica totalmente visível */
+    color: #bbb;
+}
