@@ -2,7 +2,6 @@
 
 // ==========================================================
 // VARIÁVEIS GLOBAIS (acessíveis por todas as funções e scripts)
-// Mova para CIMA do DOMContentLoaded se forem usadas por funções globais
 // ==========================================================
 let audioContext; // Será inicializado dentro do DOMContentLoaded, mas declarado aqui
 let soundData = []; // { name, key, audioBuffer, audioDataUrl, activePlayingInstances: Set<{source: AudioBufferSourceNode, gain: GainNode}>, color, isLooping, isCued }
@@ -12,7 +11,7 @@ let currentFadeOutDuration = 0;
 let currentFadeInDuration = 0;
 let cuedSounds = new Set(); // Armazena os índices das células em "cue"
 
-let translations = {}; // Será carregado dentro do DOMContentLoaded, mas declarado aqui
+let translations = {}; // Será carregado assincronamente, mas declarado aqui
 let currentLanguage = 'pt'; // Declarado aqui para ser globalmente acessível
 
 const defaultKeys = [
@@ -22,6 +21,12 @@ const defaultKeys = [
 ];
 const NUM_CELLS = defaultKeys.length; // Também globalmente acessível
 
+// Referências aos elementos DOM que são usados por funções globais
+// (Inicializadas dentro do DOMContentLoaded)
+let volumeRange; // Para ser acessado por saveSettings, updateVolumeDisplay, initAudioContext
+let fadeOutRange; // Para ser acessado por saveSettings, updateFadeOutDisplay
+let fadeInRange; // Para ser acessado por saveSettings, updateFadeInDisplay
+
 
 // ==========================================================
 // FUNÇÕES GLOBAIS (acessíveis por outros scripts como clear_all_cells.js)
@@ -30,16 +35,21 @@ const NUM_CELLS = defaultKeys.length; // Também globalmente acessível
 
 /**
  * Exibe um popup de confirmação.
- * @param {string} messageKey A chave da mensagem de tradução ou a própria mensagem se não houver tradução.
+ * @param {string} messageKey A chave da mensagem de tradução para a mensagem principal do popup.
  * @param {Function} onConfirm A função a ser executada se o usuário confirmar.
  */
 function showConfirmPopup(messageKey, onConfirm) {
     // Tenta obter a mensagem traduzida, caso contrário, usa a chave
+    // showConfirmPopup(translations[currentLanguage].confirmClearAllTitle, translations[currentLanguage].confirmClearAllMessage, () => { ... });
+    // Mas agora podemos simplificar e passar as CHAVES da tradução, e a função traduz aqui:
+    // O seu clear_all_cells.js passava dois argumentos de mensagem.
+    // Vamos ajustar showConfirmPopup para usar apenas messageKey e a tradução fará o resto.
+    // Isso significa que você precisa garantir que translations.json tenha 'confirmClearAllTitle' E 'confirmClearAllMessage' dentro do objeto para 'pt', 'en', etc.
     const message = translations[currentLanguage] ? translations[currentLanguage][messageKey] || messageKey : messageKey;
 
     const popupOverlay = document.getElementById('stop-confirmation-popup'); // ID do seu HTML
     if (!popupOverlay) {
-        console.error("Popup overlay element not found!");
+        console.error("Popup overlay element 'stop-confirmation-popup' not found!");
         return;
     }
 
@@ -56,6 +66,11 @@ function showConfirmPopup(messageKey, onConfirm) {
     const confirmYesButton = document.getElementById('confirm-stop-yes');
     const confirmNoButton = document.getElementById('confirm-stop-no');
 
+    if (!confirmYesButton || !confirmNoButton) {
+        console.error("Confirm Yes/No buttons not found in popup!");
+        return;
+    }
+
     // Remove event listeners antigos clonando e substituindo os botões
     const newConfirmYesButton = confirmYesButton.cloneNode(true);
     const newConfirmNoButton = confirmNoButton.cloneNode(true);
@@ -69,7 +84,11 @@ function showConfirmPopup(messageKey, onConfirm) {
     }
 
     newConfirmYesButton.onclick = () => {
-        onConfirm(); // Executa a função de callback
+        if (typeof onConfirm === 'function') { // Garantir que onConfirm é uma função
+            onConfirm(); // Executa a função de callback
+        } else {
+            console.error("onConfirm is not a function:", onConfirm);
+        }
         popupOverlay.classList.remove('visible');
     };
 
@@ -79,6 +98,36 @@ function showConfirmPopup(messageKey, onConfirm) {
 
     popupOverlay.classList.add('visible');
 }
+
+
+/**
+ * Salva as configurações atuais no localStorage.
+ */
+function saveSettings() {
+    // Certifique-se de que volumeRange, playMultipleCheckbox, autokillModeCheckbox
+    // fadeInRange e fadeOutRange estejam inicializados antes de chamar saveSettings.
+    // Isso geralmente ocorre dentro do DOMContentLoaded.
+    // Se saveSettings for chamada antes do DOMContentLoaded, essas referências serão nulas.
+
+    // Adicionado verificações para garantir que os elementos DOM existam antes de acessá-los
+    const settingsToSave = {
+        volume: volumeRange ? parseFloat(volumeRange.value) : 0.75, // Default se nulo
+        playMultiple: playMultipleCheckbox ? playMultipleCheckbox.checked : false,
+        autokillMode: autokillModeCheckbox ? autokillModeCheckbox.checked : false,
+        currentFadeOutDuration: fadeOutRange ? parseFloat(fadeOutRange.value) : 0,
+        currentFadeInDuration: fadeInRange ? parseFloat(fadeInRange.value) : 0,
+        sounds: soundData.map(data => ({
+            name: data ? data.name : null,
+            key: data ? data.key : null,
+            audioDataUrl: data ? data.audioDataUrl : null,
+            color: data ? data.color : null,
+            isLooping: data ? data.isLooping : false,
+            isCued: data ? data.isCued : false
+        }))
+    };
+    localStorage.setItem('soundboardSettings', JSON.stringify(settingsToSave));
+}
+
 
 /**
  * Limpa uma célula de som específica, parando qualquer som ativo e redefinindo seus dados.
@@ -143,350 +192,308 @@ function clearSoundCell(index, fadeDuration = 0) {
             loopButton.classList.remove('active');
         }
     }
-    saveSettings(); // Assumindo que saveSettings é global ou será movido/acessível
+    saveSettings(); // Chama a função saveSettings global
 }
 
 
+/**
+ * Para todos os sons atualmente em reprodução.
+ */
+function stopAllSounds() {
+    const fadeDuration = fadeOutRange ? parseFloat(fadeOutRange.value) : 0; // Usa o valor do range ou default
+    globalActivePlayingInstances.forEach(instance => {
+        if (instance && instance.source && instance.gain && typeof instance.gain.gain === 'object') {
+            const now = audioContext.currentTime;
+            try {
+                instance.gain.gain.cancelScheduledValues(now);
+                instance.gain.gain.setValueAtTime(instance.gain.gain.value, now);
+                instance.gain.gain.linearRampToValueAtTime(0.001, now + fadeDuration);
+
+                setTimeout(() => {
+                    if (instance.source) {
+                        instance.source.stop();
+                        instance.source.disconnect();
+                    }
+                    if (instance.gain) {
+                        instance.gain.disconnect();
+                    }
+                }, fadeDuration * 1000 + 50);
+            } catch (error) {
+                console.warn("Erro ao parar som ou aplicar fade-out em stopAllSounds:", error);
+                if (instance.source && typeof instance.source.stop === 'function') {
+                    instance.source.stop();
+                }
+            }
+        }
+    });
+    globalActivePlayingInstances.clear();
+    console.log("Todos os sons parados.");
+    updateCellStates(); // Se esta função precisar ser global, mova-a também
+}
+
+
+/**
+ * Atualiza o display de volume.
+ */
+function updateVolumeDisplay() {
+    if (volumeDisplay && volumeRange) {
+        volumeDisplay.textContent = `${Math.round(parseFloat(volumeRange.value) * 100)}%`;
+    }
+}
+
+/**
+ * Atualiza o display do Fade Out.
+ */
+function updateFadeOutDisplay() {
+    if (fadeOutDisplay && fadeOutRange) {
+        const val = parseFloat(fadeOutRange.value);
+        fadeOutDisplay.textContent = val === 0 ? translations[currentLanguage].immediateStop || ' (Paragem Imediata)' : `${val.toFixed(1)}s`;
+    }
+}
+
+/**
+ * Atualiza o display do Fade In.
+ */
+function updateFadeInDisplay() {
+    if (fadeInDisplay && fadeInRange) {
+        const val = parseFloat(fadeInRange.value);
+        fadeInDisplay.textContent = val === 0 ? translations[currentLanguage].immediateStart || ' (Início Imediato)' : `${val.toFixed(1)}s`;
+    }
+}
+
+/**
+ * Carrega as traduções do arquivo JSON.
+ * Precisa ser um async function.
+ */
+async function loadTranslations() {
+    try {
+        const response = await fetch('translations.json');
+        translations = await response.json();
+        console.log('Traduções carregadas:', translations);
+        const savedLang = localStorage.getItem('soundboardLanguage') || 'pt';
+        setLanguage(savedLang);
+    } catch (error) {
+        console.error('Erro ao carregar traduções:', error);
+        // Fallback translations if loading fails
+        translations = {
+            pt: {
+                title: "Soundboard QWERTY", mainTitle: "Soundboard QWERTY", volumeLabel: "Volume:", playMultipleLabel: "Reproduzir Múltiplos", autokillLabel: "Auto-Kill Anterior", loadMultipleSoundsButton: "Carregar Múltiplos Sons", stopAllSoundsButton: "Parar Todos os Sons (ESC)", fadeInLabel: "Fade In:", immediateStart: " (Início Imediato)", fadeOutLabel: "Fade Out:", immediateStop: " (Paragem Imediata)", howToUseTitle: "Como Usar:", dragDropHelp: "<strong>Arrastar e Largar:</strong> Arraste ficheiros de áudio (MP3, WAV, OGG) para as células para as preencher.", clickHelp: "<strong>Clicar:</strong> Clique numa célula vazia para abrir um diálogo de seleção de ficheiro. Clique numa célula preenchida para reproduzir o som.", shortcutsHelp: "<strong>Atalhos de Teclado:</strong> Pressione a tecla correspondente no seu teclado para reproduzir o som. (Ex: Q para a primeira célula).", stopAllHelp: "<strong>Parar Sons:</strong> Pressione <kbd>ESC</kbd> para parar todos os sons a tocar.", volumeHelp: "<strong>Ajustar Volume:</strong> Use o slider de volume ou as teclas <kbd>⬆️</kbd> e <kbd>⬇️</kbd> para controlar o volume global.", deleteSoundHelp: "<strong>Apagar Som:</strong> Clique no <span style=\"font-size:1.1em;\">❌</span> no canto superior direito de uma célula para a esvaziar. *Um clique rápido apaga; um clique longo (>0.5s) faz fade out.*", replaceSoundHelp: "<strong>Substituir Som:</strong> Clique no <span class=\"material-symbols-outlined\" style=\"vertical-align: middle; font-size: 1.1em;\">upload_file</span> para carregar um novo som para a célula.", renameHelp: "<strong>Mudar Nome:</strong> Clique no nome do som para editá-lo.", fadeInHelp: "<strong>Controlar Fade In:</strong> Use o slider de Fade In, ou as teclas <kbd>Ctrl</kbd> + teclas numéricas <kbd>0</kbd>-<kbd>9</kbd> para definir a duração do fade in em segundos.", fadeOutControlHelp: "<strong>Controlar Fade Out:</strong> Use o slider de Fade Out, ou as teclas numéricas <kbd>0</kbd>-<kbd>9</kbd> para definir a duração do fade out em segundos.", playMultipleModeHelp: "<strong>Modo Reproduzir Múltiplos:</strong> Permite que vários sons toquem ao mesmo tempo se a caixa estiver marcada.", autokillModeHelp: "<strong>Modo Auto-Kill Anterior:</strong> Ao tocar um novo som, o som anteriormente ativo (se houver) será parado com um fade out rápido.", alertInvalidFile: "Tipo de ficheiro inválido. Por favor, arraste ficheiros de áudio (MP3, WAV, OGG).", alertLoadError: "Não foi possível carregar o áudio '{fileName}'.", alertDecodeError: "Erro ao descodificar o áudio '{soundName}'.", alertNoEmptyCells: "Não há mais células vazias para carregar o ficheiro '{fileName}'.", cellEmptyText: "Clique para carregar o som", cellNoName: "Sem Nome", cellEmptyDefault: "Vazio", loopButtonTitle: "Ativar/Desativar Loop", cueHelp: "<strong>CUE / GO:</strong> Pressione <kbd>Ctrl</kbd> + <kbd>Enter</kbd> para 'cue' (marcar) um som. Pressione <kbd>Enter</kbd> para tocar todos os sons em 'cue' com fade-in. Pressione <kbd>Shift</kbd> + <kbd>Enter</kbd> para parar todos os sons em 'cue' com fade-out.", cueSingleHelp: "<strong>CUE Individual:</strong> Pressione <kbd>Ctrl</kbd> + clique na célula para adicionar/remover um som do 'cue'.", removeCueHelp: "<strong>Remover CUE:</strong> Pressione <kbd>Alt</kbd> + <kbd>Enter</kbd> para remover todos os sons do 'cue' sem os parar.",
+            },
+            en: {
+                title: "Soundboard QWERTY", mainTitle: "Soundboard QWERTY", volumeLabel: "Volume:", playMultipleLabel: "Play Multiple", autokillLabel: "Auto-Kill Previous", loadMultipleSoundsButton: "Load Multiple Sounds", stopAllSoundsButton: "Stop All Sounds (ESC)", fadeInLabel: "Fade In:", immediateStart: " (Immediate Start)", fadeOutLabel: "Fade Out:", immediateStop: " (Immediate Stop)", howToUseTitle: "How To Use:", dragDropHelp: "<strong>Drag & Drop:</strong> Drag audio files (MP3, WAV, OGG) onto cells to fill them.", clickHelp: "<strong>Click:</strong> Click an empty cell to open a file selection dialog. Click a filled cell to play the sound.", shortcutsHelp: "<strong>Keyboard Shortcuts:</strong> Press the corresponding key on your keyboard to play the sound. (e.g., Q for the first cell).", stopAllHelp: "<strong>Stop Sounds:</strong> Press <kbd>ESC</kbd> to stop all playing sounds.", volumeHelp: "<strong>Adjust Volume:</strong> Use the volume slider or the <kbd>⬆️</kbd> and <kbd>⬇️</kbd> keys to control global volume.", deleteSoundHelp: "<strong>Delete Sound:</strong> Click the <span style=\"font-size:1.1em;\">❌</span> in the top right corner of a cell to clear it. *A quick click deletes; a long click (>0.5s) fades out.*", replaceSoundHelp: "<strong>Replace Sound:</strong> Click the <span class=\"material-symbols-outlined\" style=\"vertical-align: middle; font-size: 1.1em;\">upload_file</span> to upload a new sound to the cell.", renameHelp: "<strong>Rename Sound:</strong> Click the sound's name to edit it.", fadeInHelp: "<strong>Control Fade In:</strong> Use the Fade In slider, or press <kbd>Ctrl</kbd> + number keys <kbd>0</kbd>-<kbd>9</kbd> to set fade-in duration in seconds.", fadeOutControlHelp: "<strong>Control Fade Out:</strong> Use the Fade Out slider, or press number keys <kbd>0</kbd>-<kbd>9</kbd> to set fade-out duration in seconds.", playMultipleModeHelp: "<strong>Play Multiple Mode:</strong> Allows multiple sounds to play simultaneously if checked.", autokillModeHelp: "<strong>Auto-Kill Previous Mode:</strong> When playing a new sound, the previously active sound (if any) will be stopped with a quick fade out.", alertInvalidFile: "Invalid file type. Please drag audio files (MP3, WAV, OGG).", alertLoadError: "Could not load audio '{fileName}'.", alertDecodeError: "Error decoding audio '{soundName}'.", alertNoEmptyCells: "No more empty cells to load file '{fileName}'.", cellEmptyText: "Click to load sound", cellNoName: "No Name", cellEmptyDefault: "Empty", loopButtonTitle: "Loop (Toggle)", cueHelp: "<strong>CUE / GO:</strong> Press <kbd>Ctrl</kbd> + <kbd>Enter</kbd> to 'cue' (mark) a sound. Press <kbd>Enter</kbd> to play all 'cued' sounds with fade-in. Press <kbd>Shift</kbd> + <kbd>Enter</kbd> to stop all 'cued' sounds with fade-out.", cueSingleHelp: "<strong>CUE Individual:</strong> Press <kbd>Ctrl</kbd> + click on the cell to add/remove a sound from 'cue'.", removeCueHelp: "<strong>Remove CUE:</strong> Press <kbd>Alt</kbd> + <kbd>Enter</kbd> to remove all cued sounds without stopping them.",
+            },
+            it: {
+                title: "Soundboard QWERTY", mainTitle: "Soundboard QWERTY", volumeLabel: "Volume:", playMultipleLabel: "Riproduci Multipli", autokillLabel: "Auto-Stop Precedente", loadMultipleSoundsButton: "Carica Più Suoni", stopAllSoundsButton: "Ferma Tutti i Suoni (ESC)", fadeInLabel: "Fade In:", immediateStart: " (Avvio Immediato)", fadeOutLabel: "Fade Out:", immediateStop: " (Arresto Immediato)", howToUseTitle: "Come Usare:", dragDropHelp: "<strong>Trascina e Rilascia:</strong> Trascina file audio (MP3, WAV, OGG) sulle celle per riempirle.", clickHelp: "<strong>Clicca:</strong> Clicca una cella vuota per aprire una finestra di selezione file. Clicca una cella piena per riprodurre il suono.", shortcutsHelp: "<strong>Scorciatoie da Tastiera:</strong> Premi il tasto corrispondente sulla tastiera per riprodurre il suono. (Es: Q per la prima cella).", stopAllHelp: "<strong>Ferma Suoni:</strong> Premi <kbd>ESC</kbd> per fermare tutti i suoni in riproduzione.", volumeHelp: "<strong>Regola Volume:</strong> Usa il cursore del volume o i tasti <kbd>⬆️</kbd> e <kbd>⬇️</kbd> per controllare il volume globale.", deleteSoundHelp: "<strong>Elimina Suono:</strong> Clicca sulla <span style=\"font-size:1.1em;\">❌</span> nell'angolo in alto a destra di una cella per svuotarla. *Un clic rapido elimina; un clic lungo (>0.5s) esegue il fade out.*", replaceSoundHelp: "<strong>Sostituisci Suono:</strong> Clicca su <span class=\"material-symbols-outlined\" style=\"vertical-align: middle; font-size: 1.1em;\">upload_file</span> per caricare un nuovo suono nella cella.", renameHelp: "<strong>Rinomina Suono:</strong> Clicca sul nome del suono per modificarlo.", fadeInHelp: "<strong>Controlla Fade In:</strong> Usa lo slider Fade In, o premi <kbd>Ctrl</kbd> + tasti numerici <kbd>0</kbd>-<kbd>9</kbd> per impostare la durata del fade-in in secondi.", fadeOutControlHelp: "<strong>Controlla Fade Out:</strong> Usa lo slider Fade Out, o premi i tasti numerici <kbd>0</kbd>-<kbd>9</kbd> per impostare la durata del fade-out in secondi.", playMultipleModeHelp: "<strong>Modalità Riproduci Multipli:</strong> Permette a più suoni di essere riprodotti contemporaneamente se la casella è selezionata.", autokillModeHelp: "<strong>Modalità Auto-Stop Precedente:</strong> Quando viene riprodotto un nuovo suono, il suono precedentemente attivo (se presente) verrà fermato con un rapido fade out.", alertInvalidFile: "Tipo di file non valido. Si prega di trascinare file audio (MP3, WAV, OGG).", alertLoadError: "Impossibile caricare l'audio '{fileName}'.", alertDecodeError: "Errore durante la decodifica dell'audio '{soundName}'.", alertNoEmptyCells: "Non ci sono più celle vuote per caricare il file '{fileName}'.", cellEmptyText: "Clicca per caricare il suono", cellNoName: "Senza Nome", cellEmptyDefault: "Vuoto", loopButtonTitle: "Loop (Attiva/Disattiva)", cueHelp: "<strong>CUE / GO:</strong> Premi <kbd>Ctrl</kbd> + <kbd>Invio</kbd> per 'cue' (segnare) un suono. Premi <kbd>Invio</kbd> per riprodurre tutti i suoni in 'cue' con fade-in. Premi <kbd>Shift</kbd> + <kbd>Invio</kbd> per fermare tutti i suoni in 'cue' con fade-out.", cueSingleHelp: "<strong>CUE Individuale:</strong> Premi <kbd>Ctrl</kbd> + clic sulla cella per aggiungere/rimuovere un suono dal 'cue'.", removeCueHelp: "<strong>Rimuovi CUE:</strong> Premi <kbd>Alt</kbd> + <kbd>Invio</kbd> per rimuovere tutti i suoni in cue senza fermarli.",
+            }
+        };
+        setLanguage('pt'); // Fallback to pt if loadTranslations failed
+    }
+}
+
+
+/**
+ * Define o idioma da interface.
+ * @param {string} lang O código do idioma (ex: 'pt', 'en', 'it').
+ */
+function setLanguage(lang) {
+    if (!translations[lang]) {
+        console.warn(`Idioma ${lang} não encontrado. Usando PT como fallback.`);
+        lang = 'pt';
+    }
+    currentLanguage = lang;
+    localStorage.setItem('soundboardLanguage', lang);
+
+    document.querySelector('title').textContent = translations[lang].title;
+
+    document.querySelectorAll('[data-key]').forEach(element => {
+        const key = element.dataset.key;
+        if (translations[lang][key]) {
+            if (element.tagName === 'INPUT' && element.type === 'range') {
+                // Não alterar textContent para ranges
+            } else if (element.tagName === 'INPUT' && (element.type === 'checkbox' || element.type === 'radio')) {
+                // Não alterar textContent para checkboxes/radios
+            } else if (element.tagName === 'BUTTON' && (key === 'yesButton' || key === 'noButton')) {
+                // Não traduzir botões de popup aqui, eles são tratados por showConfirmPopup
+            }
+            else if (element.tagName === 'BUTTON') {
+                element.textContent = translations[lang][key];
+            } else if (element.tagName === 'LABEL') {
+                element.textContent = translations[lang][key];
+            } else if (element.tagName === 'LI') {
+                element.innerHTML = translations[lang][key];
+            } else {
+                element.textContent = translations[lang][key];
+            }
+        }
+    });
+
+    updateFadeOutDisplay(); // Chama funções globais
+    updateFadeInDisplay();   // Chama funções globais
+
+    document.querySelectorAll('.sound-cell').forEach(cell => {
+        const index = parseInt(cell.dataset.index);
+        const data = soundData[index];
+
+        const nameDisplay = cell.querySelector('.sound-name');
+        if (nameDisplay) {
+            nameDisplay.textContent = data && data.name ? data.name : translations[currentLanguage].cellEmptyDefault;
+            nameDisplay.title = translations[currentLanguage].renameHelp.replace(/<[^>]*>/g, '');
+        }
+
+        const deleteButton = cell.querySelector('.delete-button');
+        if (deleteButton) {
+            deleteButton.title = translations[currentLanguage].deleteSoundHelp.replace(/<[^>]*>/g, '');
+        }
+        const replaceButton = cell.querySelector('.replace-sound-button');
+        if (replaceButton) {
+            replaceButton.title = translations[currentLanguage].replaceSoundHelp.replace(/<[^>]*>/g, '');
+        }
+        const loopButton = cell.querySelector('.loop-button');
+        if (loopButton) {
+            loopButton.title = translations[currentLanguage].loopButtonTitle || 'Loop (Toggle)';
+        }
+
+        if (data && data.isLooping) {
+            loopButton.classList.add('active');
+        } else if (loopButton) {
+            loopButton.classList.remove('active');
+        }
+    });
+
+    langButtons.forEach(button => { // langButtons ainda não está definido globalmente
+        if (button.dataset.lang === lang) {
+            button.classList.add('active');
+        } else {
+            button.classList.remove('active');
+        }
+    });
+}
+
+
+// Outras funções auxiliares que podem ser necessárias globalmente:
+function getRandomHSLColor() {
+    const hue = Math.floor(Math.random() * 360);
+    const saturation = Math.floor(Math.random() * 20) + 70;
+    const lightness = Math.floor(Math.random() * 20) + 40;
+    return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+}
+
+function initAudioContext() {
+    if (!audioContext) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        audioContext.masterGainNode = audioContext.createGain();
+        audioContext.masterGainNode.connect(audioContext.destination);
+        // volumeRange ainda não existe aqui, mas será definido no DOMContentLoaded
+        // Portanto, a inicialização do masterGainNode.gain.value deve ser feita
+        // APÓS volumeRange ser selecionado no DOMContentLoaded.
+        // Ou, pode-se passar o valor inicial como argumento.
+        // Por enquanto, vou manter o volumeRange.value, mas tenha isso em mente.
+        if (volumeRange) {
+             audioContext.masterGainNode.gain.value = parseFloat(volumeRange.value);
+        } else {
+            audioContext.masterGainNode.gain.value = 0.75; // Default se não acessível
+        }
+    }
+}
+
+
+// NOTA: Funções como `updateCellDisplay`, `loadFileIntoCell`, `playSound`, `fadeoutSound`,
+// `toggleCue`, etc., também podem precisar ser movidas para o escopo global
+// se forem chamadas pelas funções que agora são globais (ex: clearSoundCell ou stopAllSounds).
+// Pelo que vejo, `clearSoundCell` chama `saveSettings` e `updateCellDisplay` (implícita).
+// `stopAllSounds` chama `updateCellStates` (que não está no trecho, mas mencionei antes).
+// Analise o seu código e mova-as conforme a necessidade.
+
 // ==========================================================
-// INÍCIO DO SEU CÓDIGO DENTRO DO DOMContentLoaded (aqui você cola o resto do seu script.js)
+// INÍCIO DO SEU CÓDIGO DENTRO DO DOMContentLoaded
 // ==========================================================
 document.addEventListener('DOMContentLoaded', () => {
-    // Todas as suas seleções de elementos DOM, como soundboardGrid, volumeRange, etc.
+    // Todas as suas seleções de elementos DOM DEVERÃO ESTAR AQUI!
+    // E atribua-as às variáveis GLOBAIS que declarei no topo
     const soundboardGrid = document.getElementById('soundboard-grid');
     const rowTop = document.getElementById('row-top');
     const rowHome = document.getElementById('row-home');
     const rowBottom = document.getElementById('row-bottom');
 
-    const volumeRange = document.getElementById('volume-range');
-    const volumeDisplay = document.getElementById('volume-display');
-    const playMultipleCheckbox = document.getElementById('play-multiple');
-    const autokillModeCheckbox = document.getElementById('autokill-mode');
+    volumeRange = document.getElementById('volume-range'); // ATRIBUIÇÃO À VARIÁVEL GLOBAL
+    const volumeDisplay = document.getElementById('volume-display'); // ATRIBUIÇÃO À VARIÁVEL LOCAL (se não for usada globalmente)
+    const playMultipleCheckbox = document.getElementById('play-multiple'); // ATRIBUIÇÃO À VARIÁVEL LOCAL
+    const autokillModeCheckbox = document.getElementById('autokill-mode'); // ATRIBUIÇÃO À VARIÁVEL LOCAL
     const stopAllSoundsBtn = document.getElementById('stop-all-sounds'); // Este botão agora usará o popup
     const loadSoundsButtonGeneral = document.getElementById('load-sounds-button-general');
-    const fadeOutRange = document.getElementById('fadeOut-range');
-    const fadeOutDisplay = document.getElementById('fadeout-display');
-    const fadeInRange = document.getElementById('fadeIn-range');
-    const fadeInDisplay = document.getElementById('fadeIn-display');
-    const langButtons = document.querySelectorAll('.lang-button');
+    fadeOutRange = document.getElementById('fadeOut-range'); // ATRIBUIÇÃO À VARIÁVEL GLOBAL
+    const fadeOutDisplay = document.getElementById('fadeout-display'); // ATRIBUIÇÃO À VARIÁVEL LOCAL
+    fadeInRange = document.getElementById('fadeIn-range'); // ATRIBUIÇÃO À VARIÁVEL GLOBAL
+    const fadeInDisplay = document.getElementById('fadeIn-display'); // ATRIBUIÇÃO À VARIÁVEL LOCAL
+    const langButtons = document.querySelectorAll('.lang-button'); // Esta também precisa ser global se setLanguage a usa diretamente fora daqui.
 
-    // --- Funções de Idioma ---
+    // No seu código original, `langButtons` era uma variável local aqui, mas `setLanguage` (agora global)
+    // tenta acessá-la. Isso causa um erro. Mova `langButtons` para o escopo global se `setLanguage` precisa dela.
+    // Ou faça setLanguage receber `langButtons` como argumento, ou selecioná-los internamente.
+    // Para simplificar agora, vou declarar `langButtons` no topo como `let langButtons;` e inicializá-lo aqui.
 
-    async function loadTranslations() {
-        try {
-            const response = await fetch('translations.json');
-            translations = await response.json();
-            console.log('Traduções carregadas:', translations);
-            const savedLang = localStorage.getItem('soundboardLanguage') || 'pt';
-            setLanguage(savedLang);
-        } catch (error) {
-            console.error('Erro ao carregar traduções:', error);
-            translations = {
-                pt: {
-                    title: "Soundboard QWERTY", mainTitle: "Soundboard QWERTY", volumeLabel: "Volume:", playMultipleLabel: "Reproduzir Múltiplos", autokillLabel: "Auto-Kill Anterior", loadMultipleSoundsButton: "Carregar Múltiplos Sons", stopAllSoundsButton: "Parar Todos os Sons (ESC)", fadeInLabel: "Fade In:", immediateStart: " (Início Imediato)", fadeOutLabel: "Fade Out:", immediateStop: " (Paragem Imediata)", howToUseTitle: "Como Usar:", dragDropHelp: "<strong>Arrastar e Largar:</strong> Arraste ficheiros de áudio (MP3, WAV, OGG) para as células para as preencher.", clickHelp: "<strong>Clicar:</strong> Clique numa célula vazia para abrir um diálogo de seleção de ficheiro. Clique numa célula preenchida para reproduzir o som.", shortcutsHelp: "<strong>Atalhos de Teclado:</strong> Pressione a tecla correspondente no seu teclado para reproduzir o som. (Ex: Q para a primeira célula).", stopAllHelp: "<strong>Parar Sons:</strong> Pressione <kbd>ESC</kbd> para parar todos os sons a tocar.", volumeHelp: "<strong>Ajustar Volume:</strong> Use o slider de volume ou as teclas <kbd>⬆️</kbd> e <kbd>⬇️</kbd> para controlar o volume global.", deleteSoundHelp: "<strong>Apagar Som:</strong> Clique no <span style=\"font-size:1.1em;\">❌</span> no canto superior direito de uma célula para a esvaziar. *Um clique rápido apaga; um clique longo (>0.5s) faz fade out.*", replaceSoundHelp: "<strong>Substituir Som:</strong> Clique no <span class=\"material-symbols-outlined\" style=\"vertical-align: middle; font-size: 1.1em;\">upload_file</span> para carregar um novo som para a célula.", renameHelp: "<strong>Mudar Nome:</strong> Clique no nome do som para editá-lo.", fadeInHelp: "<strong>Controlar Fade In:</strong> Use o slider de Fade In, ou as teclas <kbd>Ctrl</kbd> + teclas numéricas <kbd>0</kbd>-<kbd>9</kbd> para definir a duração do fade in em segundos.", fadeOutControlHelp: "<strong>Controlar Fade Out:</strong> Use o slider de Fade Out, ou as teclas numéricas <kbd>0</kbd>-<kbd>9</kbd> para definir a duração do fade out em segundos.", playMultipleModeHelp: "<strong>Modo Reproduzir Múltiplos:</strong> Permite que vários sons toquem ao mesmo tempo se a caixa estiver marcada.", autokillModeHelp: "<strong>Modo Auto-Kill Anterior:</strong> Ao tocar um novo som, o som anteriormente ativo (se houver) será parado com um fade out rápido.", alertInvalidFile: "Tipo de ficheiro inválido. Por favor, arraste ficheiros de áudio (MP3, WAV, OGG).", alertLoadError: "Não foi possível carregar o áudio '{fileName}'.", alertDecodeError: "Erro ao descodificar o áudio '{soundName}'.", alertNoEmptyCells: "Não há mais células vazias para carregar o ficheiro '{fileName}'.", cellEmptyText: "Clique para carregar o som", cellNoName: "Sem Nome", cellEmptyDefault: "Vazio", loopButtonTitle: "Ativar/Desativar Loop", cueHelp: "<strong>CUE / GO:</strong> Pressione <kbd>Ctrl</kbd> + <kbd>Enter</kbd> para 'cue' (marcar) um som. Pressione <kbd>Enter</kbd> para tocar todos os sons em 'cue' com fade-in. Pressione <kbd>Shift</kbd> + <kbd>Enter</kbd> para parar todos os sons em 'cue' com fade-out.", cueSingleHelp: "<strong>CUE Individual:</strong> Pressione <kbd>Ctrl</kbd> + clique na célula para adicionar/remover um som do 'cue'.", removeCueHelp: "<strong>Remover CUE:</strong> Pressione <kbd>Alt</kbd> + <kbd>Enter</kbd> para remover todos os sons do 'cue' sem os parar.",
-                },
-                en: {
-                    title: "Soundboard QWERTY", mainTitle: "Soundboard QWERTY", volumeLabel: "Volume:", playMultipleLabel: "Play Multiple", autokillLabel: "Auto-Kill Previous", loadMultipleSoundsButton: "Load Multiple Sounds", stopAllSoundsButton: "Stop All Sounds (ESC)", fadeInLabel: "Fade In:", immediateStart: " (Immediate Start)", fadeOutLabel: "Fade Out:", immediateStop: " (Immediate Stop)", howToUseTitle: "How To Use:", dragDropHelp: "<strong>Drag & Drop:</strong> Drag audio files (MP3, WAV, OGG) onto cells to fill them.", clickHelp: "<strong>Click:</strong> Click an empty cell to open a file selection dialog. Click a filled cell to play the sound.", shortcutsHelp: "<strong>Keyboard Shortcuts:</strong> Press the corresponding key on your keyboard to play the sound. (e.g., Q for the first cell).", stopAllHelp: "<strong>Stop Sounds:</strong> Press <kbd>ESC</kbd> to stop all playing sounds.", volumeHelp: "<strong>Adjust Volume:</strong> Use the volume slider or the <kbd>⬆️</kbd> and <kbd>⬇️</kbd> keys to control global volume.", deleteSoundHelp: "<strong>Delete Sound:</strong> Click the <span style=\"font-size:1.1em;\">❌</span> in the top right corner of a cell to clear it. *A quick click deletes; a long click (>0.5s) fades out.*", replaceSoundHelp: "<strong>Replace Sound:</strong> Click the <span class=\"material-symbols-outlined\" style=\"vertical-align: middle; font-size: 1.1em;\">upload_file</span> to upload a new sound to the cell.", renameHelp: "<strong>Rename Sound:</strong> Click the sound's name to edit it.", fadeInHelp: "<strong>Control Fade In:</strong> Use the Fade In slider, or press <kbd>Ctrl</kbd> + number keys <kbd>0</kbd>-<kbd>9</kbd> to set fade-in duration in seconds.", fadeOutControlHelp: "<strong>Control Fade Out:</strong> Use the Fade Out slider, or press number keys <kbd>0</kbd>-<kbd>9</kbd> to set fade-out duration in seconds.", playMultipleModeHelp: "<strong>Play Multiple Mode:</strong> Allows multiple sounds to play simultaneously if checked.", autokillModeHelp: "<strong>Auto-Kill Previous Mode:</strong> When playing a new sound, the previously active sound (if any) will be stopped with a quick fade out.", alertInvalidFile: "Invalid file type. Please drag audio files (MP3, WAV, OGG).", alertLoadError: "Could not load audio '{fileName}'.", alertDecodeError: "Error decoding audio '{soundName}'.", alertNoEmptyCells: "No more empty cells to load file '{fileName}'.", cellEmptyText: "Click to load sound", cellNoName: "No Name", cellEmptyDefault: "Empty", loopButtonTitle: "Loop (Toggle)", cueHelp: "<strong>CUE / GO:</strong> Press <kbd>Ctrl</kbd> + <kbd>Enter</kbd> to 'cue' (mark) a sound. Press <kbd>Enter</kbd> to play all 'cued' sounds with fade-in. Press <kbd>Shift</kbd> + <kbd>Enter</kbd> to stop all 'cued' sounds with fade-out.", cueSingleHelp: "<strong>CUE Individual:</strong> Press <kbd>Ctrl</kbd> + click on the cell to add/remove a sound from 'cue'.", removeCueHelp: "<strong>Remove CUE:</strong> Press <kbd>Alt</kbd> + <kbd>Enter</kbd> to remove all cued sounds without stopping them.",
-                },
-                it: {
-                    title: "Soundboard QWERTY", mainTitle: "Soundboard QWERTY", volumeLabel: "Volume:", playMultipleLabel: "Riproduci Multipli", autokillLabel: "Auto-Stop Precedente", loadMultipleSoundsButton: "Carica Più Suoni", stopAllSoundsButton: "Ferma Tutti i Suoni (ESC)", fadeInLabel: "Fade In:", immediateStart: " (Avvio Immediato)", fadeOutLabel: "Fade Out:", immediateStop: " (Arresto Immediato)", howToUseTitle: "Come Usare:", dragDropHelp: "<strong>Trascina e Rilascia:</strong> Trascina file audio (MP3, WAV, OGG) sulle celle per riempirle.", clickHelp: "<strong>Clicca:</strong> Clicca una cella vuota per aprire una finestra di selezione file. Clicca una cella piena per riprodurre il suono.", shortcutsHelp: "<strong>Scorciatoie da Tastiera:</strong> Premi il tasto corrispondente sulla tastiera per riprodurre il suono. (Es: Q per la prima cella).", stopAllHelp: "<strong>Ferma Suoni:</strong> Premi <kbd>ESC</kbd> per fermare tutti i suoni in riproduzione.", volumeHelp: "<strong>Regola Volume:</strong> Usa il cursore del volume o i tasti <kbd>⬆️</kbd> e <kbd>⬇️</kbd> per controllare il volume globale.", deleteSoundHelp: "<strong>Elimina Suono:</strong> Clicca sulla <span style=\"font-size:1.1em;\">❌</span> nell'angolo in alto a destra di una cella per svuotarla. *Un clic rapido elimina; un clic lungo (>0.5s) esegue il fade out.*", replaceSoundHelp: "<strong>Sostituisci Suono:</strong> Clicca su <span class=\"material-symbols-outlined\" style=\"vertical-align: middle; font-size: 1.1em;\">upload_file</span> per caricare un nuovo suono nella cella.", renameHelp: "<strong>Rinomina Suono:</strong> Clicca sul nome del suono per modificarlo.", fadeInHelp: "<strong>Controlla Fade In:</strong> Usa lo slider Fade In, o premi <kbd>Ctrl</kbd> + tasti numerici <kbd>0</kbd>-<kbd>9</kbd> per impostare la durata del fade-in in secondi.", fadeOutControlHelp: "<strong>Controlla Fade Out:</strong> Usa lo slider Fade Out, o premi i tasti numerici <kbd>0</kbd>-<kbd>9</kbd> per impostare la durata del fade-out in secondi.", playMultipleModeHelp: "<strong>Modalità Riproduci Multipli:</strong> Permette a più suoni di essere riprodotti contemporaneamente se la casella è selezionata.", autokillModeHelp: "<strong>Modalità Auto-Stop Precedente:</strong> Quando viene riprodotto un nuovo suono, il suono precedentemente attivo (se presente) verrà fermato con un rapido fade out.", alertInvalidFile: "Tipo di file non valido. Si prega di trascinare file audio (MP3, WAV, OGG).", alertLoadError: "Impossibile caricare l'audio '{fileName}'.", alertDecodeError: "Errore durante la decodifica dell'audio '{soundName}'.", alertNoEmptyCells: "Non ci sono più celle vuote per caricare il file '{fileName}'.", cellEmptyText: "Clicca per caricare il suono", cellNoName: "Senza Nome", cellEmptyDefault: "Vuoto", loopButtonTitle: "Loop (Attiva/Disattiva)", cueHelp: "<strong>CUE / GO:</strong> Premi <kbd>Ctrl</kbd> + <kbd>Invio</kbd> per 'cue' (segnare) un suono. Premi <kbd>Invio</kbd> per riprodurre tutti i suoni in 'cue' con fade-in. Premi <kbd>Shift</kbd> + <kbd>Invio</kbd> per fermare tutti i suoni in 'cue' con fade-out.", cueSingleHelp: "<strong>CUE Individuale:</strong> Premi <kbd>Ctrl</kbd> + clic sulla cella per aggiungere/rimuovere un suono dal 'cue'.", removeCueHelp: "<strong>Rimuovi CUE:</strong> Premi <kbd>Alt</kbd> + <kbd>Invio</kbd> per rimuovere tutti i suoni in cue senza fermarli.",
-                }
-            };
-            setLanguage('pt');
-        }
-    }
+    // ==============================================================================
+    // AQUI ONDE SEU CÓDIGO COMEÇA, APÓS AS DECLARAÇÕES DE VARIÁVEIS DOM E CHAMADAS INICIAIS
+    // ==============================================================================
 
-    function setLanguage(lang) {
-        if (!translations[lang]) {
-            console.warn(`Idioma ${lang} não encontrado. Usando PT como fallback.`);
-            lang = 'pt';
-        }
-        currentLanguage = lang;
-        localStorage.setItem('soundboardLanguage', lang);
+    // Chame loadTranslations e loadSettings aqui
+    loadTranslations().then(() => {
+        loadSettings(); // loadSettings() agora usará as traduções carregadas
+        setLanguage(currentLanguage); // Garante que o UI está traduzido após carregar as configurações
+    });
 
-        document.querySelector('title').textContent = translations[lang].title;
 
-        document.querySelectorAll('[data-key]').forEach(element => {
-            const key = element.dataset.key;
-            if (translations[lang][key]) {
-                if (element.tagName === 'INPUT' && element.type === 'range') {
-                } else if (element.tagName === 'INPUT' && (element.type === 'checkbox' || element.type === 'radio')) {
-                } else if (element.tagName === 'BUTTON') {
-                    element.textContent = translations[lang][key];
-                } else if (element.tagName === 'LABEL') {
-                    element.textContent = translations[lang][key];
-                } else if (element.tagName === 'LI') {
-                    element.innerHTML = translations[lang][key];
-                } else {
-                    element.textContent = translations[lang][key];
-                }
-            }
-        });
+    // --- Inicialização do AudioContext (precisa de interação do usuário) ---
+    // Você pode ter um evento de clique no corpo ou em um botão para isso
+    document.body.addEventListener('click', initAudioContext, { once: true });
+    document.addEventListener('keydown', initAudioContext, { once: true });
 
-        updateFadeOutDisplay();
-        updateFadeInDisplay();
 
-        document.querySelectorAll('.sound-cell').forEach(cell => {
-            const index = parseInt(cell.dataset.index);
-            const data = soundData[index];
-
-            const nameDisplay = cell.querySelector('.sound-name');
-            if (nameDisplay) {
-                nameDisplay.textContent = data && data.name ? data.name : translations[currentLanguage].cellEmptyDefault;
-                nameDisplay.title = translations[currentLanguage].renameHelp.replace(/<[^>]*>/g, '');
-            }
-
-            const deleteButton = cell.querySelector('.delete-button');
-            if (deleteButton) {
-                deleteButton.title = translations[currentLanguage].deleteSoundHelp.replace(/<[^>]*>/g, '');
-            }
-            const replaceButton = cell.querySelector('.replace-sound-button');
-            if (replaceButton) {
-                replaceButton.title = translations[currentLanguage].replaceSoundHelp.replace(/<[^>]*>/g, '');
-            }
-            const loopButton = cell.querySelector('.loop-button');
-            if (loopButton) {
-                loopButton.title = translations[currentLanguage].loopButtonTitle || 'Loop (Toggle)';
-            }
-
-            if (data && data.isLooping) {
-                loopButton.classList.add('active');
-            } else if (loopButton) {
-                loopButton.classList.remove('active');
-            }
-        });
-
-        langButtons.forEach(button => {
-            if (button.dataset.lang === lang) {
-                button.classList.add('active');
-            } else {
-                button.classList.remove('active');
-            }
+    // --- Event Listeners para botões e sliders ---
+    if (stopAllSoundsBtn) {
+        stopAllSoundsBtn.addEventListener('click', () => {
+            // AQUI ESTÁ A CORREÇÃO PRINCIPAL PARA stopAllSounds:
+            showConfirmPopup('confirmStopAll', stopAllSounds); // Sem parênteses em stopAllSounds
         });
     }
 
-    // --- Fim das Funções de Idioma ---
-
-    function getRandomHSLColor() {
-        const hue = Math.floor(Math.random() * 360);
-        const saturation = Math.floor(Math.random() * 20) + 70;
-        const lightness = Math.floor(Math.random() * 20) + 40;
-        return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+    if (volumeRange) {
+        volumeRange.addEventListener('input', () => {
+            if (audioContext && audioContext.masterGainNode) {
+                audioContext.masterGainNode.gain.value = parseFloat(volumeRange.value);
+            }
+            updateVolumeDisplay();
+            saveSettings();
+        });
     }
 
-    function initAudioContext() {
-        if (!audioContext) {
-            audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            audioContext.masterGainNode = audioContext.createGain();
-            audioContext.masterGainNode.connect(audioContext.destination);
-            audioContext.masterGainNode.gain.value = volumeRange.value;
-        }
+    if (fadeInRange) {
+        fadeInRange.addEventListener('input', () => {
+            currentFadeInDuration = parseFloat(fadeInRange.value);
+            updateFadeInDisplay();
+            saveSettings();
+        });
     }
 
-    function loadSettings() {
-        const savedSettings = JSON.parse(localStorage.getItem('soundboardSettings')) || {};
-        const savedSounds = savedSettings.sounds || [];
-
-        volumeRange.value = savedSettings.volume !== undefined ? savedSettings.volume : 0.75;
-        playMultipleCheckbox.checked = savedSettings.playMultiple !== undefined ? savedSettings.playMultiple : false;
-        autokillModeCheckbox.checked = savedSettings.autokillMode !== undefined ? savedSettings.autokillMode : false;
-        fadeInRange.value = savedSettings.currentFadeInDuration !== undefined ? savedSettings.currentFadeInDuration : 0;
-        fadeOutRange.value = savedSettings.currentFadeOutDuration !== undefined ? savedSettings.currentFadeOutDuration : 0;
-        currentFadeInDuration = parseFloat(fadeInRange.value);
-        currentFadeOutDuration = parseFloat(fadeOutRange.value);
-
-        updateVolumeDisplay();
-        updateFadeOutDisplay();
-        updateFadeInDisplay();
-
-        for (let i = 0; i < NUM_CELLS; i++) {
-            const cellData = savedSounds[i];
-            const cell = createSoundCell(i);
-
-            const fixedKey = defaultKeys[i];
-
-            if (cellData && cellData.audioDataUrl) {
-                const color = cellData.color || getRandomHSLColor();
-                const isLooping = cellData.isLooping !== undefined ? cellData.isLooping : false;
-                loadSoundFromDataURL(cellData.audioDataUrl, cell, i, cellData.name, fixedKey, color, isLooping);
-            } else {
-                updateCellDisplay(cell, { name: translations[currentLanguage].cellEmptyDefault, key: fixedKey || '', isLooping: false }, true);
-            }
-        }
+    if (fadeOutRange) {
+        fadeOutRange.addEventListener('input', () => {
+            currentFadeOutDuration = parseFloat(fadeOutRange.value);
+            updateFadeOutDisplay();
+            saveSettings();
+        });
     }
 
-    function saveSettings() {
-        const settingsToSave = {
-            volume: parseFloat(volumeRange.value),
-            playMultiple: playMultipleCheckbox.checked,
-            autokillMode: autokillModeCheckbox.checked,
-            currentFadeOutDuration: parseFloat(fadeOutRange.value),
-            currentFadeInDuration: parseFloat(fadeInRange.value),
-            sounds: soundData.map(data => ({
-                name: data ? data.name : null,
-                key: data ? data.key : null,
-                audioDataUrl: data ? data.audioDataUrl : null,
-                color: data ? data.color : null,
-                isLooping: data ? data.isLooping : false,
-                isCued: data ? data.isCued : false
-            }))
-        };
-        localStorage.setItem('soundboardSettings', JSON.stringify(settingsToSave));
-    }
-
-    function createSoundCell(index) {
-        const cell = document.createElement('div');
-        cell.classList.add('sound-cell', 'empty');
-        cell.dataset.index = index;
-
-        const replaceButton = document.createElement('button');
-        replaceButton.classList.add('replace-sound-button');
-        replaceButton.innerHTML = '<span class="material-symbols-outlined">upload_file</span>';
-        replaceButton.title = translations[currentLanguage].replaceSoundHelp.replace(/<[^>]*>/g, '');
-        cell.appendChild(replaceButton);
-
-        const deleteButton = document.createElement('button');
-        deleteButton.classList.add('delete-button');
-        deleteButton.textContent = '❌';
-        deleteButton.title = translations[currentLanguage].deleteSoundHelp.replace(/<[^>]*>/g, '');
-        cell.appendChild(deleteButton);
-
-        const loopButton = document.createElement('button');
-        loopButton.classList.add('loop-button');
-        loopButton.innerHTML = '<span class="material-symbols-outlined">loop</span>';
-        loopButton.title = translations[currentLanguage].loopButtonTitle || 'Loop (Toggle)';
-        cell.appendChild(loopButton);
-
-        const nameDisplay = document.createElement('div');
-        nameDisplay.classList.add('sound-name');
-        nameDisplay.contentEditable = true;
-        nameDisplay.spellcheck = false;
-        nameDisplay.textContent = translations[currentLanguage].cellEmptyDefault;
-        nameDisplay.title = translations[currentLanguage].renameHelp.replace(/<[^>]*>/g, '');
-        cell.appendChild(nameDisplay);
-
-        const keyDisplayBottom = document.createElement('div');
-        keyDisplayBottom.classList.add('key-display-bottom');
-        keyDisplayBottom.textContent = defaultKeys[index] ? defaultKeys[index].toUpperCase() : '';
-        cell.appendChild(keyDisplayBottom);
-
-        if (index >= 0 && index < 10) {
-            rowTop.appendChild(cell);
-        } else if (index >= 10 && index < 19) {
-            rowHome.appendChild(cell);
-        } else if (index >= 19 && index < 26) {
-            rowBottom.appendChild(cell);
-        } else {
-            console.warn(`Índice de célula fora do esperado: ${index}`);
-            soundboardGrid.appendChild(cell);
-        }
-
-        setupCellEvents(cell, index);
-
-        soundData[index] = null;
-
-        return cell;
-    }
-
-    function setupCellEvents(cell, index) {
-        cell.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            cell.classList.add('drag-over');
+    // Event listeners para botões de idioma
+    langButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            setLanguage(button.dataset.lang);
         });
+    });
 
-        cell.addEventListener('dragleave', () => {
-            cell.classList.remove('drag-over');
-        });
-
-        cell.addEventListener('drop', (e) => {
-            e.preventDefault();
-            cell.classList.remove('drag-over');
-            const file = e.dataTransfer.files[0];
-            if (file && (file.type === 'audio/wav' || file.type === 'audio/mp3' || file.type === 'audio/ogg')) {
-                loadFileIntoCell(file, cell, index);
-            } else {
-                alert(translations[currentLanguage].alertInvalidFile);
-            }
-        });
-
-        cell.addEventListener('click', (e) => {
-            if (e.ctrlKey) {
-                e.stopPropagation();
-                toggleCue(index);
-                return;
-            }
-
-            if (e.target.closest('.delete-button') ||
-                e.target.closest('.replace-sound-button') ||
-                e.target.closest('.loop-button') ||
-                e.target.closest('.sound-name')) {
-                e.stopPropagation();
-                return;
-            }
-
-            if (cell.classList.contains('empty')) {
-                const input = document.createElement('input');
-                input.type = 'file';
-                input.accept = 'audio/mp3, audio/wav, audio/ogg';
-                input.onchange = async (event) => {
-                    const file = event.target.files[0];
-                    if (file) {
-                        await loadFileIntoCell(file, cell, index);
-                    }
-                };
-                input.click();
-            } else {
-                playSound(index);
-            }
-        });
-
-        const nameDisplay = cell.querySelector('.sound-name');
-        nameDisplay.addEventListener('blur', () => {
-            if (soundData[index]) {
-                soundData[index].name = nameDisplay.textContent.trim() || translations[currentLanguage].cellNoName;
-                nameDisplay.textContent = soundData[index].name;
-                saveSettings();
-            }
-        });
-        nameDisplay.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                nameDisplay.blur();
-            }
-        });
-
-        const deleteButton = cell.querySelector('.delete-button');
-        let pressTimer;
-        const longPressDuration = 500;
-
-        deleteButton.addEventListener('mousedown', (e) => {
-            e.stopPropagation();
-            pressTimer = setTimeout(() => {
-                if (soundData[index] && soundData[index].audioBuffer) {
-                    fadeoutSound(index, currentFadeOutDuration);
-                }
-                pressTimer = null;
-            }, longPressDuration);
-        });
-
-        deleteButton.addEventListener('mouseup', (e) => {
-            e.stopPropagation();
-            if (pressTimer !== null) {
-                clearTimeout(pressTimer);
-                if (e.button === 0 && !cell.classList.contains('empty')) {
-                    clearSoundCell(index, 0.1);
-                }
-            }
-            pressTimer = null;
-        });
-
-        deleteButton.addEventListener('mouseleave', () => {
-            clearTimeout(pressTimer);
-            pressTimer = null;
-        });
-
-        deleteButton.addEventListener('contextmenu', (e) => {
-            e.preventDefault();
-        });
+    // ... continue colando o restante do seu script.js aqui ...
+    // Todas as outras funções e event listeners que você tinha
+    // dentro do seu antigo DOMContentLoaded devem vir a seguir.
+});
 
         const replaceButton = cell.querySelector('.replace-sound-button');
         replaceButton.addEventListener('click', (e) => {
