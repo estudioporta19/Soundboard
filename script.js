@@ -1,4 +1,157 @@
+// script.js
+
+// ==========================================================
+// VARIÁVEIS GLOBAIS (acessíveis por todas as funções e scripts)
+// Mova para CIMA do DOMContentLoaded se forem usadas por funções globais
+// ==========================================================
+let audioContext; // Será inicializado dentro do DOMContentLoaded, mas declarado aqui
+let soundData = []; // { name, key, audioBuffer, audioDataUrl, activePlayingInstances: Set<{source: AudioBufferSourceNode, gain: GainNode}>, color, isLooping, isCued }
+const globalActivePlayingInstances = new Set(); // Armazena {source, gainNode} de todas as instâncias a tocar
+let lastPlayedSoundIndex = null; // Este será o "cursor" para Space/Ctrl+Space
+let currentFadeOutDuration = 0;
+let currentFadeInDuration = 0;
+let cuedSounds = new Set(); // Armazena os índices das células em "cue"
+
+let translations = {}; // Será carregado dentro do DOMContentLoaded, mas declarado aqui
+let currentLanguage = 'pt'; // Declarado aqui para ser globalmente acessível
+
+const defaultKeys = [
+    'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p',
+    'a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l',
+    'z', 'x', 'c', 'v', 'b', 'n', 'm'
+];
+const NUM_CELLS = defaultKeys.length; // Também globalmente acessível
+
+
+// ==========================================================
+// FUNÇÕES GLOBAIS (acessíveis por outros scripts como clear_all_cells.js)
+// Estas precisam ser definidas AQUI, fora do DOMContentLoaded
+// ==========================================================
+
+/**
+ * Exibe um popup de confirmação.
+ * @param {string} messageKey A chave da mensagem de tradução ou a própria mensagem se não houver tradução.
+ * @param {Function} onConfirm A função a ser executada se o usuário confirmar.
+ */
+function showConfirmPopup(messageKey, onConfirm) {
+    // Tenta obter a mensagem traduzida, caso contrário, usa a chave
+    const message = translations[currentLanguage] ? translations[currentLanguage][messageKey] || messageKey : messageKey;
+
+    const popupOverlay = document.getElementById('stop-confirmation-popup'); // ID do seu HTML
+    if (!popupOverlay) {
+        console.error("Popup overlay element not found!");
+        return;
+    }
+
+    const popupContent = popupOverlay.querySelector('.popup-content');
+    const actualPopupMessageElement = popupContent ? popupContent.querySelector('p') : null;
+
+    if (actualPopupMessageElement) {
+        actualPopupMessageElement.textContent = message;
+    } else {
+        console.error("Popup message element (p tag inside popup-content) not found!");
+        return;
+    }
+
+    const confirmYesButton = document.getElementById('confirm-stop-yes');
+    const confirmNoButton = document.getElementById('confirm-stop-no');
+
+    // Remove event listeners antigos clonando e substituindo os botões
+    const newConfirmYesButton = confirmYesButton.cloneNode(true);
+    const newConfirmNoButton = confirmNoButton.cloneNode(true);
+    confirmYesButton.parentNode.replaceChild(newConfirmYesButton, confirmYesButton);
+    confirmNoButton.parentNode.replaceChild(newConfirmNoButton, confirmNoButton);
+
+    // Atualiza o texto dos botões com base nas traduções
+    if (translations[currentLanguage]) {
+        newConfirmYesButton.textContent = translations[currentLanguage].yesButton || 'Sim';
+        newConfirmNoButton.textContent = translations[currentLanguage].noButton || 'Não';
+    }
+
+    newConfirmYesButton.onclick = () => {
+        onConfirm(); // Executa a função de callback
+        popupOverlay.classList.remove('visible');
+    };
+
+    newConfirmNoButton.onclick = () => {
+        popupOverlay.classList.remove('visible');
+    };
+
+    popupOverlay.classList.add('visible');
+}
+
+/**
+ * Limpa uma célula de som específica, parando qualquer som ativo e redefinindo seus dados.
+ * @param {number} index O índice da célula a ser limpa.
+ * @param {number} fadeDuration A duração do fade out em segundos para os sons ativos.
+ */
+function clearSoundCell(index, fadeDuration = 0) {
+    if (!soundData[index]) return; // Retorna se não houver dados para esta célula
+
+    // Parar todas as instâncias de áudio ativas para esta célula
+    if (soundData[index].activePlayingInstances) {
+        soundData[index].activePlayingInstances.forEach(instance => {
+            if (instance && instance.source && instance.gain && typeof instance.gain.gain === 'object') {
+                const now = audioContext.currentTime; // Usa audioContext global
+                try {
+                    instance.gain.gain.cancelScheduledValues(now);
+                    instance.gain.gain.setValueAtTime(instance.gain.gain.value, now);
+                    instance.gain.gain.linearRampToValueAtTime(0.001, now + fadeDuration);
+
+                    setTimeout(() => {
+                        if (instance.source) {
+                            instance.source.stop();
+                            instance.source.disconnect();
+                        }
+                        if (instance.gain) {
+                            instance.gain.disconnect();
+                        }
+                    }, fadeDuration * 1000 + 50);
+                } catch (error) {
+                    console.warn("Erro ao parar som ou aplicar fade-out em clearSoundCell:", error);
+                    if (instance.source && typeof instance.source.stop === 'function') {
+                        instance.source.stop();
+                    }
+                }
+            }
+            globalActivePlayingInstances.delete(instance); // Remove da lista global também
+        });
+        soundData[index].activePlayingInstances.clear();
+    }
+
+    // Limpar os dados do som
+    soundData[index] = {
+        name: null,
+        audioBuffer: null,
+        loop: false,
+        element: document.querySelector(`.sound-cell[data-index="${index}"]`),
+        activePlayingInstances: new Set(),
+        isCued: false // Adicionado para rastrear o status de cue
+    };
+
+    // Atualizar a interface
+    const cellElement = document.querySelector(`.sound-cell[data-index="${index}"]`);
+    if (cellElement) {
+        cellElement.classList.remove('active', 'filled', 'cued'); // Remove todas as classes de estado
+        const soundNameElement = cellElement.querySelector('.sound-name');
+        if (soundNameElement) {
+            soundNameElement.textContent = `Som ${index + 1}`; // Texto padrão
+            soundNameElement.contentEditable = false; // Torna não editável
+        }
+        const loopButton = cellElement.querySelector('.loop-button');
+        if (loopButton) {
+            loopButton.classList.remove('active');
+        }
+    }
+    saveSettings(); // Assumindo que saveSettings é global ou será movido/acessível
+}
+
+
+// ==========================================================
+// INÍCIO DO SEU CÓDIGO DENTRO DO DOMContentLoaded (aqui você cola o resto do seu script.js)
+// ==========================================================
 document.addEventListener('DOMContentLoaded', () => {
+    // Todas as suas seleções de elementos DOM, como soundboardGrid, volumeRange, etc.
     const soundboardGrid = document.getElementById('soundboard-grid');
     const rowTop = document.getElementById('row-top');
     const rowHome = document.getElementById('row-home');
@@ -8,31 +161,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const volumeDisplay = document.getElementById('volume-display');
     const playMultipleCheckbox = document.getElementById('play-multiple');
     const autokillModeCheckbox = document.getElementById('autokill-mode');
-    const stopAllSoundsBtn = document.getElementById('stop-all-sounds');
+    const stopAllSoundsBtn = document.getElementById('stop-all-sounds'); // Este botão agora usará o popup
     const loadSoundsButtonGeneral = document.getElementById('load-sounds-button-general');
     const fadeOutRange = document.getElementById('fadeOut-range');
     const fadeOutDisplay = document.getElementById('fadeout-display');
     const fadeInRange = document.getElementById('fadeIn-range');
     const fadeInDisplay = document.getElementById('fadeIn-display');
     const langButtons = document.querySelectorAll('.lang-button');
-
-    let audioContext;
-    const soundData = []; // { name, key, audioBuffer, audioDataUrl, activePlayingInstances: Set<{source: AudioBufferSourceNode, gain: GainNode}>, color, isLooping, isCued }
-    const globalActivePlayingInstances = new Set(); // Armazena {source, gainNode} de todas as instâncias a tocar
-    let lastPlayedSoundIndex = null; // Este será o "cursor" para Space/Ctrl+Space
-    let currentFadeOutDuration = 0;
-    let currentFadeInDuration = 0;
-    let cuedSounds = new Set(); // Armazena os índices das células em "cue"
-
-    let translations = {};
-    let currentLanguage = 'pt';
-
-    const defaultKeys = [
-        'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p',
-        'a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l',
-        'z', 'x', 'c', 'v', 'b', 'n', 'm'
-    ];
-    const NUM_CELLS = defaultKeys.length;
 
     // --- Funções de Idioma ---
 
