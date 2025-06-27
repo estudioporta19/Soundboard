@@ -350,14 +350,15 @@ input[type="checkbox"]:checked::after {
 
     max-height: 0; /* Inicia escondido */
     overflow: hidden;
-    /* MUITO IMPORTANTE: MUDAR A TRANSIÇÃO AQUI PARA 0s */
-    transition: max-height 0.0s ease-out, padding 0.0s ease-out, margin-top 0.0s ease-out, opacity 0.0s ease-out;
     opacity: 0;
     pointer-events: none;
+
+    /* **** ALTERAÇÃO AQUI: A duração da transição foi mudada de 0.0s para valores > 0 **** */
+    transition: max-height 0.7s ease-in-out, opacity 0.5s ease-in-out, padding 0.7s ease-in-out, margin-top 0.7s ease-in-out;
 }
 
 .help-text.visible {
-    max-height: 1000px;
+    max-height: 1000px; /* Certifique-se que este valor é maior que o conteúdo máximo esperado */
     padding: 20px;
     margin-top: 30px;
     opacity: 1;
@@ -365,7 +366,6 @@ input[type="checkbox"]:checked::after {
     /* Mantenha a transição suave aqui */
     transition: max-height 0.7s ease-in-out, opacity 0.5s ease-in-out, padding 0.7s ease-in-out, margin-top 0.7s ease-in-out;
 }
-
 .help-text h3 {
     color: #00bcd4;
     margin-bottom: 15px;
