@@ -29,12 +29,12 @@ window.soundboardApp.settingsManager = (function() {
         const toggleHelpButton = document.getElementById('toggle-help-button');
         if (helpTextContent && toggleHelpButton) {
             if (savedHelpVisible) {
-                helpTextContent.style.display = 'block';
+                // helpTextContent.style.display = 'block'; // **** REMOVIDO ****
                 // This text will be correctly set by i18n.setLanguage later
                 // For immediate visual consistency, you might want a temporary text or a partial update
                 toggleHelpButton.textContent = window.soundboardApp.i18n.getTranslation('toggleHelpButton').replace('Mostrar', 'Esconder');
             } else {
-                helpTextContent.style.display = 'none';
+                // helpTextContent.style.display = 'none'; // **** REMOVIDO ****
                 toggleHelpButton.textContent = window.soundboardApp.i18n.getTranslation('toggleHelpButton');
             }
             appState.isHelpVisible = savedHelpVisible;
