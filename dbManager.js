@@ -1,173 +1,278 @@
-// js/dbManager.js
+// dbManager.js
+const DB_NAME = 'SoundboardDB';
+const DB_VERSION = 1; // Incrementa a versão se mudar o schema
+let db;
 
-window.soundboardApp = window.soundboardApp || {};
+/**
+ * Inicializa a base de dados IndexedDB.
+ * @returns {Promise<void>} Uma Promise que resolve quando a DB está aberta e pronta.
+ */
+function init() {
+    return new Promise((resolve, reject) => {
+        const request = indexedDB.open(DB_NAME, DB_VERSION);
 
-window.soundboardApp.dbManager = (function() {
-    const DB_NAME = 'SoundboardDB';
-    const DB_VERSION = 1;
-    const OBJECT_STORE_NAME = 'audioContent'; // Onde vamos guardar os ArrayBuffers de áudio
-
-    let db = null; // A instância do banco de dados
-
-    /**
-     * Abre e inicializa o banco de dados IndexedDB.
-     * Esta função deve ser chamada no início da aplicação (e.g., em main.js).
-     * @returns {Promise<IDBDatabase>} Uma promessa que resolve com a instância do DB.
-     */
-    function openDb() {
-        return new Promise((resolve, reject) => {
-            if (db) { // Se já estiver aberto, resolve imediatamente
-                resolve(db);
-                return;
+        request.onupgradeneeded = (event) => {
+            db = event.target.result;
+            // Cria a object store para os ficheiros de áudio
+            if (!db.objectStoreNames.contains('soundFiles')) {
+                const soundFilesStore = db.createObjectStore('soundFiles', { keyPath: 'id', autoIncrement: true });
+                soundFilesStore.createIndex('name', 'name', { unique: false });
+                console.log("Object store 'soundFiles' criada/atualizada.");
             }
+            // Cria a object store para as sessões
+            if (!db.objectStoreNames.contains('sessions')) {
+                const sessionsStore = db.createObjectStore('sessions', { keyPath: 'id', autoIncrement: true });
+                sessionsStore.createIndex('name', 'name', { unique: true }); // Nome da sessão deve ser único
+                console.log("Object store 'sessions' criada/atualizada.");
+            }
+        };
 
-            const request = indexedDB.open(DB_NAME, DB_VERSION);
+        request.onsuccess = (event) => {
+            db = event.target.result;
+            console.log("IndexedDB aberto com sucesso.");
+            resolve();
+        };
 
-            request.onupgradeneeded = (event) => {
-                // Este evento é disparado se a versão do DB for maior que a existente
-                // ou se o DB não existir. É aqui que criamos/atualizamos object stores.
-                const database = event.target.result;
-                if (!database.objectStoreNames.contains(OBJECT_STORE_NAME)) {
-                    database.createObjectStore(OBJECT_STORE_NAME, { keyPath: 'id' });
-                    // 'id' será o nosso identificador único para cada ArrayBuffer de áudio
-                }
-            };
+        request.onerror = (event) => {
+            console.error("Erro ao abrir IndexedDB:", event.target.error);
+            alert("Erro crítico: Não foi possível abrir a base de dados local. A aplicação pode não funcionar corretamente.");
+            reject(event.target.error);
+        };
+    });
+}
 
-            request.onsuccess = (event) => {
-                db = event.target.result; // Armazena a instância do DB
-                console.log("IndexedDB aberto com sucesso.");
-                resolve(db);
-            };
+/**
+ * Salva um ficheiro de áudio no IndexedDB.
+ * @param {string} name - O nome do ficheiro.
+ * @param {ArrayBuffer} arrayBuffer - O ArrayBuffer do áudio.
+ * @param {string} mimeType - O tipo MIME do áudio (ex: 'audio/mpeg', 'audio/wav').
+ * @returns {Promise<number>} Uma Promise que resolve com o ID do ficheiro salvo.
+ */
+async function saveAudio(name, arrayBuffer, mimeType) {
+    const tx = db.transaction(['soundFiles'], 'readwrite');
+    const store = tx.objectStore('soundFiles');
 
-            request.onerror = (event) => {
-                console.error("Erro ao abrir IndexedDB:", event.target.error);
-                // CORRIGIDO: Chamar i18n.getTranslation corretamente
-                alert(window.soundboardApp.i18n.getTranslation('alertDbOpenError') + `\nDetalhes: ${event.target.error.message}`);
-                reject(event.target.error);
-            };
-        });
-    }
-
-    /**
-     * Guarda um ArrayBuffer de áudio no IndexedDB.
-     * @param {string} id - Um ID único para o áudio (e.g., UUID, ou hash).
-     * @param {ArrayBuffer} audioBuffer - O ArrayBuffer contendo os dados do ficheiro de áudio.
-     * @returns {Promise<void>} Uma promessa que resolve quando o áudio é salvo.
-     */
-    async function saveAudio(id, audioBuffer) {
-        try {
-            const database = await openDb();
-            const transaction = database.transaction([OBJECT_STORE_NAME], 'readwrite');
-            const store = transaction.objectStore(OBJECT_STORE_NAME);
-            const request = store.put({ id: id, data: audioBuffer }); // 'put' para adicionar ou atualizar
-
-            return new Promise((resolve, reject) => {
-                request.onsuccess = () => {
-                    // console.log(`Áudio com ID '${id}' salvo no IndexedDB.`);
-                    resolve();
-                };
-                request.onerror = (event) => {
-                    console.error(`Erro ao salvar áudio com ID '${id}' no IndexedDB:`, event.target.error);
-                    // CORRIGIDO: Chamar i18n.getTranslation corretamente
-                    reject(new Error(window.soundboardApp.i18n.getTranslation('alertSaveAudioDbError') + `\nDetalhes: ${event.target.error.message}`));
-                };
-            });
-        } catch (error) {
-            console.error("Erro na transação de salvar áudio:", error);
-            throw error; // Re-lança o erro para ser tratado a montante
-        }
-    }
-
-    /**
-     * Obtém um ArrayBuffer de áudio do IndexedDB.
-     * @param {string} id - O ID único do áudio a obter.
-     * @returns {Promise<ArrayBuffer|null>} Uma promessa que resolve com o ArrayBuffer ou null se não for encontrado.
-     */
-    async function getAudio(id) {
-        try {
-            const database = await openDb();
-            const transaction = database.transaction([OBJECT_STORE_NAME], 'readonly');
-            const store = transaction.objectStore(OBJECT_STORE_NAME);
-            const request = store.get(id);
-
-            return new Promise((resolve, reject) => {
-                request.onsuccess = () => {
-                    resolve(request.result ? request.result.data : null);
-                };
-                request.onerror = (event) => {
-                    console.error(`Erro ao obter áudio com ID '${id}' do IndexedDB:`, event.target.error);
-                    // CORRIGIDO: Chamar i18n.getTranslation corretamente
-                    reject(new Error(window.soundboardApp.i18n.getTranslation('alertGetAudioDbError') + `\nDetalhes: ${event.target.error.message}`));
-                };
-            });
-        } catch (error) {
-            console.error("Erro na transação de obter áudio:", error);
-            throw error;
-        }
-    }
-
-    /**
-     * Elimina um ArrayBuffer de áudio do IndexedDB.
-     * @param {string} id - O ID único do áudio a eliminar.
-     * @returns {Promise<void>} Uma promessa que resolve quando o áudio é eliminado.
-     */
-    async function deleteAudio(id) {
-        try {
-            const database = await openDb();
-            const transaction = database.transaction([OBJECT_STORE_NAME], 'readwrite');
-            const store = transaction.objectStore(OBJECT_STORE_NAME);
-            const request = store.delete(id);
-
-            return new Promise((resolve, reject) => {
-                request.onsuccess = () => {
-                    // console.log(`Áudio com ID '${id}' eliminado do IndexedDB.`);
-                    resolve();
-                };
-                request.onerror = (event) => {
-                    console.error(`Erro ao eliminar áudio com ID '${id}' do IndexedDB:`, event.target.error);
-                    // CORRIGIDO: Chamar i18n.getTranslation corretamente
-                    reject(new Error(window.soundboardApp.i18n.getTranslation('alertDeleteAudioDbError') + `\nDetalhes: ${event.target.error.message}`));
-                };
-            });
-        } catch (error) {
-            console.error("Erro na transação de eliminar áudio:", error);
-            throw error;
-        }
-    }
-
-    /**
-     * Limpa todo o object store de áudio (todos os áudios salvos).
-     * @returns {Promise<void>} Uma promessa que resolve quando todos os áudios são eliminados.
-     */
-    async function clearAllAudio() {
-        try {
-            const database = await openDb();
-            const transaction = database.transaction([OBJECT_STORE_NAME], 'readwrite');
-            const store = transaction.objectStore(OBJECT_STORE_NAME);
-            const request = store.clear();
-
-            return new Promise((resolve, reject) => {
-                request.onsuccess = () => {
-                    console.log("Todo o áudio limpo do IndexedDB.");
-                    resolve();
-                };
-                request.onerror = (event) => {
-                    console.error("Erro ao limpar todo o áudio do IndexedDB:", event.target.error);
-                    // CORRIGIDO: Chamar i18n.getTranslation corretamente
-                    reject(new Error(window.soundboardApp.i18n.getTranslation('alertClearAllAudioDbError') + `\nDetalhes: ${event.target.error.message}`));
-                };
-            });
-        } catch (error) {
-            console.error("Erro na transação de limpar todo o áudio:", error);
-            throw error;
-        }
-    }
-
-    return {
-        init: openDb, // Use esta função para garantir que o DB está aberto
-        saveAudio: saveAudio,
-        getAudio: getAudio,
-        deleteAudio: deleteAudio,
-        clearAllAudio: clearAllAudio
+    const soundFile = {
+        name: name,
+        data: arrayBuffer,
+        mimeType: mimeType, // **NOVA PROPRIEDADE**
+        timestamp: new Date()
     };
-})();
+
+    return new Promise((resolve, reject) => {
+        const request = store.add(soundFile);
+
+        request.onsuccess = () => {
+            console.log(`Ficheiro de áudio '${name}' salvo com ID: ${request.result}`);
+            resolve(request.result);
+        };
+
+        request.onerror = (event) => {
+            console.error('Erro na transação de salvar áudio:', event.target.error);
+            reject(event.target.error);
+        };
+    });
+}
+
+/**
+ * Obtém um ficheiro de áudio do IndexedDB pelo seu ID.
+ * @param {number} id - O ID do ficheiro de áudio.
+ * @returns {Promise<{name: string, data: ArrayBuffer, mimeType: string}|null>} Uma Promise que resolve com os dados do ficheiro ou null.
+ */
+async function getAudio(id) {
+    const tx = db.transaction(['soundFiles'], 'readonly');
+    const store = tx.objectStore('soundFiles');
+
+    return new Promise((resolve, reject) => {
+        const request = store.get(id);
+
+        request.onsuccess = () => {
+            resolve(request.result);
+        };
+
+        request.onerror = (event) => {
+            console.error(`Erro ao obter áudio com ID ${id}:`, event.target.error);
+            reject(event.target.error);
+        };
+    });
+}
+
+/**
+ * Apaga um ficheiro de áudio do IndexedDB pelo seu ID.
+ * @param {number} id - O ID do ficheiro de áudio a ser apagado.
+ * @returns {Promise<void>} Uma Promise que resolve quando o ficheiro é apagado.
+ */
+async function deleteAudio(id) {
+    const tx = db.transaction(['soundFiles'], 'readwrite');
+    const store = tx.objectStore('soundFiles');
+
+    return new Promise((resolve, reject) => {
+        const request = store.delete(id);
+
+        request.onsuccess = () => {
+            console.log(`Ficheiro de áudio com ID ${id} apagado.`);
+            resolve();
+        };
+
+        request.onerror = (event) => {
+            console.error(`Erro ao apagar áudio com ID ${id}:`, event.target.error);
+            reject(event.target.error);
+        };
+    });
+}
+
+/**
+ * Limpa todos os ficheiros de áudio da object store 'soundFiles'.
+ * @returns {Promise<void>} Uma Promise que resolve quando todos os ficheiros são apagados.
+ */
+async function clearAllAudioFiles() {
+    const tx = db.transaction(['soundFiles'], 'readwrite');
+    const store = tx.objectStore('soundFiles');
+
+    return new Promise((resolve, reject) => {
+        const request = store.clear();
+
+        request.onsuccess = () => {
+            console.log("Todos os ficheiros de áudio foram apagados do IndexedDB.");
+            resolve();
+        };
+
+        request.onerror = (event) => {
+            console.error("Erro ao limpar todos os ficheiros de áudio:", event.target.error);
+            reject(event.target.error);
+        };
+    });
+}
+
+/**
+ * Salva uma sessão no IndexedDB.
+ * @param {string} name - O nome da sessão.
+ * @param {object} sessionData - Os dados da sessão a serem salvos (metadados dos sons, configurações, etc.).
+ * @returns {Promise<number>} Uma Promise que resolve com o ID da sessão salva.
+ */
+async function saveSession(name, sessionData) {
+    const tx = db.transaction(['sessions'], 'readwrite');
+    const store = tx.objectStore('sessions');
+
+    const session = {
+        name: name,
+        data: sessionData,
+        timestamp: new Date()
+    };
+
+    return new Promise((resolve, reject) => {
+        // Tenta adicionar, se já existir pelo nome, usa put (atualiza)
+        const getRequest = store.index('name').get(name);
+        getRequest.onsuccess = () => {
+            const existingSession = getRequest.result;
+            if (existingSession) {
+                // Atualiza a sessão existente
+                session.id = existingSession.id; // Mantém o mesmo ID
+                const putRequest = store.put(session);
+                putRequest.onsuccess = () => {
+                    console.log(`Sessão '${name}' atualizada com ID: ${session.id}`);
+                    resolve(session.id);
+                };
+                putRequest.onerror = (event) => {
+                    console.error('Erro ao atualizar sessão:', event.target.error);
+                    reject(event.target.error);
+                };
+            } else {
+                // Adiciona nova sessão
+                const addRequest = store.add(session);
+                addRequest.onsuccess = () => {
+                    console.log(`Sessão '${name}' salva com ID: ${addRequest.result}`);
+                    resolve(addRequest.result);
+                };
+                addRequest.onerror = (event) => {
+                    console.error('Erro ao salvar nova sessão:', event.target.error);
+                    reject(event.target.error);
+                };
+            }
+        };
+        getRequest.onerror = (event) => {
+            console.error('Erro ao verificar sessão existente:', event.target.error);
+            reject(event.target.error);
+        };
+    });
+}
+
+
+/**
+ * Carrega uma sessão do IndexedDB pelo seu ID.
+ * @param {number} id - O ID da sessão a ser carregada.
+ * @returns {Promise<object|null>} Uma Promise que resolve com os dados da sessão ou null.
+ */
+async function loadSession(id) {
+    const tx = db.transaction(['sessions'], 'readonly');
+    const store = tx.objectStore('sessions');
+
+    return new Promise((resolve, reject) => {
+        const request = store.get(id);
+
+        request.onsuccess = () => {
+            resolve(request.result ? request.result.data : null);
+        };
+
+        request.onerror = (event) => {
+            console.error(`Erro ao carregar sessão com ID ${id}:`, event.target.error);
+            reject(event.target.error);
+        };
+    });
+}
+
+/**
+ * Obtém todos os metadados de sessão do IndexedDB (ID e nome).
+ * @returns {Promise<Array<{id: number, name: string}>>} Uma Promise que resolve com uma lista de sessões.
+ */
+async function getAllSessionData() {
+    const tx = db.transaction(['sessions'], 'readonly');
+    const store = tx.objectStore('sessions');
+
+    return new Promise((resolve, reject) => {
+        const sessions = [];
+        const request = store.openCursor();
+
+        request.onsuccess = (event) => {
+            const cursor = event.target.result;
+            if (cursor) {
+                sessions.push({ id: cursor.value.id, name: cursor.value.name, timestamp: cursor.value.timestamp });
+                cursor.continue();
+            } else {
+                resolve(sessions);
+            }
+        };
+
+        request.onerror = (event) => {
+            console.error("Erro ao obter todas as sessões:", event.target.error);
+            reject(event.target.error);
+        };
+    });
+}
+
+/**
+ * Apaga uma sessão do IndexedDB pelo seu ID.
+ * @param {number} id - O ID da sessão a ser apagada.
+ * @returns {Promise<void>} Uma Promise que resolve quando a sessão é apagada.
+ */
+async function deleteSession(id) {
+    const tx = db.transaction(['sessions'], 'readwrite');
+    const store = tx.objectStore('sessions');
+
+    return new Promise((resolve, reject) => {
+        const request = store.delete(id);
+
+        request.onsuccess = () => {
+            console.log(`Sessão com ID ${id} apagada.`);
+            resolve();
+        };
+
+        request.onerror = (event) => {
+            console.error(`Erro ao apagar sessão com ID ${id}:`, event.target.error);
+            reject(event.target.error);
+        };
+    });
+}
+
+
+export { init, saveAudio, getAudio, deleteAudio, clearAllAudioFiles, getAllSessionData, saveSession, loadSession, deleteSession };
