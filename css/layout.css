@@ -1,3 +1,5 @@
+/* layout.css */
+
 /* Estilos para a estrutura e layout principal */
 .container {
     background-color: #333;
@@ -6,20 +8,28 @@
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
     text-align: center;
     width: 100%;
-    max-width: 1200px; /* Aumentado para acomodar mais elementos */
+    max-width: 1200px; /* Mantido para acomodar mais elementos */
     box-sizing: border-box;
+
+    /* NOVAS REGRAS PARA CENTRALIZAR OS ELEMENTOS DENTRO DO CONTAINER */
+    display: flex; /* Transforma o container num flex container */
+    flex-direction: column; /* Organiza os seus filhos em coluna (um abaixo do outro) */
+    align-items: center; /* CENTRALIZA OS FILHOS DO CONTAINER HORIZONTALMENTE */
+    gap: 30px; /* Espaço entre os principais blocos do layout (h1, controls-wrapper, grid, help, etc.) */
 }
 
 .controls-wrapper {
     background-color: #444;
     padding: 20px;
     border-radius: 10px;
-    margin-bottom: 30px;
+    margin-bottom: 0; /* Ajustado para 0, já que o gap do container gerencia o espaçamento */
     box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.3);
     display: flex; /* Ativa o flexbox para as colunas */
     flex-wrap: wrap; /* Permite que as colunas se quebrem em telas menores */
     justify-content: center; /* Centraliza as colunas */
     gap: 20px; /* Espaço entre as colunas */
+    width: 100%; /* Garante que o wrapper ocupe a largura total para ajudar na centralização */
+    max-width: 900px; /* Limita a largura máxima do wrapper para que não se estique muito */
 }
 
 .control-column {
@@ -34,12 +44,240 @@
 .soundboard-grid {
     display: flex;
     flex-direction: column;
+    align-items: center; /* CENTRALIZA AS LINHAS DO TECLADO DENTRO DA GRELHA */
     gap: 15px; /* Espaço entre as linhas do teclado */
-    margin-bottom: 30px;
+    margin-bottom: 0; /* Ajustado para 0, já que o gap do container gerencia o espaçamento */
+    width: 100%; /* Garante que a grelha ocupe a largura total para ajudar na centralização */
 }
 
 .keyboard-row {
     display: flex;
-    justify-content: center;
+    justify-content: center; /* CENTRALIZA AS CÉLULAS EM CADA LINHA */
     gap: 10px; /* Espaço entre as células */
+    flex-wrap: wrap; /* PERMITE QUE AS CÉLULAS QUEBREM PARA A PRÓXIMA LINHA EM TELAS PEQUENAS */
+}
+
+/* --- Estilos para Popups e Modals (Mantidos como estavam) --- */
+/* Estes estilos já estavam no seu layout.css e são importantes */
+
+.popup-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    visibility: hidden;
+    opacity: 0;
+    transition: visibility 0.3s, opacity 0.3s;
+}
+
+.popup-overlay.visible {
+    visibility: visible;
+    opacity: 1;
+}
+
+.popup-content {
+    background-color: #333;
+    color: #eee;
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+    text-align: center;
+    max-width: 400px;
+    width: 90%;
+    transform: scale(0.9);
+    transition: transform 0.3s ease-out;
+}
+
+.popup-overlay.visible .popup-content {
+    transform: scale(1);
+}
+
+.popup-content p {
+    font-size: 1.2em;
+    margin-bottom: 20px;
+}
+
+.popup-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+}
+
+.popup-buttons button {
+    background-color: #00bcd4;
+    color: #fff;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1em;
+    font-weight: bold;
+    transition: background-color 0.2s, transform 0.1s, box-shadow 0.2s;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+}
+
+.popup-buttons button:hover {
+    background-color: #00a0b7;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+}
+
+.popup-buttons button:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+/* Estilo para o botão "Não" (pode ser diferente) */
+#confirm-stop-no {
+    background-color: #666;
+}
+
+#confirm-stop-no:hover {
+    background-color: #777;
+}
+
+/* --- Novos Estilos para o Modal de Carregamento de Sessões --- */
+
+#load-session-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    display: none;
+}
+
+#load-session-modal .modal-content {
+    background-color: #333;
+    padding: 25px;
+    border-radius: 10px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+    width: 90%;
+    max-width: 500px;
+    color: #eee;
+    text-align: center;
+    position: relative;
+}
+
+#load-session-modal h2 {
+    margin-top: 0;
+    color: #fff;
+    font-size: 1.5em;
+    margin-bottom: 20px;
+}
+
+#session-list {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 20px 0;
+    max-height: 300px;
+    overflow-y: auto;
+    border: 1px solid #555;
+    border-radius: 5px;
+    background-color: #222;
+}
+
+#session-list li {
+    padding: 10px 15px;
+    cursor: pointer;
+    border-bottom: 1px solid #444;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: background-color 0.2s ease;
+}
+
+#session-list li:last-child {
+    border-bottom: none;
+}
+
+#session-list li:hover {
+    background-color: #444;
+}
+
+#session-list li.selected {
+    background-color: #007bff;
+    color: white;
+}
+
+#session-list li.selected .delete-session-button {
+    background-color: #dc3545;
+    color: white;
+}
+
+.modal-buttons {
+    margin-top: 20px;
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+}
+
+.modal-buttons button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1em;
+    font-weight: bold;
+    transition: background-color 0.2s, transform 0.1s, box-shadow 0.2s;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+}
+
+#confirm-load-session-btn {
+    background-color: #28a745;
+    color: white;
+}
+
+#confirm-load-session-btn:hover:enabled {
+    background-color: #218838;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+}
+
+#confirm-load-session-btn:disabled {
+    background-color: #6c757d;
+    cursor: not-allowed;
+    transform: translateY(0);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+}
+
+#cancel-load-session-btn {
+    background-color: #666;
+    color: white;
+}
+
+#cancel-load-session-btn:hover {
+    background-color: #777;
+    transform: translateY(-2px);
+    box_shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+}
+
+.delete-session-button {
+    background: none;
+    border: none;
+    color: #dc3545;
+    cursor: pointer;
+    font-size: 1.2em;
+    padding: 5px;
+    border-radius: 3px;
+    transition: background-color 0.2s ease, color 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.delete-session-button:hover {
+    background-color: rgba(220, 53, 69, 0.2);
+    color: #ff4d4f;
 }
