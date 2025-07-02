@@ -66,9 +66,8 @@ window.soundboardApp.sessionManager = (function() {
      * @param {HTMLInputElement} fadeOutRange - The fade out slider.
      * @param {HTMLInputElement} fadeInRange - The fade in slider.
      * @param {boolean} isHelpVisible - Whether the help text is visible.
-     * @param {Function} getTranslation - Function to get translations.
      */
-    function saveCurrentSession(soundData, volumeRange, playMultipleCheckbox, autokillModeCheckbox, fadeOutRange, fadeInRange, isHelpVisible, getTranslation) {
+    function saveCurrentSession(soundData, volumeRange, playMultipleCheckbox, autokillModeCheckbox, fadeOutRange, fadeInRange, isHelpVisible) {
         // Collect minimal data needed for each sound to minimize storage size
         const serializableSoundData = soundData.map(sound => {
             if (sound && sound.audioDataUrl) {
@@ -84,16 +83,16 @@ window.soundboardApp.sessionManager = (function() {
             return null; // Empty cell
         });
 
-        const sessionName = prompt(getTranslation('promptSaveSessionName') + ` (e.g., MinhaSessao_${getTimestamp()})`);
+        const sessionName = prompt(window.soundboardApp.getTranslation('promptSaveSessionName') + ` (e.g., MinhaSessao_${getTimestamp()})`);
         if (!sessionName) {
-            alert(getTranslation('alertSaveCancelled'));
+            alert(window.soundboardApp.getTranslation('alertSaveCancelled'));
             return;
         }
 
         const sessions = getAllSessions();
         if (sessions[sessionName]) {
-            if (!confirm(getTranslation('confirmOverwriteSession').replace('{sessionName}', sessionName))) {
-                alert(getTranslation('alertSaveCancelled'));
+            if (!confirm(window.soundboardApp.getTranslation('confirmOverwriteSession').replace('{sessionName}', sessionName))) {
+                alert(window.soundboardApp.getTranslation('alertSaveCancelled'));
                 return;
             }
         }
@@ -110,7 +109,7 @@ window.soundboardApp.sessionManager = (function() {
         };
 
         saveAllSessions(sessions);
-        alert(getTranslation('alertSessionSaved').replace('{sessionName}', sessionName));
+        alert(window.soundboardApp.getTranslation('alertSessionSaved').replace('{sessionName}', sessionName));
     }
 
     /**
@@ -153,7 +152,7 @@ window.soundboardApp.sessionManager = (function() {
             deleteButton.title = window.soundboardApp.getTranslation('deleteSession');
             deleteButton.addEventListener('click', (event) => {
                 event.stopPropagation(); // Prevent li click event
-                deleteSession(key, window.soundboardApp.getTranslation);
+                deleteSession(key); // Não precisa passar getTranslation aqui
             });
             li.appendChild(deleteButton);
 
@@ -188,7 +187,7 @@ window.soundboardApp.sessionManager = (function() {
 
     /**
      * Loads a selected session.
-     * @param {Object} appState - The main application state object (soundData, controls, etc.)
+     * @param {Object} appState - The main application state object (e.g., window.soundboardApp.sb from main.js)
      * @param {Function} updateCellDisplay - Callback to update individual cell display.
      * @param {Function} getTranslation - Callback to get translations.
      * @param {Function} saveSettingsCallback - Callback to save current settings after loading.
@@ -215,8 +214,8 @@ window.soundboardApp.sessionManager = (function() {
 
         // 1. Stop all currently playing sounds and clear existing data
         window.soundboardApp.audioManager.stopAllSounds(
-            window.soundboardApp.audioContext,
-            window.soundboardApp.globalActivePlayingInstances,
+            appState.audioContext,
+            appState.globalActivePlayingInstances,
             appState.soundData,
             0.2 // A small fade out
         );
@@ -237,9 +236,9 @@ window.soundboardApp.sessionManager = (function() {
         // 3. Load global settings
         if (sessionToLoad.globalVolume !== undefined) {
             appState.volumeRange.value = sessionToLoad.globalVolume;
-            window.soundboardApp.updateVolumeDisplay(sessionToLoad.globalVolume); // Update display
-            if (window.soundboardApp.masterGainNode) {
-                window.soundboardApp.masterGainNode.gain.value = sessionToLoad.globalVolume;
+            appState.utils.updateVolumeDisplay(appState.volumeRange, appState.volumeDisplay); // Use appState.utils
+            if (appState.masterGainNode) {
+                appState.masterGainNode.gain.value = sessionToLoad.globalVolume;
             }
         }
         if (sessionToLoad.playMultiple !== undefined) {
@@ -250,14 +249,15 @@ window.soundboardApp.sessionManager = (function() {
         }
         if (sessionToLoad.fadeOutDuration !== undefined) {
             appState.fadeOutRange.value = sessionToLoad.fadeOutDuration;
-            window.soundboardApp.updateFadeOutDisplay(sessionToLoad.fadeOutDuration);
+            appState.utils.updateFadeOutDisplay(appState.fadeOutRange, appState.fadeOutDisplay, appState.i18n.getTranslationsObject(), appState.i18n.getCurrentLanguage()); // Use appState.utils
         }
         if (sessionToLoad.fadeInDuration !== undefined) {
             appState.fadeInRange.value = sessionToLoad.fadeInDuration;
-            window.soundboardApp.updateFadeInDisplay(sessionToLoad.fadeInDuration);
+            appState.utils.updateFadeInDisplay(appState.fadeInRange, appState.fadeInDisplay, appState.i18n.getTranslationsObject(), appState.i18n.getCurrentLanguage()); // Use appState.utils
         }
         if (sessionToLoad.isHelpVisible !== undefined) {
-            window.soundboardApp.toggleHelp(sessionToLoad.isHelpVisible); // Directly set visibility
+            appState.isHelpVisible = sessionToLoad.isHelpVisible; // Update the state
+            appState.toggleHelp(sessionToLoad.isHelpVisible); // Directly set visibility by calling the toggle function
         }
 
 
@@ -277,20 +277,20 @@ window.soundboardApp.sessionManager = (function() {
                             soundDataEntry.isLooping,
                             soundDataEntry.isCued,
                             appState.soundData, // Pass the main soundData array
-                            window.soundboardApp.audioContext,
+                            appState.audioContext,
                             updateCellDisplay,
                             getTranslation,
                             saveSettingsCallback // Pass the save callback
                         );
                         // After loading sound, ensure cued state is applied if it was saved as cued
                         if (soundDataEntry.isCued) {
-                             const loadedSound = appState.soundData[index];
-                             if(loadedSound) { // Check if loading was successful
+                            const loadedSound = appState.soundData[index];
+                            if(loadedSound) { // Check if loading was successful
                                 loadedSound.isCued = true; // Explicitly set cued state
                                 cell.classList.add('cued');
                                 // Add to cue system's internal list if it exists and needs it
                                 window.soundboardApp.cueGoSystem.addCue(index, appState.soundData);
-                             }
+                            }
                         }
                     } catch (error) {
                         console.error(`Erro ao carregar som para célula ${index} da sessão:`, error);
@@ -322,15 +322,14 @@ window.soundboardApp.sessionManager = (function() {
     /**
      * Deletes a session from localStorage.
      * @param {string} sessionKey - The key (name) of the session to delete.
-     * @param {Function} getTranslation - Function to get translations.
      */
-    function deleteSession(sessionKey, getTranslation) {
-        if (confirm(getTranslation('confirmDeleteSession').replace('{sessionName}', sessionKey))) {
+    function deleteSession(sessionKey) { // Removed getTranslation from parameters
+        if (confirm(window.soundboardApp.getTranslation('confirmDeleteSession').replace('{sessionName}', sessionKey))) {
             const sessions = getAllSessions();
             delete sessions[sessionKey];
             saveAllSessions(sessions);
             populateSessionList(); // Refresh the list
-            alert(getTranslation('alertSessionDeleted').replace('{sessionName}', sessionKey));
+            alert(window.soundboardApp.getTranslation('alertSessionDeleted').replace('{sessionName}', sessionKey));
         }
     }
 
@@ -348,11 +347,11 @@ window.soundboardApp.sessionManager = (function() {
         cancelLoadButton = cancelButton;
 
         if (confirmLoadButton) {
-            confirmLoadButton.addEventListener('click', () => {
-                // The actual load logic will be called from main.js, passing appState
-                // This button's listener primarily triggers the process.
-                // We'll handle the parameter passing in main.js
-            });
+            // Note: The actual loadSelectedSession is triggered from main.js's click listener
+            // on this button, passing the necessary appState. This listener might not strictly
+            // be needed here if main.js handles the click, but it's fine as a placeholder.
+            // For clarity, the logic is in main.js
+            confirmLoadButton.addEventListener('click', () => { /* Logic in main.js */ });
         }
         if (cancelLoadButton) {
             cancelLoadButton.addEventListener('click', hideLoadSessionModal);
