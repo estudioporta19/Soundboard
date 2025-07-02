@@ -24,7 +24,7 @@
     transform: translateY(-1px);
 }
 
-.lang-button.active-lang { /* Renamed from .active to .active-lang to avoid conflict with .sound-cell.active */
+.lang-button.active-lang { /* Esta é a classe que o seu JS precisa adicionar/remover */
     background-color: #00bcd4;
     color: #fff;
     box-shadow: 0 0 8px rgba(0, 188, 212, 0.5);
@@ -56,7 +56,7 @@ input[type="range"] {
     width: 100%; /* Ocupa o restante do espaço */
     height: 8px;
     background: #666;
-    border-radius: 5px;
+    border-radius: 50px; /* Mais redondo para visual moderno */
     outline: none;
     transition: opacity .2s;
     flex-grow: 1; /* Permite que o slider preencha o espaço disponível */
@@ -173,7 +173,7 @@ input[type="checkbox"]:checked::after {
     box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
 }
 
-/* Feedback Visual de Reprodução - ATUALIZADO PARA VERDE E PULSANTE */
+/* Feedback Visual de Reprodução (Geral - para qualquer som tocando) */
 .sound-cell.playing-feedback {
     background-color: #4CAF50; /* Verde vibrante */
     border-color: #8BC34A; /* Uma tonalidade de verde ligeiramente diferente para a borda */
@@ -184,7 +184,7 @@ input[type="checkbox"]:checked::after {
     transition: background-color 0.1s ease-out, box-shadow 0.1s ease-out, transform 0.1s ease-out, border-color 0.1s ease-out;
 }
 
-/* Opcional: Efeito de pulsação para playing-feedback */
+/* Efeito de pulsação para qualquer sound-cell que esteja tocando */
 .sound-cell.playing-feedback::after {
     content: '';
     position: absolute;
@@ -198,7 +198,7 @@ input[type="checkbox"]:checked::after {
     z-index: -1; /* Garante que a pulsação fique atrás do conteúdo da célula */
 }
 
-@keyframes pulse-green { /* Renomeada para ser específica do verde */
+@keyframes pulse-green {
     0% {
         transform: scale(1);
         opacity: 1;
@@ -216,28 +216,28 @@ input[type="checkbox"]:checked::after {
     }
 }
 
-/* Estilo para quando a célula está ativa (pressionada) */
+/* Estilo para quando a célula é ativada (pressionada fisicamente ou via teclado, antes de iniciar o som) */
 .sound-cell.active {
     transform: scale(1.05);
     box-shadow: 0 0 20px rgba(0, 188, 212, 0.8), 0 0 30px rgba(0, 188, 212, 0.6);
-    background-color: #00bcd4; /* Cor de destaque para o estado ativo */
+    background-color: #00bcd4; /* Cor de destaque para o estado ativo (azul ciano) */
     border-color: #00bcd4;
     z-index: 1;
 }
 
-/* Se um som estiver a tocar E cued (prioriza o verde sobre o amarelo) */
+/* Se um som estiver a tocar E cued (prioriza o verde de 'playing-feedback') */
 .sound-cell.playing-feedback.cued {
     border-color: #4CAF50; /* Prioriza a cor verde de playing-feedback */
     box-shadow: 0 0 15px rgba(76, 175, 80, 0.7), 0 0 15px #ffeb3b; /* Combina sombras de playing (verde) e cued (amarelo) */
     background-color: #4CAF50; /* Prioriza o fundo verde de playing */
 }
 
-/* Se um som estiver a tocar E em loop (pode precisar de uma nuance visual extra se desejar) */
-.sound-cell.playing-feedback.looping {
-    /* Adicione estilos específicos aqui se quiser uma indicação visual extra para sons em loop que estão a tocar */
-    /* Ex: text-shadow: 0 0 5px #FFD700; */
+/* Se um som estiver cued (Amarelo, como antes) */
+.sound-cell.cued {
+    border-color: #ffeb3b;
+    box-shadow: 0 0 15px rgba(255, 235, 59, 0.7);
+    transform: scale(1.02);
 }
-
 
 .sound-cell.empty {
     background-color: #1a1a1a;
@@ -265,11 +265,6 @@ input[type="checkbox"]:checked::after {
     border-color: #888;
 }
 
-.sound-cell.cued {
-    border-color: #ffeb3b;
-    box-shadow: 0 0 15px rgba(255, 235, 59, 0.7);
-    transform: scale(1.02);
-}
 
 /* Display da Tecla */
 .key-display {
@@ -359,7 +354,7 @@ input[type="checkbox"]:checked::after {
     transform: scale(1.1);
 }
 
-.loop-button.active {
+.loop-button.active { /* Cor para o botão de loop ativo */
     background-color: #4CAF50;
     color: #fff;
     box-shadow: 0 0 8px rgba(76, 175, 80, 0.6);
