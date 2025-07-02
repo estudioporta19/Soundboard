@@ -38,6 +38,12 @@ document.addEventListener('DOMContentLoaded', () => {
     sb.confirmStopYesBtn = document.getElementById('confirm-stop-yes');
     sb.confirmStopNoBtn = document.getElementById('confirm-stop-no');
 
+    // NOVOS ELEMENTOS DOM PARA GESTÃO DE SESSÕES
+    sb.saveSessionBtn = document.getElementById('save-session-btn'); // Adicione este ID ao seu HTML
+    sb.loadSessionBtn = document.getElementById('load-session-btn'); // Adicione este ID ao seu HTML
+    sb.sessionNameInput = document.getElementById('session-name-input'); // Adicione este ID ao seu HTML (input para o nome da sessão)
+    sb.sessionSelect = document.getElementById('session-select'); // Adicione este ID ao seu HTML (select para carregar sessões)
+
 
     // Estado da Aplicação
     sb.audioContext = null; // Inicializado por audioManager.initAudioContext
@@ -65,6 +71,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Re-consulta as células de som, pois são criadas dinamicamente por loadSettings
         sb.soundCells = document.querySelectorAll('.sound-cell');
+
+        // Inicializa o sessionManager e preenche o select de sessões disponíveis
+        sb.sessionManager.init(sb.sessionSelect);
+
 
         // Reaplica textos específicos da língua após as configurações serem carregadas e as células criadas/atualizadas
         sb.i18n.setLanguage(
@@ -399,6 +409,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Botão Limpar Todas as Células
     sb.clearAllCellsBtn.addEventListener('click', () => {
+        sb.audioManager.stopAllSounds(sb.audioContext, sb.globalActivePlayingInstances, sb.soundData); // Parar sons antes de limpar
         sb.audioManager.clearAllSoundCells(sb.soundData, sb.audioContext, sb.globalActivePlayingInstances, sb.NUM_CELLS, sb.cellManager.updateCellDisplay, sb.i18n.getTranslation, sb.settingsManager.saveSettings);
     });
 
@@ -441,6 +452,85 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         sb.settingsManager.saveSettings(sb.soundData, sb.volumeRange, sb.playMultipleCheckbox, sb.autokillModeCheckbox, sb.fadeOutRange, sb.fadeInRange, sb.isHelpVisible);
     });
+
+    // Ouvintes de eventos para o Session Manager
+    if (sb.saveSessionBtn && sb.sessionNameInput) {
+        sb.saveSessionBtn.addEventListener('click', () => {
+            const sessionName = sb.sessionNameInput.value.trim();
+            if (sessionName) {
+                // Passa o estado atual para o sessionManager para guardar
+                const sessionState = {
+                    sounds: sb.soundData.map(sound => ({
+                        name: sound ? sound.name : null,
+                        key: sound ? sound.key : null,
+                        audioDataUrl: sound ? sound.audioDataUrl : null, // Guarda o Data URL
+                        color: sound ? sound.color : null,
+                        isLooping: sound ? sound.isLooping : false,
+                        isCued: sound ? sound.isCued : false
+                    })),
+                    volume: parseFloat(sb.volumeRange.value),
+                    playMultiple: sb.playMultipleCheckbox.checked,
+                    autokillMode: sb.autokillModeCheckbox.checked,
+                    fadeOutDuration: parseFloat(sb.fadeOutRange.value),
+                    fadeInDuration: parseFloat(sb.fadeInRange.value),
+                    isHelpVisible: sb.isHelpVisible,
+                    currentLanguage: sb.currentLanguage // Guarda a língua atual
+                };
+                sb.sessionManager.saveCurrentSession(sessionName, sessionState);
+                sb.sessionNameInput.value = ''; // Limpa o input após guardar
+                alert(sb.i18n.getTranslation('sessionSavedSuccess').replace('{sessionName}', sessionName));
+            } else {
+                alert(sb.i18n.getTranslation('enterSessionNamePrompt'));
+            }
+        });
+    }
+
+    if (sb.loadSessionBtn && sb.sessionSelect) {
+        sb.loadSessionBtn.addEventListener('click', async () => {
+            const selectedSessionName = sb.sessionSelect.value;
+            if (selectedSessionName) {
+                // Para todos os sons atuais antes de carregar uma nova sessão
+                sb.audioManager.stopAllSounds(sb.audioContext, sb.globalActivePlayingInstances, sb.soundData);
+                console.log(`A carregar sessão: ${selectedSessionName}`);
+
+                await sb.sessionManager.loadSelectedSession(
+                    selectedSessionName,
+                    sb.audioContext,
+                    sb.audioManager.loadMultipleFilesIntoCells, // Passa a função para carregar ficheiros
+                    sb.NUM_CELLS,
+                    sb.soundData,
+                    sb.cellManager.updateCellDisplay,
+                    sb.i18n.getTranslation,
+                    sb.settingsManager.saveSettings,
+                    sb.volumeRange,
+                    sb.volumeDisplay,
+                    sb.playMultipleCheckbox,
+                    sb.autokillModeCheckbox,
+                    sb.fadeOutRange,
+                    sb.fadeOutDisplay,
+                    sb.fadeInRange,
+                    sb.fadeInDisplay,
+                    sb.isHelpVisible, // Passa a referência para a variável
+                    sb.helpTextContent, // Passa a referência para o elemento
+                    sb.toggleHelpButton, // Passa o botão de toggle
+                    sb.i18n, // Passa o módulo i18n
+                    sb.utils, // Passa o módulo utils
+                    sb.langButtons // Passa os botões de idioma
+                );
+
+                // Após carregar, atualiza os cues (se a sessão os tiver)
+                const loadedSession = JSON.parse(localStorage.getItem(`session-${selectedSessionName}`));
+                if (loadedSession && loadedSession.sounds) {
+                    const cuedIndicesFromSession = loadedSession.sounds.filter(s => s && s.isCued).map((s, idx) => idx);
+                    sb.cueGoSystem.setCuedSounds(cuedIndicesFromSession, sb.soundData);
+                }
+
+                alert(sb.i18n.getTranslation('sessionLoadedSuccess').replace('{sessionName}', selectedSessionName));
+            } else {
+                alert(sb.i18n.getTranslation('selectSessionPrompt'));
+            }
+        });
+    }
 
     // Retomar AudioContext na primeira interação do utilizador
     document.body.addEventListener('click', () => {
