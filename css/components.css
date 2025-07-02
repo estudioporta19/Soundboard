@@ -175,8 +175,8 @@ input[type="checkbox"]:checked::after {
 
 /* Feedback Visual de Reprodução (Geral - para qualquer som tocando) */
 .sound-cell.playing-feedback {
-    background-color: #4CAF50; /* Verde vibrante */
-    border-color: #8BC34A; /* Uma tonalidade de verde ligeiramente diferente para a borda */
+    background-color: #4CAF50 !important; /* Verde vibrante */
+    border-color: #8BC34A !important; /* Uma tonalidade de verde ligeiramente diferente para a borda */
     box-shadow: 0 0 20px rgba(76, 175, 80, 0.8), 0 0 30px rgba(76, 175, 80, 0.6); /* Sombra intensa verde */
     transform: scale(1.05); /* Um pouco mais de aumento */
     z-index: 2; /* Garante que a célula a tocar esteja acima de outras */
@@ -227,9 +227,9 @@ input[type="checkbox"]:checked::after {
 
 /* Se um som estiver a tocar E cued (prioriza o verde de 'playing-feedback') */
 .sound-cell.playing-feedback.cued {
-    border-color: #4CAF50; /* Prioriza a cor verde de playing-feedback */
+    border-color: #4CAF50 !important; /* Prioriza a cor verde de playing-feedback */
     box-shadow: 0 0 15px rgba(76, 175, 80, 0.7), 0 0 15px #ffeb3b; /* Combina sombras de playing (verde) e cued (amarelo) */
-    background-color: #4CAF50; /* Prioriza o fundo verde de playing */
+    background-color: #4CAF50 !important; /* Prioriza o fundo verde de playing */
 }
 
 /* Se um som estiver cued (Amarelo, como antes) */
