@@ -134,6 +134,12 @@ input[type="checkbox"]:checked::after {
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
     width: 100%; /* Faz os botões ocuparem a largura total da coluna */
     box-sizing: border-box;
+    margin-bottom: 10px; /* Adicionado para espaçamento entre os botões */
+}
+
+/* Ajusta o margin-bottom do último botão na coluna direita para evitar espaçamento excessivo */
+.right-column button:last-of-type {
+    margin-bottom: 0;
 }
 
 .right-column button:hover {
@@ -173,72 +179,6 @@ input[type="checkbox"]:checked::after {
     box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
 }
 
-/* Feedback Visual de Reprodução (Geral - para qualquer som tocando) */
-.sound-cell.playing-feedback {
-    background-color: #4CAF50; /* Verde vibrante */
-    border-color: #8BC34A; /* Uma tonalidade de verde ligeiramente diferente para a borda */
-    box-shadow: 0 0 20px rgba(76, 175, 80, 0.8), 0 0 30px rgba(76, 175, 80, 0.6); /* Sombra intensa verde */
-    transform: scale(1.05); /* Um pouco mais de aumento */
-    z-index: 2; /* Garante que a célula a tocar esteja acima de outras */
-    position: relative; /* Necessário para o pseudo-elemento ::after */
-    transition: background-color 0.1s ease-out, box-shadow 0.1s ease-out, transform 0.1s ease-out, border-color 0.1s ease-out;
-}
-
-/* Efeito de pulsação para qualquer sound-cell que esteja tocando */
-.sound-cell.playing-feedback::after {
-    content: '';
-    position: absolute;
-    top: -5px;
-    left: -5px;
-    right: -5px;
-    bottom: -5px;
-    border: 3px solid rgba(76, 175, 80, 0.5); /* Borda pulsante com a cor verde */
-    border-radius: 10px; /* Adapta-se ao border-radius da célula */
-    animation: pulse-green 1.5s infinite ease-out; /* Animação de pulsação */
-    z-index: -1; /* Garante que a pulsação fique atrás do conteúdo da célula */
-}
-
-@keyframes pulse-green {
-    0% {
-        transform: scale(1);
-        opacity: 1;
-        border-width: 3px;
-    }
-    50% {
-        transform: scale(1.08); /* Pulsa um pouco mais */
-        opacity: 0.7;
-        border-width: 5px; /* Aumenta a espessura da borda na pulsação */
-    }
-    100% {
-        transform: scale(1);
-        opacity: 1;
-        border-width: 3px;
-    }
-}
-
-/* Estilo para quando a célula é ativada (pressionada fisicamente ou via teclado, antes de iniciar o som) */
-.sound-cell.active {
-    transform: scale(1.05);
-    box-shadow: 0 0 20px rgba(0, 188, 212, 0.8), 0 0 30px rgba(0, 188, 212, 0.6);
-    background-color: #00bcd4; /* Cor de destaque para o estado ativo (azul ciano) */
-    border-color: #00bcd4;
-    z-index: 1;
-}
-
-/* Se um som estiver a tocar E cued (prioriza o verde de 'playing-feedback') */
-.sound-cell.playing-feedback.cued {
-    border-color: #4CAF50; /* Prioriza a cor verde de playing-feedback */
-    box-shadow: 0 0 15px rgba(76, 175, 80, 0.7), 0 0 15px #ffeb3b; /* Combina sombras de playing (verde) e cued (amarelo) */
-    background-color: #4CAF50; /* Prioriza o fundo verde de playing */
-}
-
-/* Se um som estiver cued (Amarelo, como antes) */
-.sound-cell.cued {
-    border-color: #ffeb3b;
-    box-shadow: 0 0 15px rgba(255, 235, 59, 0.7);
-    transform: scale(1.02);
-}
-
 .sound-cell.empty {
     background-color: #1a1a1a;
     border-style: dashed;
@@ -265,6 +205,73 @@ input[type="checkbox"]:checked::after {
     border-color: #888;
 }
 
+/* Estilo para quando a célula é ativada (pressionada fisicamente ou via teclado, antes de iniciar o som) */
+.sound-cell.active {
+    transform: scale(1.05);
+    box-shadow: 0 0 20px rgba(0, 188, 212, 0.8), 0 0 30px rgba(0, 188, 212, 0.6);
+    background-color: #00bcd4; /* Cor de destaque para o estado ativo (azul ciano) */
+    border-color: #00bcd4;
+    z-index: 1;
+}
+
+/* Se um som estiver cued (Amarelo, como antes) */
+.sound-cell.cued {
+    border-color: #ffeb3b;
+    box-shadow: 0 0 15px rgba(255, 235, 59, 0.7);
+    transform: scale(1.02);
+}
+
+/* Feedback Visual de Reprodução (Geral - para qualquer som tocando) */
+.sound-cell.playing-feedback {
+    background-color: #4444CC; /* Fundo azul vibrante como na imagem */
+    border-color: #ADFF2F; /* Verde néon para a borda */
+    border-width: 5px; /* Borda mais grossa para destaque */
+    box-shadow: 0 0 25px rgba(173, 255, 47, 0.9), 0 0 40px rgba(173, 255, 47, 0.7); /* Sombra intensa verde néon */
+    transform: scale(1.05); /* Um pouco mais de aumento */
+    z-index: 2; /* Garante que a célula a tocar esteja acima de outras */
+    position: relative; /* Necessário para o pseudo-elemento ::after */
+    transition: transform 0.1s ease-out, box-shadow 0.1s ease-out, background-color 0.1s ease-out, border-color 0.1s ease-out, border-width 0.1s ease-out; /* Transições suaves para todos os efeitos */
+}
+
+/* Efeito de pulsação para qualquer sound-cell que esteja tocando */
+.sound-cell.playing-feedback::after {
+    content: '';
+    position: absolute;
+    top: -8px; /* Ajustado para compensar a borda mais grossa */
+    left: -8px; /* Ajustado para compensar a borda mais grossa */
+    right: -8px; /* Ajustado para compensar a borda mais grossa */
+    bottom: -8px; /* Ajustado para compensar a borda mais grossa */
+    border: 4px solid rgba(173, 255, 47, 0.6); /* Borda pulsante com a cor verde néon e mais grossa */
+    border-radius: 10px; /* Adapta-se ao border-radius da célula */
+    animation: pulse-green-neon 1.3s infinite ease-out; /* Animação de pulsação ligeiramente mais rápida */
+    z-index: -1; /* Garante que a pulsação fique atrás do conteúdo da célula */
+}
+
+@keyframes pulse-green-neon {
+    0% {
+        transform: scale(1);
+        opacity: 1;
+        border-width: 4px; /* Começa com a espessura da borda do after */
+    }
+    50% {
+        transform: scale(1.1); /* Pulsa um pouco mais */
+        opacity: 0.6;
+        border-width: 7px; /* Aumenta a espessura da borda na pulsação */
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+        border-width: 4px;
+    }
+}
+
+/* Se um som estiver a tocar E cued (prioriza o feedback de 'playing-feedback') */
+.sound-cell.playing-feedback.cued {
+    border-color: #ADFF2F !important; /* Prioriza o verde néon */
+    box-shadow: 0 0 15px rgba(173, 255, 47, 0.7), 0 0 15px #ffeb3b; /* Combina sombras de playing (verde néon) e cued (amarelo) */
+    background-color: #4444CC !important; /* Prioriza o fundo azul da célula a tocar */
+}
+
 
 /* Display da Tecla */
 .key-display {
@@ -282,19 +289,19 @@ input[type="checkbox"]:checked::after {
 
 /* Nome do Som */
 .sound-name {
-    font-size: 0.9em;
+    font-size: 0.6em; /* Já ajustado para 0.6em */
     font-weight: bold;
     color: #fff;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     width: 90%;
-    text-align: center;
+    text-align: left; /* ALINHADO À ESQUERDA */
     padding-top: 20px;
     flex-grow: 1;
     display: flex;
     align-items: center;
-    justify-content: center;
+    /* justify-content: center; REMOVIDO */
 }
 
 .sound-name:focus {
@@ -466,4 +473,58 @@ input[type="checkbox"]:checked::after {
     font-size: 0.9em;
     color: #eee;
     white-space: nowrap;
+}
+
+/* NOVOS ESTILOS PARA GESTÃO DE SESSÕES AQUI */
+/* Estilos para a lista de sessões dentro do popup */
+#session-list {
+    list-style: none;
+    padding: 0;
+    margin-top: 20px;
+    max-height: 200px; /* Limita a altura da lista e adiciona scroll */
+    overflow-y: auto;
+    border: 1px solid #555;
+    border-radius: 5px;
+    background-color: #444;
+}
+
+#session-list li {
+    padding: 10px 15px;
+    cursor: pointer;
+    border-bottom: 1px solid #555;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: background-color 0.2s;
+    color: #eee; /* Cor do texto padrão da lista */
+}
+
+#session-list li:last-child {
+    border-bottom: none;
+}
+
+#session-list li:hover {
+    background-color: #666;
+}
+
+#session-list li.selected {
+    background-color: #00bcd4;
+    color: #fff;
+}
+
+.delete-session-button {
+    background-color: #dc3545; /* Cor vermelha para apagar */
+    color: #fff;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.8em;
+    margin-left: 10px;
+    transition: background-color 0.2s;
+    flex-shrink: 0; /* Garante que o botão não encolha */
+}
+
+.delete-session-button:hover {
+    background-color: #c82333;
 }
