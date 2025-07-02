@@ -53,19 +53,9 @@
 
                 <div class="session-management-group control-group">
                     <h4 data-key="sessionManagementTitle">Gestão de Sessões</h4>
-                    <div class="form-group">
-                        <label for="session-name-input" data-key="saveSessionLabel">Nome da Sessão:</label>
-                        <input type="text" id="session-name-input" placeholder="Minha Nova Sessão">
-                        <button id="save-session-btn" data-key="saveSessionButton">Guardar Sessão</button>
+                    <button id="save-session-btn" data-key="saveSessionButton">Guardar Sessão</button>
+                    <button id="load-session-btn" data-key="loadSessionButton">Carregar Sessão</button>
                     </div>
-                    <div class="form-group">
-                        <label for="session-select" data-key="loadSessionLabel">Carregar Sessão:</label>
-                        <select id="session-select">
-                            <option value="" data-key="selectSessionOption">-- Selecionar Sessão --</option>
-                            </select>
-                        <button id="load-session-btn" data-key="loadSessionButton">Carregar Sessão</button>
-                    </div>
-                </div>
                 </div>
         </div>
         <div class="soundboard-grid">
@@ -98,6 +88,7 @@
             </ul>
         </div>
     </div>
+
     <div id="stop-confirmation-popup" class="popup-overlay">
         <div class="popup-content">
             <p data-key="confirmStopAll">Tem certeza que deseja parar todos os sons?</p>
@@ -108,6 +99,17 @@
         </div>
     </div>
 
+    <div id="load-session-modal" class="modal-overlay">
+        <div class="modal-content">
+            <h2 data-key="loadSessionModalTitle">Carregar Sessão</h2>
+            <ul id="session-list">
+                </ul>
+            <div class="modal-buttons">
+                <button id="confirm-load-session-btn" data-key="loadButton">Carregar</button>
+                <button id="cancel-load-session-btn" data-key="cancelButton">Cancelar</button>
+            </div>
+        </div>
+    </div>
     <script src="utils.js"></script>
     <script src="i18n.js"></script>
     <script src="settingsManager.js"></script>
