@@ -2,7 +2,7 @@
 // Configuração inicial, variáveis globais e ouvintes de eventos globais.
 // Orquestra a interação entre os outros módulos.
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => { // Adicione 'async' aqui
     // 1. Variáveis Globais e Elementos do DOM
     // Torna-os acessíveis globalmente através do objeto window.soundboardApp
     window.soundboardApp = window.soundboardApp || {};
@@ -42,7 +42,7 @@ document.addEventListener('DOMContentLoaded', () => {
     sb.saveSessionBtn = document.getElementById('save-session-btn');
     sb.loadSessionBtn = document.getElementById('load-session-btn');
     sb.loadSessionModal = document.getElementById('load-session-modal'); // Modal container
-    sb.sessionListElement = document.getElementById('session-list');   // UL element inside modal
+    sb.sessionListElement = document.getElementById('session-list');    // UL element inside modal
     sb.confirmLoadButton = document.getElementById('confirm-load-session-btn'); // Confirm button in modal
     sb.cancelLoadButton = document.getElementById('cancel-load-session-btn'); // Cancel button in modal
 
@@ -63,6 +63,16 @@ document.addEventListener('DOMContentLoaded', () => {
         'z', 'x', 'c', 'v', 'b', 'n', 'm'
     ];
     sb.NUM_CELLS = sb.defaultKeys.length;
+
+    // ----- AQUI ESTÁ A ADIÇÃO PARA INICIALIZAR O INDEXEDDB -----
+    try {
+        await sb.dbManager.init(); // Certifica-se de que o DB está aberto antes de carregar settings
+        console.log("IndexedDB inicializado com sucesso no main.js.");
+    } catch (error) {
+        console.error("Falha ao inicializar IndexedDB:", error);
+        // O alerta já é dado dentro de dbManager.js, então não é necessário um aqui
+    }
+    // -----------------------------------------------------------
 
 
     // 2. Carregar Traduções e Configurações Iniciais
