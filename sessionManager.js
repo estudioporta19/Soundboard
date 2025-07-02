@@ -1,394 +1,296 @@
-// js/sessionManager.js
-// Gerencia o guardar, carregar e apagar de sessões da soundboard.
-
+// sessionManager.js
 window.soundboardApp = window.soundboardApp || {};
 
 window.soundboardApp.sessionManager = (function() {
-    const SESSION_STORAGE_KEY = 'soundboard_sessions'; // Key for storing all sessions
+    const SESSIONS_STORAGE_KEY = 'soundboard_sessions';
+    let currentSessionId = null;
 
-    let loadSessionModal;
-    let sessionListElement;
-    let confirmLoadButton;
-    let cancelLoadButton;
-    let selectedSessionKey = null;
+    // Dependências de outras partes da aplicação
+    let sb; // soundboardApp principal
 
-    // --- Helper Functions ---
+    function setSoundboardApp(appInstance) {
+        sb = appInstance;
+    }
 
     /**
-     * Retrieves all saved sessions from localStorage.
-     * @returns {Object} An object where keys are session names and values are session data.
+     * Gera um ID único simples para a sessão.
+     * @returns {string} Um ID de sessão único.
      */
-    function getAllSessions() {
-        try {
-            const sessions = localStorage.getItem(SESSION_STORAGE_KEY);
-            return sessions ? JSON.parse(sessions) : {};
-        } catch (e) {
-            console.error("Erro ao ler sessões do localStorage:", e);
-            return {};
+    function generateSessionId() {
+        return `session-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+    }
+
+    /**
+     * Salva a sessão atual no localStorage.
+     * @param {Array} soundData - O array de dados de som global.
+     * @param {HTMLInputElement} volumeRange - Elemento HTML do slider de volume.
+     * @param {HTMLInputElement} playMultipleCheckbox - Checkbox para tocar múltiplos sons.
+     * @param {HTMLInputElement} autokillModeCheckbox - Checkbox para o modo autokill.
+     * @param {HTMLInputElement} fadeOutRange - Slider de fade out.
+     * @param {HTMLInputElement} fadeInRange - Slider de fade in.
+     * @param {boolean} isHelpVisible - Estado da ajuda visível.
+     * @param {Function} getTranslation - Função para obter traduções.
+     */
+    function saveCurrentSession(soundData, volumeRange, playMultipleCheckbox, autokillModeCheckbox, fadeOutRange, fadeInRange, isHelpVisible, getTranslation) {
+        // Interrompe qualquer autokill em progresso para não salvar estado intermediário
+        if (sb.autokillTimeout) {
+            clearTimeout(sb.autokillTimeout);
+            sb.autokillTimeout = null;
         }
-    }
 
-    /**
-     * Saves the entire sessions object back to localStorage.
-     * @param {Object} sessions - The object containing all session data.
-     */
-    function saveAllSessions(sessions) {
-        try {
-            localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(sessions));
-        } catch (e) {
-            console.error("Erro ao salvar sessões no localStorage:", e);
-            // CORRIGIDO: Chamar i18n.getTranslation corretamente
-            alert(window.soundboardApp.i18n.getTranslation('alertSessionSaveError') + `\nDetalhes: ${e.message}`);
+        let sessionName = prompt(getTranslation('promptSaveSessionName'), currentSessionId || getTranslation('defaultSessionName'));
+        if (sessionName === null || sessionName.trim() === '') {
+            alert(getTranslation('alertSessionNameRequired'));
+            return;
         }
-    }
 
-    /**
-     * Gets a timestamp string for session naming.
-     * @returns {string} Formatted date and time string.
-     */
-    function getTimestamp() {
-        const now = new Date();
-        const year = now.getFullYear();
-        const month = (now.getMonth() + 1).toString().padStart(2, '0');
-        const day = now.getDate().toString().padStart(2, '0');
-        const hours = now.getHours().toString().padStart(2, '0');
-        const minutes = now.getMinutes().toString().padStart(2, '0');
-        return `${year}-${month}-${day}_${hours}${minutes}`;
-    }
+        const sessionId = currentSessionId || generateSessionId();
 
-    // --- Public Functions ---
-
-    /**
-     * Saves the current soundboard state as a new session.
-     * @param {Array<Object|null>} soundData - The array of sound data for all cells.
-     * @param {HTMLInputElement} volumeRange - The global volume slider element.
-     * @param {HTMLInputElement} playMultipleCheckbox - The "Play Multiple" checkbox.
-     * @param {HTMLInputElement} autokillModeCheckbox - The "Autokill Mode" checkbox.
-     * @param {HTMLInputElement} fadeOutRange - The fade out slider.
-     * @param {HTMLInputElement} fadeInRange - The fade in slider.
-     * @param {boolean} isHelpVisible - Whether the help text is visible.
-     */
-    function saveCurrentSession(soundData, volumeRange, playMultipleCheckbox, autokillModeCheckbox, fadeOutRange, fadeInRange, isHelpVisible) {
-        // Collect minimal data needed for each sound to minimize storage size
-        const serializableSoundData = soundData.map(sound => {
-            if (sound && sound.audioDataUrl) {
+        // Mapeia soundData para uma versão serializável, incluindo APENAS o soundFileId
+        const soundsToSave = soundData.map(s => {
+            if (s && s.soundFileId) { // Verifica se a célula tem um som carregado com ID
                 return {
-                    name: sound.name,
-                    key: sound.key,
-                    audioDataUrl: sound.audioDataUrl, // The base64 audio data
-                    color: sound.color,
-                    isLooping: sound.isLooping,
-                    isCued: sound.isCued
+                    name: s.name,
+                    key: s.key,
+                    soundFileId: s.soundFileId, // Apenas o ID do ficheiro no IndexedDB
+                    color: s.color,
+                    isLooping: s.isLooping,
+                    isCued: s.isCued
                 };
             }
-            return null; // Empty cell
+            return null; // Representa uma célula vazia
         });
 
-        // CORRIGIDO: Chamar i18n.getTranslation corretamente
-        const sessionName = prompt(window.soundboardApp.i18n.getTranslation('promptSaveSessionName') + ` (e.g., MinhaSessao_${getTimestamp()})`);
-        if (!sessionName) {
-            // CORRIGIDO: Chamar i18n.getTranslation corretamente
-            alert(window.soundboardApp.i18n.getTranslation('alertSaveCancelled'));
-            return;
-        }
-
-        const sessions = getAllSessions();
-        if (sessions[sessionName]) {
-            // CORRIGIDO: Chamar i18n.getTranslation corretamente
-            if (!confirm(window.soundboardApp.i18n.getTranslation('confirmOverwriteSession').replace('{sessionName}', sessionName))) {
-                // CORRIGIDO: Chamar i18n.getTranslation corretamente
-                alert(window.soundboardApp.i18n.getTranslation('alertSaveCancelled'));
-                return;
-            }
-        }
-
-        sessions[sessionName] = {
-            soundData: serializableSoundData,
-            globalVolume: volumeRange.value,
-            playMultiple: playMultipleCheckbox.checked,
-            autokillMode: autokillModeCheckbox.checked,
-            fadeOutDuration: fadeOutRange.value,
-            fadeInDuration: fadeInRange.value,
-            isHelpVisible: isHelpVisible,
-            timestamp: new Date().toISOString() // Store ISO string for sorting/display
+        const sessionToSave = {
+            id: sessionId,
+            name: sessionName,
+            timestamp: Date.now(),
+            settings: {
+                volume: volumeRange.value,
+                playMultiple: playMultipleCheckbox.checked,
+                autokillMode: autokillModeCheckbox.checked,
+                fadeOut: fadeOutRange.value,
+                fadeIn: fadeInRange.value,
+                isHelpVisible: isHelpVisible,
+            },
+            sounds: soundsToSave // Agora contém apenas referências ID e metadados leves
         };
 
-        saveAllSessions(sessions);
-        // CORRIGIDO: Chamar i18n.getTranslation corretamente
-        alert(window.soundboardApp.i18n.getTranslation('alertSessionSaved').replace('{sessionName}', sessionName));
+        let allSessions = JSON.parse(localStorage.getItem(SESSIONS_STORAGE_KEY) || '[]');
+        const existingSessionIndex = allSessions.findIndex(s => s.id === sessionId);
+
+        if (existingSessionIndex > -1) {
+            allSessions[existingSessionIndex] = sessionToSave;
+        } else {
+            allSessions.push(sessionToSave);
+        }
+
+        try {
+            localStorage.setItem(SESSIONS_STORAGE_KEY, JSON.stringify(allSessions));
+            currentSessionId = sessionId; // Define a sessão atual como a salva
+            alert(getTranslation('alertSessionSaved').replace('{sessionName}', sessionName));
+            updateSessionListUI(); // Atualiza a lista de sessões no UI
+            console.log(`Sessão "${sessionName}" salva com sucesso. ID: ${sessionId}`);
+            console.log("Tamanho do localStorage após salvar:", (JSON.stringify(allSessions).length / 1024).toFixed(2), "KB");
+        } catch (e) {
+            console.error("Erro ao salvar sessão no localStorage:", e);
+            alert(getTranslation('alertSaveError').replace('{error}', e.message));
+        }
     }
 
     /**
-     * Populates the session list in the load session modal.
+     * Carrega uma sessão do localStorage e restaura o estado da soundboard.
+     * @param {string} sessionId - O ID da sessão a carregar.
+     * @param {Array} soundData - O array de dados de som global.
+     * @param {HTMLInputElement} volumeRange - Elemento HTML do slider de volume.
+     * @param {HTMLInputElement} playMultipleCheckbox - Checkbox para tocar múltiplos sons.
+     * @param {HTMLInputElement} autokillModeCheckbox - Checkbox para o modo autokill.
+     * @param {HTMLInputElement} fadeOutRange - Slider de fade out.
+     * @param {HTMLInputElement} fadeInRange - Slider de fade in.
+     * @param {Function} updateCellDisplay - Callback para atualizar o display da célula.
+     * @param {Function} getTranslation - Função para obter traduções.
+     * @param {Function} saveSettingsCallback - Callback para salvar as configurações (usado para cada célula).
+     * @param {Function} updateGeneralSettingsUI - Callback para atualizar a UI de configurações gerais.
      */
-    function populateSessionList() {
-        sessionListElement.innerHTML = ''; // Clear existing list
-        const sessions = getAllSessions();
-        const sessionKeys = Object.keys(sessions).sort((a, b) => {
-            // Sort by timestamp, newest first
-            const dateA = new Date(sessions[a].timestamp || 0); // Use 0 for fallback
-            const dateB = new Date(sessions[b].timestamp || 0);
-            return dateB.getTime() - dateA.getTime();
-        });
-
-        if (sessionKeys.length === 0) {
-            const li = document.createElement('li');
-            // CORRIGIDO: Chamar i18n.getTranslation corretamente
-            li.textContent = window.soundboardApp.i18n.getTranslation('noSessionsSaved');
-            li.style.fontStyle = 'italic';
-            li.style.color = '#aaa';
-            sessionListElement.appendChild(li);
-            confirmLoadButton.disabled = true; // Disable load if no sessions
+    async function loadSelectedSession(sessionId, soundData, volumeRange, playMultipleCheckbox, autokillModeCheckbox, fadeOutRange, fadeInRange, updateCellDisplay, getTranslation, saveSettingsCallback, updateGeneralSettingsUI) {
+        if (!confirm(getTranslation('confirmLoadSession'))) {
             return;
         }
 
-        confirmLoadButton.disabled = true; // Initially disable load until a session is selected
-        selectedSessionKey = null; // Reset selected session
+        stopAllSounds(sb.audioContext, sb.globalActivePlayingInstances, sb.soundData, 0.2); // Parar todos os sons antes de carregar nova sessão
+        sb.cueGoSystem.removeAllCues(soundData); // Limpa todos os cues ao carregar nova sessão
 
-        sessionKeys.forEach(key => {
-            const session = sessions[key];
-            const li = document.createElement('li');
-            li.dataset.sessionKey = key;
+        const allSessions = JSON.parse(localStorage.getItem(SESSIONS_STORAGE_KEY) || '[]');
+        const loadedSession = allSessions.find(s => s.id === sessionId);
 
-            // CORRIGIDO: Chamar i18n.getTranslation corretamente
-            const date = session.timestamp ? new Date(session.timestamp).toLocaleString() : window.soundboardApp.i18n.getTranslation('unknownDate');
-            li.innerHTML = `<span>${key} <small>(${date})</small></span>`;
-
-            const deleteButton = document.createElement('button');
-            deleteButton.classList.add('delete-session-button');
-            deleteButton.innerHTML = '<span class="material-symbols-outlined">delete</span>';
-            // CORRIGIDO: Chamar i18n.getTranslation corretamente
-            deleteButton.title = window.soundboardApp.i18n.getTranslation('deleteSession');
-            deleteButton.addEventListener('click', (event) => {
-                event.stopPropagation(); // Prevent li click event
-                deleteSession(key);
-            });
-            li.appendChild(deleteButton);
-
-            li.addEventListener('click', () => {
-                // Remove 'selected' class from all others
-                sessionListElement.querySelectorAll('li').forEach(item => item.classList.remove('selected'));
-                // Add 'selected' class to the clicked one
-                li.classList.add('selected');
-                selectedSessionKey = key;
-                confirmLoadButton.disabled = false; // Enable load button
-            });
-            sessionListElement.appendChild(li);
-        });
-    }
-
-    /**
-     * Displays the load session modal.
-     */
-    function showLoadSessionModal() {
-        populateSessionList();
-        loadSessionModal.style.display = 'block';
-    }
-
-    /**
-     * Hides the load session modal.
-     */
-    function hideLoadSessionModal() {
-        loadSessionModal.style.display = 'none';
-        selectedSessionKey = null;
-        confirmLoadButton.disabled = true;
-    }
-
-    /**
-     * Loads a selected session.
-     * @param {Object} appState - The main application state object (e.g., window.soundboardApp.sb from main.js)
-     * @param {Function} updateCellDisplay - Callback to update individual cell display.
-     * @param {Function} getTranslation - Callback to get translations.
-     * @param {Function} saveSettingsCallback - Callback to save current settings after loading.
-     */
-    async function loadSelectedSession(appState, updateCellDisplay, getTranslation, saveSettingsCallback) {
-        if (!selectedSessionKey) {
-            alert(getTranslation('alertNoSessionSelected'));
+        if (!loadedSession) {
+            alert(getTranslation('alertSessionNotFound'));
             return;
         }
 
-        if (!confirm(getTranslation('confirmLoadSession').replace('{sessionName}', selectedSessionKey))) {
-            return;
+        console.log(`Carregando sessão: "${loadedSession.name}" (ID: ${loadedSession.id})`);
+
+        // Atualizar configurações gerais
+        volumeRange.value = loadedSession.settings.volume;
+        playMultipleCheckbox.checked = loadedSession.settings.playMultiple;
+        autokillModeCheckbox.checked = loadedSession.settings.autokillMode;
+        fadeOutRange.value = loadedSession.settings.fadeOut;
+        fadeInRange.value = loadedSession.settings.fadeIn;
+        // isHelpVisible é um caso especial, pode ser atualizado separadamente ou passado aqui
+        if (updateGeneralSettingsUI) {
+            updateGeneralSettingsUI(loadedSession.settings);
         }
 
-        const sessions = getAllSessions();
-        const sessionToLoad = sessions[selectedSessionKey];
-
-        if (!sessionToLoad) {
-            alert(getTranslation('alertSessionNotFound').replace('{sessionName}', selectedSessionKey));
-            return;
-        }
-
-        hideLoadSessionModal(); // Hide modal immediately
-
-        // 1. Stop all currently playing sounds and clear existing data
-        window.soundboardApp.audioManager.stopAllSounds(
-            appState.audioContext,
-            appState.globalActivePlayingInstances,
-            appState.soundData,
-            0.2 // A small fade out
-        );
-        window.soundboardApp.cueGoSystem.removeAllCues(appState.soundData); // Clear all cues from existing data
-
-        // 2. Clear visual representation of all cells
-        for (let i = 0; i < window.soundboardApp.NUM_CELLS; i++) {
-            const cell = document.querySelector(`.sound-cell[data-index="${i}"]`);
-            if (cell) {
-                updateCellDisplay(cell, { name: getTranslation('cellEmptyDefault'), key: window.soundboardApp.defaultKeys[i] || '', isLooping: false, isCued: false }, true, getTranslation);
-                cell.classList.remove('active', 'playing-feedback');
-            }
-            // Ensure soundData array is also cleared for proper loading
-            appState.soundData[i] = null;
-        }
-
-
-        // 3. Load global settings
-        if (sessionToLoad.globalVolume !== undefined) {
-            appState.volumeRange.value = sessionToLoad.globalVolume;
-            appState.utils.updateVolumeDisplay(appState.volumeRange, appState.volumeDisplay);
-            if (appState.masterGainNode) {
-                appState.masterGainNode.gain.value = sessionToLoad.globalVolume;
+        // Limpar todas as células visualmente e logicamente antes de carregar as novas
+        // Cuidado: não chame clearAllSoundCells aqui para evitar exclusão de IndexedDB antes da carga
+        for (let i = 0; i < sb.NUM_CELLS; i++) {
+            sb.audioManager.clearSoundData(i, sb.soundData, sb.audioContext, sb.globalActivePlayingInstances);
+            const cellElement = document.querySelector(`.sound-cell[data-index="${i}"]`);
+            if (cellElement) {
+                updateCellDisplay(cellElement, { name: getTranslation('cellEmptyDefault'), key: sb.defaultKeys[i] || '', isLooping: false, isCued: false }, true, getTranslation);
             }
         }
-        if (sessionToLoad.playMultiple !== undefined) {
-            appState.playMultipleCheckbox.checked = sessionToLoad.playMultiple;
-        }
-        if (sessionToLoad.autokillMode !== undefined) {
-            appState.autokillModeCheckbox.checked = sessionToLoad.autokillMode;
-        }
-        if (sessionToLoad.fadeOutDuration !== undefined) {
-            appState.fadeOutRange.value = sessionToLoad.fadeOutDuration;
-            appState.utils.updateFadeOutDisplay(appState.fadeOutRange, appState.fadeOutDisplay, appState.i18n.getTranslationsObject(), appState.i18n.getCurrentLanguage());
-        }
-        if (sessionToLoad.fadeInDuration !== undefined) {
-            appState.fadeInRange.value = sessionToLoad.fadeInDuration;
-            appState.utils.updateFadeInDisplay(appState.fadeInRange, appState.fadeInDisplay, appState.i18n.getTranslationsObject(), appState.i18n.getCurrentLanguage());
-        }
-        if (sessionToLoad.isHelpVisible !== undefined) {
-            appState.isHelpVisible = sessionToLoad.isHelpVisible; // Update the state
-            // It seems 'toggleHelp' is not directly exposed or used in main.js
-            // Instead, update the class on helpTextContent directly based on isHelpVisible
-            if (appState.isHelpVisible) {
-                appState.helpTextContent.classList.add('visible');
-                // Ensure the button text also updates
-                appState.toggleHelpButton.textContent = appState.i18n.getTranslation('toggleHelpButton').replace('Mostrar', 'Esconder');
+
+
+        // Carregar sons na soundData e atualizar o display das células
+        for (let i = 0; i < loadedSession.sounds.length; i++) {
+            const savedSound = loadedSession.sounds[i];
+            const cellElement = document.querySelector(`.sound-cell[data-index="${i}"]`);
+
+            if (savedSound && savedSound.soundFileId) {
+                // Chama a nova função loadSoundFromIndexedDB
+                await sb.audioManager.loadSoundFromIndexedDB(
+                    savedSound.soundFileId,
+                    cellElement,
+                    i,
+                    savedSound.name,
+                    savedSound.key,
+                    savedSound.color,
+                    savedSound.isLooping,
+                    savedSound.isCued,
+                    sb.soundData,
+                    sb.audioContext,
+                    updateCellDisplay,
+                    getTranslation,
+                    saveSettingsCallback // Passa o saveSettingsCallback (embora não deva ser usado dentro de loadSoundFromIndexedDB para cada célula)
+                );
             } else {
-                appState.helpTextContent.classList.remove('visible');
-                // Ensure the button text also updates
-                appState.toggleHelpButton.textContent = appState.i18n.getTranslation('toggleHelpButton');
+                // Garante que células vazias são representadas corretamente
+                sb.audioManager.clearSoundData(i, sb.soundData, sb.audioContext, sb.globalActivePlayingInstances);
+                if (cellElement) {
+                    updateCellDisplay(cellElement, { name: getTranslation('cellEmptyDefault'), key: sb.defaultKeys[i] || '', isLooping: false, isCued: false }, true, getTranslation);
+                }
             }
         }
+        currentSessionId = sessionId; // Atualiza a sessão atual
+        alert(getTranslation('alertSessionLoaded').replace('{sessionName}', loadedSession.name));
+        console.log(`Sessão "${loadedSession.name}" carregada com sucesso.`);
+    }
 
+    /**
+     * Remove uma sessão do localStorage e do IndexedDB.
+     * @param {string} sessionId - O ID da sessão a remover.
+     * @param {Function} getTranslation - Função para obter traduções.
+     * @param {Array} soundData - O array global de dados de som.
+     */
+    async function deleteSession(sessionId, getTranslation, soundData) {
+        if (!confirm(getTranslation('confirmDeleteSession'))) {
+            return;
+        }
 
-        // 4. Load sound data for each cell
-        const loadPromises = sessionToLoad.soundData.map(async (soundDataEntry, index) => {
-            if (soundDataEntry && soundDataEntry.audioDataUrl) {
-                const cell = document.querySelector(`.sound-cell[data-index="${index}"]`);
-                if (cell) {
+        let allSessions = JSON.parse(localStorage.getItem(SESSIONS_STORAGE_KEY) || '[]');
+        const sessionToDelete = allSessions.find(s => s.id === sessionId);
+
+        if (!sessionToDelete) {
+            alert(getTranslation('alertSessionNotFound'));
+            return;
+        }
+
+        // Antes de remover a sessão, vamos remover os ficheiros de áudio associados do IndexedDB
+        if (sessionToDelete.sounds) {
+            for (const sound of sessionToDelete.sounds) {
+                if (sound && sound.soundFileId) {
                     try {
-                        await window.soundboardApp.audioManager.loadSoundFromDataURL(
-                            soundDataEntry.audioDataUrl,
-                            cell,
-                            index,
-                            soundDataEntry.name,
-                            soundDataEntry.key,
-                            soundDataEntry.color,
-                            soundDataEntry.isLooping,
-                            soundDataEntry.isCued,
-                            appState.soundData, // Pass the main soundData array
-                            appState.audioContext,
-                            updateCellDisplay,
-                            getTranslation,
-                            saveSettingsCallback // Pass the save callback
-                        );
-                        // After loading sound, ensure cued state is applied if it was saved as cued
-                        if (soundDataEntry.isCued) {
-                            const loadedSound = appState.soundData[index];
-                            if(loadedSound) { // Check if loading was successful
-                                loadedSound.isCued = true; // Explicitly set cued state
-                                cell.classList.add('cued');
-                                // Add to cue system's internal list if it exists and needs it
-                                window.soundboardApp.cueGoSystem.addCue(index, appState.soundData);
-                            }
-                        }
+                        await window.soundboardApp.dbManager.deleteSoundFile(sound.soundFileId);
+                        console.log(`Ficheiro de áudio ${sound.soundFileId} removido do IndexedDB.`);
                     } catch (error) {
-                        console.error(`Erro ao carregar som para célula ${index} da sessão:`, error);
-                        alert(getTranslation('alertLoadSoundFromSessionError').replace('{soundName}', soundDataEntry.name || 'N/A') + `\nDetalhes: ${error.message}`);
-                        // Ensure the cell is marked as empty on failure
-                        updateCellDisplay(cell, { name: getTranslation('cellEmptyDefault'), key: window.soundboardApp.defaultKeys[index] || '', isLooping: false, isCued: false }, true, getTranslation);
-                        appState.soundData[index] = null;
+                        console.error(`Erro ao remover ficheiro ${sound.soundFileId} do IndexedDB:`, error);
+                        // Continua mesmo com erro para tentar remover a sessão do localStorage
                     }
                 }
-            } else {
-                // Ensure the cell is explicitly set to empty if no data or invalid data
-                const cell = document.querySelector(`.sound-cell[data-index="${index}"]`);
-                if (cell) {
-                    updateCellDisplay(cell, { name: getTranslation('cellEmptyDefault'), key: window.soundboardApp.defaultKeys[index] || '', isLooping: false, isCued: false }, true, getTranslation);
-                }
-                appState.soundData[index] = null;
             }
-        });
+        }
 
-        await Promise.all(loadPromises);
+        allSessions = allSessions.filter(s => s.id !== sessionId);
 
-        // 5. Re-save settings after all sounds are potentially loaded to ensure consistency
-        // This will persist the loaded session's state (including newly loaded Data URLs)
-        saveSettingsCallback(appState.soundData, appState.volumeRange, appState.playMultipleCheckbox, appState.autokillModeCheckbox, appState.fadeOutRange, appState.fadeInRange, appState.isHelpVisible);
+        try {
+            localStorage.setItem(SESSIONS_STORAGE_KEY, JSON.stringify(allSessions));
+            alert(getTranslation('alertSessionDeleted').replace('{sessionName}', sessionToDelete.name));
+            updateSessionListUI(); // Atualiza a lista de sessões no UI
 
-        alert(getTranslation('alertSessionLoaded').replace('{sessionName}', selectedSessionKey));
-    }
-
-    /**
-     * Deletes a session from localStorage.
-     * @param {string} sessionKey - The key (name) of the session to delete.
-     */
-    function deleteSession(sessionKey) {
-        // CORRIGIDO: Chamar i18n.getTranslation corretamente
-        if (confirm(window.soundboardApp.i18n.getTranslation('confirmDeleteSession').replace('{sessionName}', sessionKey))) {
-            const sessions = getAllSessions();
-            delete sessions[sessionKey];
-            saveAllSessions(sessions);
-            populateSessionList(); // Refresh the list
-            // CORRIGIDO: Chamar i18n.getTranslation corretamente
-            alert(window.soundboardApp.i18n.getTranslation('alertSessionDeleted').replace('{sessionName}', sessionKey));
+            // Se a sessão deletada for a sessão atualmente ativa, limpa a soundboard
+            if (currentSessionId === sessionId) {
+                // Chame clearAllSoundCells para limpar o UI e o estado da soundData
+                // Mas, o IndexedDB já foi limpo acima para os sons desta sessão.
+                // Ajuste clearAllSoundCells para não tentar apagar do IDB novamente se já foi apagado.
+                // Por simplicidade, faremos clearAllSoundCells parar os sons e limpar UI/soundData.
+                // A limpeza do IDB já foi feita especificamente para esta sessão.
+                await sb.audioManager.clearAllSoundCells(
+                    sb.soundData, sb.audioContext, sb.globalActivePlayingInstances,
+                    sb.NUM_CELLS, sb.cellManager.updateCellDisplay, sb.i18n.getTranslation, sb.settingsManager.saveSettings
+                );
+                currentSessionId = null; // Resetar a sessão atual
+            }
+        } catch (e) {
+            console.error("Erro ao deletar sessão do localStorage:", e);
+            alert(getTranslation('alertDeleteError').replace('{error}', e.message));
         }
     }
 
     /**
-     * Initializes the session manager, setting up modal elements and event listeners.
-     * @param {HTMLElement} loadSessionModalElement - The modal container element.
-     * @param {HTMLElement} sessionListElem - The <ul> element for displaying sessions.
-     * @param {HTMLElement} confirmButton - The confirm load button.
-     * @param {HTMLElement} cancelButton - The cancel load button.
+     * Obtém todas as sessões salvas do localStorage.
+     * @returns {Array} Um array de objetos de sessão.
      */
-    function init(loadSessionModalElement, sessionListElem, confirmButton, cancelButton) {
-        loadSessionModal = loadSessionModalElement;
-        sessionListElement = sessionListElem;
-        confirmLoadButton = confirmButton;
-        cancelButton = cancelButton;
+    function getSavedSessions() {
+        return JSON.parse(localStorage.getItem(SESSIONS_STORAGE_KEY) || '[]');
+    }
 
-        if (confirmLoadButton) {
-            confirmButton.addEventListener('click', () => { /* Logic in main.js */ });
-        }
-        if (cancelButton) {
-            cancelButton.addEventListener('click', hideLoadSessionModal);
-        }
+    /**
+     * Obtém o ID da sessão atualmente ativa.
+     * @returns {string|null} O ID da sessão atual ou null se nenhuma sessão estiver ativa.
+     */
+    function getCurrentSessionId() {
+        return currentSessionId;
+    }
 
-        // Close modal when clicking outside (on the overlay)
-        if (loadSessionModal) {
-            loadSessionModal.addEventListener('click', (event) => {
-                if (event.target === loadSessionModal) {
-                    hideLoadSessionModal();
-                }
-            });
+    /**
+     * Define o ID da sessão atualmente ativa.
+     * Usado para inicialização ou quando uma nova sessão é carregada/criada.
+     * @param {string|null} id - O ID da sessão a definir.
+     */
+    function setCurrentSessionId(id) {
+        currentSessionId = id;
+    }
+
+    // Função placeholder para atualizar a UI da lista de sessões
+    // Esta função precisará ser injetada ou implementada no seu script principal (main.js ou ui.js)
+    function updateSessionListUI() {
+        if (sb && sb.uiManager && typeof sb.uiManager.populateSessionDropdown === 'function') {
+            sb.uiManager.populateSessionDropdown();
+        } else {
+            console.warn("Função updateSessionListUI (populateSessionDropdown) não disponível.");
         }
     }
+
 
     return {
-        init: init,
+        setSoundboardApp: setSoundboardApp,
         saveCurrentSession: saveCurrentSession,
-        showLoadSessionModal: showLoadSessionModal,
         loadSelectedSession: loadSelectedSession,
-        deleteSession: deleteSession
+        deleteSession: deleteSession,
+        getSavedSessions: getSavedSessions,
+        getCurrentSessionId: getCurrentSessionId,
+        setCurrentSessionId: setCurrentSessionId,
+        updateSessionListUI: updateSessionListUI // Exporta para ser chamado externamente
     };
 })();
