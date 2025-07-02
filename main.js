@@ -111,6 +111,13 @@ document.addEventListener('DOMContentLoaded', () => {
         sb.keyMap[key] = index;
     });
 
+    // Função auxiliar para remover feedback de todas as células antes de adicionar a uma nova
+    const removeAllPlayingFeedback = () => {
+        document.querySelectorAll('.sound-cell.playing-feedback').forEach(cell => {
+            cell.classList.remove('playing-feedback');
+        });
+    };
+
     // Atalhos de teclado
     document.addEventListener('keydown', (e) => {
         const pressedKey = e.key.toLowerCase();
@@ -123,6 +130,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Lógica para Espaço e Ctrl + Espaço (navegação estilo QLab)
         if (pressedKey === ' ' && !e.ctrlKey && !e.shiftKey && !e.altKey) { // Apenas Espaço (GO)
             e.preventDefault();
+            removeAllPlayingFeedback(); // Remove feedback antes de determinar o próximo som
             let targetIndex;
             const lastPlayed = sb.audioManager.getLastPlayedSoundIndex();
 
@@ -133,22 +141,14 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             if (targetIndex !== null) {
+                // A classe 'playing-feedback' será adicionada dentro de audioManager.playSound agora
                 sb.audioManager.playSound(targetIndex, sb.soundData, sb.audioContext, sb.playMultipleCheckbox, sb.autokillModeCheckbox, sb.globalActivePlayingInstances, sb.currentFadeInDuration, sb.currentFadeOutDuration, sb.volumeRange);
-                // Feedback visual para teclas de navegação GO
-                const cell = document.querySelector(`.sound-cell[data-index="${targetIndex}"]`);
-                if (cell) {
-                    cell.classList.add('playing-feedback');
-                }
             } else {
                 // Se nenhum som for encontrado após o último tocado, volta para o primeiro, se houver
                 const firstSound = sb.cueGoSystem.findNextSoundIndex(-1, 1, sb.soundData, sb.NUM_CELLS);
                 if (firstSound !== null) {
+                    // A classe 'playing-feedback' será adicionada dentro de audioManager.playSound agora
                     sb.audioManager.playSound(firstSound, sb.soundData, sb.audioContext, sb.playMultipleCheckbox, sb.autokillModeCheckbox, sb.globalActivePlayingInstances, sb.currentFadeInDuration, sb.currentFadeOutDuration, sb.volumeRange);
-                    // Feedback visual para teclas de navegação GO (voltando ao primeiro)
-                    const cell = document.querySelector(`.sound-cell[data-index="${firstSound}"]`);
-                    if (cell) {
-                        cell.classList.add('playing-feedback');
-                    }
                 } else {
                     console.log(sb.i18n.getTranslation("noMoreSoundsForward"));
                 }
@@ -156,6 +156,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         } else if (pressedKey === ' ' && e.ctrlKey) { // Ctrl + Espaço (GO-)
             e.preventDefault();
+            removeAllPlayingFeedback(); // Remove feedback antes de determinar o próximo som
             let targetIndex;
             const lastPlayed = sb.audioManager.getLastPlayedSoundIndex();
 
@@ -166,22 +167,14 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             if (targetIndex !== null) {
+                // A classe 'playing-feedback' será adicionada dentro de audioManager.playSound agora
                 sb.audioManager.playSound(targetIndex, sb.soundData, sb.audioContext, sb.playMultipleCheckbox, sb.autokillModeCheckbox, sb.globalActivePlayingInstances, sb.currentFadeInDuration, sb.currentFadeOutDuration, sb.volumeRange);
-                // Feedback visual para teclas de navegação GO-
-                const cell = document.querySelector(`.sound-cell[data-index="${targetIndex}"]`);
-                if (cell) {
-                    cell.classList.add('playing-feedback');
-                }
             } else {
                 // Se nenhum som for encontrado antes do último tocado, volta para o último, se houver
                 const lastSound = sb.cueGoSystem.findNextSoundIndex(sb.NUM_CELLS, -1, sb.soundData, sb.NUM_CELLS);
                 if (lastSound !== null) {
+                    // A classe 'playing-feedback' será adicionada dentro de audioManager.playSound agora
                     sb.audioManager.playSound(lastSound, sb.soundData, sb.audioContext, sb.playMultipleCheckbox, sb.autokillModeCheckbox, sb.globalActivePlayingInstances, sb.currentFadeInDuration, sb.currentFadeOutDuration, sb.volumeRange);
-                    // Feedback visual para teclas de navegação GO- (voltando ao último)
-                    const cell = document.querySelector(`.sound-cell[data-index="${lastSound}"]`);
-                    if (cell) {
-                        cell.classList.add('playing-feedback');
-                    }
                 } else {
                     console.log(sb.i18n.getTranslation("noMoreSoundsBackward"));
                 }
@@ -251,13 +244,9 @@ document.addEventListener('DOMContentLoaded', () => {
             // Toca o som pela tecla QWERTY
             const indexToPlay = sb.defaultKeys.indexOf(pressedKey);
             if (indexToPlay !== -1 && sb.soundData[indexToPlay] && sb.soundData[indexToPlay].audioBuffer) {
+                removeAllPlayingFeedback(); // Remove feedback de qualquer célula antes de adicionar à nova QWERTY
                 sb.audioManager.playSound(indexToPlay, sb.soundData, sb.audioContext, sb.playMultipleCheckbox, sb.autokillModeCheckbox, sb.globalActivePlayingInstances, sb.currentFadeInDuration, sb.currentFadeOutDuration, sb.volumeRange);
-
-                // ** ADIÇÃO PARA FEEDBACK VISUAL **
-                const cell = document.querySelector(`.sound-cell[data-index="${indexToPlay}"]`);
-                if (cell) {
-                    cell.classList.add('playing-feedback');
-                }
+                // A classe 'playing-feedback' será adicionada dentro de audioManager.playSound agora.
             }
         }
     });
@@ -265,29 +254,45 @@ document.addEventListener('DOMContentLoaded', () => {
     // ** NOVO: Listener para keyup para remover o feedback visual **
     document.addEventListener('keyup', (e) => {
         const releasedKey = e.key.toLowerCase();
-        // Apenas para as teclas que ativam sons diretamente (QWERTY) e as teclas GO/GO- (Espaço/Ctrl+Espaço)
-        const index = sb.keyMap[releasedKey];
 
+        // Para as teclas QWERTY, remover o feedback visual 'playing-feedback'
+        const index = sb.keyMap[releasedKey];
         if (index !== undefined) {
             const cell = document.querySelector(`.sound-cell[data-index="${index}"]`);
-            if (cell) {
-                cell.classList.remove('playing-feedback');
-            }
+            // Nota: a remoção da classe 'playing-feedback' para QWERTY será gerida pelo onended do som
+            // ou pelo autokill/stopAllSounds. Remover aqui no keyup faria com que o feedback
+            // desaparecesse antes do som terminar. Manter a lógica no audioManager é mais robusto.
+            // No entanto, para fins de GO/GO-, podemos querer remover aqui.
+            // Para as QWERTY, deixamos a cargo do audioManager.
+            // Para as GO/GO-, a lógica é diferente, pois não há um 'onended' direto para a tecla.
         }
-        // Para as teclas Espaço e Ctrl+Espaço, também remover o feedback
+
+        // Para as teclas Espaço e Ctrl+Espaço (GO/GO-), remover o feedback IMEDIATAMENTE
+        // se a tecla for levantada, pois estas não estão ligadas diretamente ao 'onended' do som.
+        // A lógica do 'onended' para o som em si ainda cuidará de limpar a classe
+        // se o som terminar naturalmente, mas para a interação da tecla, removemos no keyup.
         if (releasedKey === ' ') {
-            // Se a última tecla pressionada foi Espaço ou Ctrl+Espaço e resultou num som
-            // o ideal seria remover a classe da célula que foi tocada.
-            // Para simplificar, vamos remover de todas as que possam estar ativas pelo Espaço
-            // (se houver várias células que possam ser "GO", teríamos que ser mais precisos,
-            // mas para um único som "GO", basta o último tocado)
-             const lastPlayed = sb.audioManager.getLastPlayedSoundIndex();
-             if (lastPlayed !== null) {
-                 const cell = document.querySelector(`.sound-cell[data-index="${lastPlayed}"]`);
-                 if (cell) {
-                     cell.classList.remove('playing-feedback');
-                 }
-             }
+            // Remove a classe de QUALQUER célula que possa ter o feedback de GO/GO- ativo.
+            // Isto é essencial porque as teclas GO/GO- podem acionar qualquer som,
+            // e não há um mapeamento 1:1 com a tecla levantada.
+            document.querySelectorAll('.sound-cell.playing-feedback').forEach(cell => {
+                // Importante: Só remove se o som já não estiver a tocar ativamente.
+                // Isso pode ser complexo, pois `playing-feedback` pode ser adicionado
+                // pelo `audioManager.playSound`.
+                // A abordagem mais robusta é deixar o `audioManager` gerir a remoção
+                // da classe quando o som parar (onended, stopAllSounds, autokill).
+                // Portanto, *não* removeremos a classe aqui no keyup para evitar flashes.
+                // Apenas o `removeAllPlayingFeedback()` no keydown será suficiente para limpar
+                // o estado visual antes de um NOVO GO/GO- tocar.
+            });
+            // O código abaixo de 'lastPlayed' é desnecessário se a remoção for gerida pelo audioManager.
+            // const lastPlayed = sb.audioManager.getLastPlayedSoundIndex();
+            // if (lastPlayed !== null) {
+            //     const cell = document.querySelector(`.sound-cell[data-index="${lastPlayed}"]`);
+            //     if (cell) {
+            //         cell.classList.remove('playing-feedback');
+            //     }
+            // }
         }
     });
 
