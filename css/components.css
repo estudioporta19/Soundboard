@@ -216,7 +216,6 @@ input[type="checkbox"]:checked::after {
 }
 
 /* Feedback Visual de Reprodução (Geral - para qualquer som tocando) */
-/* ESTE BLOCO FOI MOVIDO PARA AQUI PARA GARANTIR A PRIORIDADE */
 .sound-cell.playing-feedback {
     background-color: #4444CC; /* Fundo azul vibrante como na imagem */
     border-color: #ADFF2F; /* Verde néon para a borda */
@@ -284,19 +283,20 @@ input[type="checkbox"]:checked::after {
 
 /* Nome do Som */
 .sound-name {
-    font-size: 0.9em;
+    /* ALTERAÇÕES AQUI: */
+    font-size: 0.45em; /* Reduzido em 50% de 0.9em (0.9 * 0.5 = 0.45). Pode ajustar se ficar muito pequeno. */
     font-weight: bold;
     color: #fff;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     width: 90%;
-    text-align: center;
+    text-align: left; /* ALINHADO À ESQUERDA */
     padding-top: 20px;
     flex-grow: 1;
     display: flex;
     align-items: center;
-    justify-content: center;
+    /* REMOVIDO: justify-content: center; para permitir alinhamento à esquerda */
 }
 
 .sound-name:focus {
