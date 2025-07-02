@@ -54,8 +54,14 @@ window.soundboardApp.cueGoSystem = (function() {
 
         sortedCuedIndices.forEach(index => {
             if (soundData[index] && soundData[index].audioBuffer) {
+                const soundCellElement = document.querySelector(`.sound-cell[data-index="${index}"]`);
+                if (soundCellElement) {
+                    // Adiciona a classe 'playing-feedback' aqui ANTES de tocar
+                    soundCellElement.classList.add('playing-feedback');
+                }
                 // Play multiple, don't autokill for cue. Use a small fade in.
-                playSoundCallback(index, soundData, audioContext, true, false, globalActivePlayingInstances, currentFadeInDuration, currentFadeOutDuration, volumeRange);
+                // Agora passamos o soundCellElement para o playSoundCallback (audioManager.playSound)
+                playSoundCallback(index, soundData, audioContext, true, false, globalActivePlayingInstances, currentFadeInDuration, currentFadeOutDuration, volumeRange, soundCellElement);
             }
         });
         // Cues usually remain for 'Go' functionality; they are not automatically cleared after playback.
@@ -69,7 +75,9 @@ window.soundboardApp.cueGoSystem = (function() {
 
         sortedCuedIndices.forEach(index => {
             if (soundData[index] && soundData[index].audioBuffer) {
-                fadeoutSoundCallback(index, 0.2, soundData, audioContext, globalActivePlayingInstances); // Quick fade out
+                const soundCellElement = document.querySelector(`.sound-cell[data-index="${index}"]`);
+                // Passamos o soundCellElement para o fadeoutSoundCallback
+                fadeoutSoundCallback(index, 0.2, soundData, audioContext, globalActivePlayingInstances, soundCellElement); // Quick fade out
             }
         });
         // Cues usually remain if they were explicitly cued
