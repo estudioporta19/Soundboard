@@ -38,11 +38,13 @@ document.addEventListener('DOMContentLoaded', () => {
     sb.confirmStopYesBtn = document.getElementById('confirm-stop-yes');
     sb.confirmStopNoBtn = document.getElementById('confirm-stop-no');
 
-    // NOVOS ELEMENTOS DOM PARA GESTÃO DE SESSÕES
+    // NOVOS ELEMENTOS DOM PARA GESTÃO DE SESSÕES (PARA O MODAL DE LOAD)
     sb.saveSessionBtn = document.getElementById('save-session-btn');
     sb.loadSessionBtn = document.getElementById('load-session-btn');
-    sb.sessionNameInput = document.getElementById('session-name-input');
-    sb.sessionSelect = document.getElementById('session-select');
+    sb.loadSessionModal = document.getElementById('load-session-modal'); // Modal container
+    sb.sessionListElement = document.getElementById('session-list');   // UL element inside modal
+    sb.confirmLoadButton = document.getElementById('confirm-load-session-btn'); // Confirm button in modal
+    sb.cancelLoadButton = document.getElementById('cancel-load-session-btn'); // Cancel button in modal
 
 
     // Estado da Aplicação
@@ -72,8 +74,8 @@ document.addEventListener('DOMContentLoaded', () => {
         // Re-consulta as células de som, pois são criadas dinamicamente por loadSettings
         sb.soundCells = document.querySelectorAll('.sound-cell');
 
-        // Inicializa o sessionManager e preenche o select de sessões disponíveis
-        sb.sessionManager.init(sb.sessionSelect);
+        // Inicializa o sessionManager com os elementos do modal
+        sb.sessionManager.init(sb.loadSessionModal, sb.sessionListElement, sb.confirmLoadButton, sb.cancelLoadButton);
 
 
         // Reaplica textos específicos da língua após as configurações serem carregadas e as células criadas/atualizadas
@@ -95,9 +97,6 @@ document.addEventListener('DOMContentLoaded', () => {
         );
 
         // Após todas as células serem criadas e potencialmente carregadas, atualiza os cues a partir das configurações salvas
-        // ESTA PARTE AGORA É GERENCIADA PELO sessionManager.loadSelectedSession quando uma sessão é carregada.
-        // Se esta linha for para o carregamento inicial ao iniciar a página, está correta.
-        // Para uma nova sessão, sb.soundData estará vazia ou preenchida por filesToLoad.
         const savedSettings = JSON.parse(localStorage.getItem('soundboardSettings')) || {};
         const savedSounds = savedSettings.sounds || [];
         const cuedIndicesFromSave = savedSounds.filter(s => s && s.isCued).map((s, idx) => idx);
@@ -308,17 +307,15 @@ document.addEventListener('DOMContentLoaded', () => {
     sb.playMultipleCheckbox.addEventListener('change', () => {
         sb.settingsManager.saveSettings(sb.soundData, sb.volumeRange, sb.playMultipleCheckbox, sb.autokillModeCheckbox, sb.fadeOutRange, sb.fadeInRange, sb.isHelpVisible);
     });
-    sb.playMultipleCheckbox.addEventListener('change', () => {
-        sb.playMultipleCheckbox.blur();
-    });
+    // Removed duplicate event listener for blur. It's often good to explicitly call blur if needed.
+    // sb.playMultipleCheckbox.addEventListener('change', () => { sb.playMultipleCheckbox.blur(); });
 
 
     sb.autokillModeCheckbox.addEventListener('change', () => {
         sb.settingsManager.saveSettings(sb.soundData, sb.volumeRange, sb.playMultipleCheckbox, sb.autokillModeCheckbox, sb.fadeOutRange, sb.fadeInRange, sb.isHelpVisible);
     });
-    sb.autokillModeCheckbox.addEventListener('change', () => {
-        sb.autokillModeCheckbox.blur();
-    });
+    // Removed duplicate event listener for blur.
+    // sb.autokillModeCheckbox.addEventListener('change', () => { sb.autokillModeCheckbox.blur(); });
 
     // Botão Parar Todos os Sons (AGORA SEM CONFIRMAÇÃO DO POPUP)
     sb.stopAllSoundsBtn.addEventListener('click', () => {
@@ -416,72 +413,42 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Ouvintes de eventos para o Session Manager
-    if (sb.saveSessionBtn && sb.sessionNameInput) {
+    if (sb.saveSessionBtn) {
         sb.saveSessionBtn.addEventListener('click', () => {
-            const sessionName = sb.sessionNameInput.value.trim();
-            if (sessionName) {
-                const sessionState = {
-                    sounds: sb.soundData, // CORRIGIDO: Passa diretamente sb.soundData
-                    volume: parseFloat(sb.volumeRange.value),
-                    playMultiple: sb.playMultipleCheckbox.checked,
-                    autokillMode: sb.autokillModeCheckbox.checked,
-                    fadeOutDuration: parseFloat(sb.fadeOutRange.value),
-                    fadeInDuration: parseFloat(sb.fadeInRange.value),
-                    isHelpVisible: sb.isHelpVisible,
-                    currentLanguage: sb.currentLanguage
-                };
-                sb.sessionManager.saveCurrentSession(sessionName, sessionState);
-                sb.sessionNameInput.value = '';
-                alert(sb.i18n.getTranslation('sessionSavedSuccess').replace('{sessionName}', sessionName));
-            } else {
-                alert(sb.i18n.getTranslation('enterSessionNamePrompt'));
-            }
+            // saveCurrentSession agora pega todos os dados diretamente do 'sb'
+            sb.sessionManager.saveCurrentSession(
+                sb.soundData,
+                sb.volumeRange,
+                sb.playMultipleCheckbox,
+                sb.autokillModeCheckbox,
+                sb.fadeOutRange,
+                sb.fadeInRange,
+                sb.isHelpVisible
+            );
+            // O alert de sucesso e o prompt de nome da sessão são agora geridos dentro do sessionManager
         });
     }
 
-    if (sb.loadSessionBtn && sb.sessionSelect) {
-        sb.loadSessionBtn.addEventListener('click', async () => {
-            const selectedSessionName = sb.sessionSelect.value;
-            if (selectedSessionName) {
-                sb.audioManager.stopAllSounds(sb.audioContext, sb.globalActivePlayingInstances, sb.soundData);
-                console.log(`A carregar sessão: ${selectedSessionName}`);
+    if (sb.loadSessionBtn) {
+        sb.loadSessionBtn.addEventListener('click', () => {
+            // Apenas abre o modal; a lógica de carregamento está no listener do confirmLoadButton
+            sb.sessionManager.showLoadSessionModal();
+        });
 
+        // Este listener é para o botão DENTRO do modal de carregamento
+        if (sb.confirmLoadButton) {
+            sb.confirmLoadButton.addEventListener('click', async () => {
+                // loadSelectedSession pega o 'sb' completo para acessar todos os estados
                 await sb.sessionManager.loadSelectedSession(
-                    selectedSessionName,
-                    sb.audioContext,
-                    sb.audioManager.loadMultipleFilesIntoCells,
-                    sb.NUM_CELLS,
-                    sb.soundData,
+                    sb, // Passa o objeto sb inteiro
                     sb.cellManager.updateCellDisplay,
-                    sb.i18n.getTranslation,
-                    sb.settingsManager.saveSettings,
-                    sb.volumeRange,
-                    sb.volumeDisplay,
-                    sb.playMultipleCheckbox,
-                    sb.autokillModeCheckbox,
-                    sb.fadeOutRange,
-                    sb.fadeOutDisplay,
-                    sb.fadeInRange,
-                    sb.fadeInDisplay,
-                    // REMOVIDOS: sb.isHelpVisible, sb.helpTextContent, sb.toggleHelpButton (acessíveis via sb)
-                    sb.i18n,
-                    sb.utils,
-                    sb.langButtons
+                    sb.i18n.getTranslation, // getTranslation é uma função, não um objeto
+                    sb.settingsManager.saveSettings // Passa a função de callback para saveSettings
                 );
-
-                // REMOVIDO: O sessionManager.loadSelectedSession já trata de atualizar os cues
-                // const loadedSession = JSON.parse(localStorage.getItem(`session-${selectedSessionName}`));
-                // if (loadedSession && loadedSession.sounds) {
-                //     const cuedIndicesFromSession = loadedSession.sounds.filter(s => s && s.isCued).map((s, idx) => idx);
-                //     sb.cueGoSystem.setCuedSounds(cuedIndicesFromSession, sb.soundData);
-                // }
-
-                alert(sb.i18n.getTranslation('sessionLoadedSuccess').replace('{sessionName}', selectedSessionName));
-            } else {
-                alert(sb.i18n.getTranslation('selectSessionPrompt'));
-            }
-        });
+            });
+        }
     }
+
 
     // Retomar AudioContext na primeira interação do utilizador
     document.body.addEventListener('click', () => {
