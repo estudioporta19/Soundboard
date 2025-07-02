@@ -2,7 +2,7 @@
 // Configuração inicial, variáveis globais e ouvintes de eventos globais.
 // Orquestra a interação entre os outros módulos.
 
-document.addEventListener('DOMContentLoaded', async () => { // Adicione 'async' aqui
+document.addEventListener('DOMContentLoaded', async () => {
     // 1. Variáveis Globais e Elementos do DOM
     // Torna-os acessíveis globalmente através do objeto window.soundboardApp
     window.soundboardApp = window.soundboardApp || {};
@@ -44,13 +44,14 @@ document.addEventListener('DOMContentLoaded', async () => { // Adicione 'async' 
     sb.loadSessionModal = document.getElementById('load-session-modal'); // Modal container
     sb.sessionListElement = document.getElementById('session-list');    // UL element inside modal
     sb.confirmLoadButton = document.getElementById('confirm-load-session-btn'); // Confirm button in modal
-    sb.cancelLoadButton = document = document.getElementById('cancel-load-session-btn'); // Cancel button in modal
+    sb.cancelLoadButton = document.getElementById('cancel-load-session-btn'); // Cancel button in modal
 
 
     // Estado da Aplicação
     sb.audioContext = null; // Inicializado por audioManager.initAudioContext
     sb.masterGainNode = null; // Definido por audioManager.initAudioContext
-    sb.soundData = []; // { name, key, audioBuffer, audioDataUrl, activePlayingInstances: Set<{source: AudioBufferSourceNode, gain: GainNode}>, color, isLooping, isCued }
+    // soundData agora armazena apenas metadados e o soundFileId, não o AudioBuffer diretamente
+    sb.soundData = []; // { name, key, soundFileId, _audioBufferCache, activePlayingInstances: Set<{source: AudioBufferSourceNode, gain: GainNode}>, color, isLooping, isCued }
     sb.globalActivePlayingInstances = new Set(); // Rastreia todas as instâncias de som atualmente a tocar
     sb.currentFadeOutDuration = 0;
     sb.currentFadeInDuration = 0;
@@ -64,7 +65,7 @@ document.addEventListener('DOMContentLoaded', async () => { // Adicione 'async' 
     ];
     sb.NUM_CELLS = sb.defaultKeys.length;
 
-    // ----- AQUI ESTÁ A ADIÇÃO PARA INICIALIZAR O INDEXEDDB -----
+    // --- Inicialização do IndexedDB ---
     try {
         await sb.dbManager.init(); // Certifica-se de que o DB está aberto antes de carregar settings
         console.log("IndexedDB inicializado com sucesso no main.js.");
@@ -72,20 +73,30 @@ document.addEventListener('DOMContentLoaded', async () => { // Adicione 'async' 
         console.error("Falha ao inicializar IndexedDB:", error);
         // O alerta já é dado dentro de dbManager.js, então não é necessário um aqui
     }
-    // -----------------------------------------------------------
+    // ---------------------------------
 
+    // --- Configuração do SessionManager para acessar o objeto 'sb' completo ---
+    // Isso é VITAL para que o sessionManager possa chamar funções de outros módulos (audioManager, cellManager, etc.)
+    sb.sessionManager.setSoundboardApp(sb);
+    // --------------------------------------------------------------------------
 
     // 2. Carregar Traduções e Configurações Iniciais
     sb.i18n.loadTranslations((lang) => {
         sb.currentLanguage = lang; // Define a língua global atual
         // Passa o callback loadMultipleFilesIntoCells para loadSettings
+        // NOTA: settingsManager.loadSettings DEVE ser capaz de carregar os sons do IndexedDB
+        // O loadSettings do settingsManager precisará ser adaptado para usar o soundFileId
+        // e chamar audioManager.loadSoundFromIndexedDB internamente.
         sb.settingsManager.loadSettings(sb, sb.audioManager.loadMultipleFilesIntoCells);
 
         // Re-consulta as células de som, pois são criadas dinamicamente por loadSettings
         sb.soundCells = document.querySelectorAll('.sound-cell');
 
-        // Inicializa o sessionManager com os elementos do modal
-        sb.sessionManager.init(sb.loadSessionModal, sb.sessionListElement, sb.confirmLoadButton, sb.cancelLoadButton);
+        // Inicializa o sessionManager com os elementos do modal (se ainda não o fez)
+        // O método 'init' do sessionManager pode ser simplificado se ele já recebe o 'sb' completo
+        // Se `sessionManager.init` está apenas a configurar listeners de UI, pode mantê-lo.
+        // Se ele espera dependências, passe-as.
+        // sb.sessionManager.init(sb.loadSessionModal, sb.sessionListElement, sb.confirmLoadButton, sb.cancelLoadButton);
 
 
         // Reaplica textos específicos da língua após as configurações serem carregadas e as células criadas/atualizadas
@@ -142,7 +153,7 @@ document.addEventListener('DOMContentLoaded', async () => { // Adicione 'async' 
     };
 
     // Atalhos de teclado
-    document.addEventListener('keydown', (e) => {
+    document.addEventListener('keydown', async (e) => { // Adicione 'async' aqui também para as chamadas assíncronas
         const pressedKey = e.key.toLowerCase();
 
         // Previne ações padrão para elementos editáveis
@@ -167,7 +178,8 @@ document.addEventListener('DOMContentLoaded', async () => { // Adicione 'async' 
                 if (soundCellElement) {
                     soundCellElement.classList.add('playing-feedback');
                 }
-                sb.audioManager.playSound(targetIndex, sb.soundData, sb.audioContext, sb.playMultipleCheckbox, sb.autokillModeCheckbox, sb.globalActivePlayingInstances, sb.currentFadeInDuration, sb.currentFadeOutDuration, sb.volumeRange, soundCellElement); // Passa a célula
+                // Garanta que `playSound` é `await`ed, pois pode carregar do IndexedDB
+                await sb.audioManager.playSound(targetIndex, sb.soundData, sb.audioContext, sb.playMultipleCheckbox, sb.autokillModeCheckbox, sb.globalActivePlayingInstances, sb.currentFadeInDuration, sb.currentFadeOutDuration, sb.volumeRange, soundCellElement); // Passa a célula
             } else {
                 const firstSound = sb.cueGoSystem.findNextSoundIndex(-1, 1, sb.soundData, sb.NUM_CELLS);
                 if (firstSound !== null) {
@@ -175,7 +187,7 @@ document.addEventListener('DOMContentLoaded', async () => { // Adicione 'async' 
                     if (soundCellElement) {
                         soundCellElement.classList.add('playing-feedback');
                     }
-                    sb.audioManager.playSound(firstSound, sb.soundData, sb.audioContext, sb.playMultipleCheckbox, sb.autokillModeCheckbox, sb.globalActivePlayingInstances, sb.currentFadeInDuration, sb.currentFadeOutDuration, sb.volumeRange, soundCellElement); // Passa a célula
+                    await sb.audioManager.playSound(firstSound, sb.soundData, sb.audioContext, sb.playMultipleCheckbox, sb.autokillModeCheckbox, sb.globalActivePlayingInstances, sb.currentFadeInDuration, sb.currentFadeOutDuration, sb.volumeRange, soundCellElement); // Passa a célula
                 } else {
                     console.log(sb.i18n.getTranslation("noMoreSoundsForward"));
                 }
@@ -197,7 +209,8 @@ document.addEventListener('DOMContentLoaded', async () => { // Adicione 'async' 
                 if (soundCellElement) {
                     soundCellElement.classList.add('playing-feedback'); // Adiciona a classe
                 }
-                sb.audioManager.playSound(targetIndex, sb.soundData, sb.audioContext, sb.playMultipleCheckbox, sb.autokillModeCheckbox, sb.globalActivePlayingInstances, sb.currentFadeInDuration, sb.currentFadeOutDuration, sb.volumeRange, soundCellElement); // Passa a célula
+                // Garanta que `playSound` é `await`ed
+                await sb.audioManager.playSound(targetIndex, sb.soundData, sb.audioContext, sb.playMultipleCheckbox, sb.autokillModeCheckbox, sb.globalActivePlayingInstances, sb.currentFadeInDuration, sb.currentFadeOutDuration, sb.volumeRange, soundCellElement); // Passa a célula
             } else {
                 const lastSound = sb.cueGoSystem.findNextSoundIndex(sb.NUM_CELLS, -1, sb.soundData, sb.NUM_CELLS);
                 if (lastSound !== null) {
@@ -205,7 +218,7 @@ document.addEventListener('DOMContentLoaded', async () => { // Adicione 'async' 
                     if (soundCellElement) {
                         soundCellElement.classList.add('playing-feedback'); // Adiciona a classe
                     }
-                    sb.audioManager.playSound(lastSound, sb.soundData, sb.audioContext, sb.playMultipleCheckbox, sb.autokillModeCheckbox, sb.globalActivePlayingInstances, sb.currentFadeInDuration, sb.currentFadeOutDuration, sb.volumeRange, soundCellElement); // Passa a célula
+                    await sb.audioManager.playSound(lastSound, sb.soundData, sb.audioContext, sb.playMultipleCheckbox, sb.autokillModeCheckbox, sb.globalActivePlayingInstances, sb.currentFadeInDuration, sb.currentFadeOutDuration, sb.volumeRange, soundCellElement); // Passa a célula
                 } else {
                     console.log(sb.i18n.getTranslation("noMoreSoundsBackward"));
                 }
@@ -222,11 +235,13 @@ document.addEventListener('DOMContentLoaded', async () => { // Adicione 'async' 
                     sb.cueGoSystem.toggleCue(lastPlayed, sb.soundData, sb.cueGoSystem.getCuedSounds());
                 }
             } else if (e.shiftKey) { // Shift + Enter: Para todos os sons em cue
-                sb.cueGoSystem.stopCuedSounds(sb.soundData, sb.audioContext, sb.audioManager.fadeoutSound, sb.globalActivePlayingInstances);
+                // A função `stopCuedSounds` também pode ser assíncrona se interagir com o IndexedDB
+                await sb.cueGoSystem.stopCuedSounds(sb.soundData, sb.audioContext, sb.audioManager.fadeoutSound, sb.globalActivePlayingInstances);
             } else if (e.altKey) { // Alt + Enter: Remove todos os cues sem parar
                 sb.cueGoSystem.removeAllCues(sb.soundData);
             } else { // Enter (sem modificadores): Toca todos os sons em cue
-                sb.cueGoSystem.playCuedSounds(sb.soundData, sb.audioContext, sb.audioManager.playSound, sb.globalActivePlayingInstances, sb.currentFadeInDuration, sb.currentFadeOutDuration, sb.volumeRange);
+                // A função `playCuedSounds` também pode ser assíncrona
+                await sb.cueGoSystem.playCuedSounds(sb.soundData, sb.audioContext, sb.audioManager.playSound, sb.globalActivePlayingInstances, sb.currentFadeInDuration, sb.currentFadeOutDuration, sb.volumeRange);
             }
             return;
         }
@@ -274,12 +289,16 @@ document.addEventListener('DOMContentLoaded', async () => { // Adicione 'async' 
         } else {
             // Toca o som pela tecla QWERTY
             const indexToPlay = sb.defaultKeys.indexOf(pressedKey);
-            if (indexToPlay !== -1 && sb.soundData[indexToPlay] && sb.soundData[indexToPlay].audioBuffer) {
+            // Agora, soundData[indexToPlay] não tem audioBuffer diretamente ao carregar da sessão,
+            // mas o playSound irá buscá-lo do IndexedDB se necessário.
+            // A condição aqui precisa verificar apenas a existência do slot e a referência ao ficheiro.
+            if (indexToPlay !== -1 && sb.soundData[indexToPlay] && sb.soundData[indexToPlay].soundFileId) {
                 const soundCellElement = document.querySelector(`.sound-cell[data-index="${indexToPlay}"]`);
                 if (soundCellElement) {
                     soundCellElement.classList.add('playing-feedback');
                 }
-                sb.audioManager.playSound(indexToPlay, sb.soundData, sb.audioContext, sb.playMultipleCheckbox, sb.autokillModeCheckbox, sb.globalActivePlayingInstances, sb.currentFadeInDuration, sb.currentFadeOutDuration, sb.volumeRange, soundCellElement); // Passa a célula
+                // Garanta que `playSound` é `await`ed
+                await sb.audioManager.playSound(indexToPlay, sb.soundData, sb.audioContext, sb.playMultipleCheckbox, sb.autokillModeCheckbox, sb.globalActivePlayingInstances, sb.currentFadeInDuration, sb.currentFadeOutDuration, sb.volumeRange, soundCellElement); // Passa a célula
             }
         }
     });
@@ -359,7 +378,7 @@ document.addEventListener('DOMContentLoaded', async () => { // Adicione 'async' 
                 }
             }
 
-            let startIndex = sb.soundData.findIndex(s => s === null || (s && s.audioBuffer === null));
+            let startIndex = sb.soundData.findIndex(s => s === null || (s && !s.soundFileId)); // Verifica se a célula está vazia ou sem soundFileId
             if (startIndex === -1) {
                 startIndex = 0;
             }
@@ -378,9 +397,18 @@ document.addEventListener('DOMContentLoaded', async () => { // Adicione 'async' 
     });
 
     // Botão Limpar Todas as Células
-    sb.clearAllCellsBtn.addEventListener('click', () => {
-        sb.audioManager.stopAllSounds(sb.audioContext, sb.globalActivePlayingInstances, sb.soundData);
-        sb.audioManager.clearAllSoundCells(sb.soundData, sb.audioContext, sb.globalActivePlayingInstances, sb.NUM_CELLS, sb.cellManager.updateCellDisplay, sb.i18n.getTranslation, sb.settingsManager.saveSettings);
+    sb.clearAllCellsBtn.addEventListener('click', async () => { // Adicione 'async' aqui
+        // stopAllSounds já está incluído ou pode ser chamado aqui primeiro para garantir
+        await sb.audioManager.clearAllSoundCells(
+            sb.soundData,
+            sb.audioContext,
+            sb.globalActivePlayingInstances,
+            sb.NUM_CELLS,
+            sb.cellManager.updateCellDisplay,
+            sb.i18n.getTranslation,
+            sb.settingsManager.saveSettings
+        );
+        console.log("Botão 'Limpar Todas as Células' clicado: Todas as células limpas e sons removidos do IndexedDB.");
     });
 
     // Botões de Idioma
@@ -432,7 +460,8 @@ document.addEventListener('DOMContentLoaded', async () => { // Adicione 'async' 
                 sb.autokillModeCheckbox,
                 sb.fadeOutRange,
                 sb.fadeInRange,
-                sb.isHelpVisible
+                sb.isHelpVisible,
+                sb.i18n.getTranslation // Passa a função de tradução
             );
             // O alert de sucesso e o prompt de nome da sessão são agora geridos dentro do sessionManager
         });
@@ -441,7 +470,7 @@ document.addEventListener('DOMContentLoaded', async () => { // Adicione 'async' 
     if (sb.loadSessionBtn) {
         sb.loadSessionBtn.addEventListener('click', () => {
             // Apenas abre o modal; a lógica de carregamento está no listener do confirmLoadButton
-            sb.sessionManager.showLoadSessionModal();
+            sb.sessionManager.showLoadSessionModal(sb.i18n.getTranslation); // Pode precisar passar getTranslation aqui
         });
 
         // Este listener é para o botão DENTRO do modal de carregamento
@@ -449,11 +478,24 @@ document.addEventListener('DOMContentLoaded', async () => { // Adicione 'async' 
             sb.confirmLoadButton.addEventListener('click', async () => {
                 // loadSelectedSession pega o 'sb' completo para acessar todos os estados
                 await sb.sessionManager.loadSelectedSession(
-                    sb, // Passa o objeto sb inteiro
+                    sb.sessionManager.getSelectedSessionId(), // Obtém o ID da sessão selecionada no modal
+                    sb.soundData,
+                    sb.volumeRange,
+                    sb.playMultipleCheckbox,
+                    sb.autokillModeCheckbox,
+                    sb.fadeOutRange,
+                    sb.fadeInRange,
                     sb.cellManager.updateCellDisplay,
-                    sb.i18n.getTranslation, // getTranslation é uma função, não um objeto
-                    sb.settingsManager.saveSettings // Passa a função de callback para saveSettings
+                    sb.i18n.getTranslation,
+                    sb.settingsManager.saveSettings,
+                    sb.settingsManager.updateGeneralSettingsUI // Passa a função para atualizar a UI de settings
                 );
+                sb.loadSessionModal.style.display = 'none'; // Fecha o modal após o carregamento
+            });
+        }
+        if (sb.cancelLoadButton) {
+            sb.cancelLoadButton.addEventListener('click', () => {
+                sb.loadSessionModal.style.display = 'none'; // Fecha o modal
             });
         }
     }
