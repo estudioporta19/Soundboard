@@ -35,8 +35,7 @@
     "loopButtonTitle": "Ativar/Desativar Loop",
     "cueHelp": "<strong>CUE / GO:</strong> Pressione <kbd>Ctrl</kbd> + <kbd>Enter</kbd> para 'cue' (marcar) um som. Pressione <kbd>Enter</kbd> para tocar todos os sons em 'cue' com fade-in. Pressione <kbd>Shift</kbd> + <kbd>Enter</kbd> para parar todos os sons em 'cue' com fade-out.",
     "cueSingleHelp": "<strong>CUE Individual:</strong> Pressione <kbd>Ctrl</kbd> + clique na célula para adicionar/remover um som do 'cue'.",
-    "removeCueHelp": "<strong>Remover CUE:</strong> Pressione <kbd>Alt</kbd> + <kbd>Enter</kbd> para remover todos os sons do 'cue' sem os parar.",
-    
+    "removeCueHelp": "<strong>Remover CUE:</strong> Pressione <kbd>Alt</kbd> + <kbd>Enter</kbd> para remover todos os cues sem parar.",
     "confirmStopAll": "Tem certeza que deseja parar todos os sons?",
     "yesButton": "Sim",
     "noButton": "Não",
@@ -49,7 +48,12 @@
     "clearAllCellsButton": "Limpar Todas as Células",
     "confirmClearAllCells": "Tem certeza que deseja limpar TODAS as células? Esta ação não pode ser desfeita.",
     "toggleHelpButton": "Mostrar Ajuda",
-    "toggleHelpButtonHide": "Esconder Ajuda"
+    "toggleHelpButtonHide": "Esconder Ajuda",
+    "alertDbOpenError": "Erro ao abrir a base de dados local para guardar áudios.",
+    "alertSaveAudioDbError": "Erro ao guardar áudio na base de dados local.",
+    "alertGetAudioDbError": "Erro ao obter áudio da base de dados local.",
+    "alertDeleteAudioDbError": "Erro ao eliminar áudio da base de dados local.",
+    "alertClearAllAudioDbError": "Erro ao limpar todo o áudio da base de dados local."
   },
   "en": {
     "title": "Soundboard QWERTY",
@@ -88,7 +92,6 @@
     "cueHelp": "<strong>CUE / GO:</strong> Press <kbd>Ctrl</kbd> + <kbd>Enter</kbd> to 'cue' (mark) a sound. Press <kbd>Enter</kbd> to play all 'cued' sounds with fade-in. Press <kbd>Shift</kbd> + <kbd>Enter</kbd> to stop all 'cued' sounds with fade-out.",
     "cueSingleHelp": "<strong>CUE Individual:</strong> Press <kbd>Ctrl</kbd> + click on the cell to add/remove a sound from 'cue'.",
     "removeCueHelp": "<strong>Remove CUE:</strong> Press <kbd>Alt</kbd> + <kbd>Enter</kbd> to remove all cued sounds without stopping them.",
-
     "confirmStopAll": "Are you sure you want to stop all sounds?",
     "yesButton": "Yes",
     "noButton": "No",
@@ -101,7 +104,12 @@
     "clearAllCellsButton": "Clear All Cells",
     "confirmClearAllCells": "Are you sure you want to clear ALL cells? This action cannot be undone.",
     "toggleHelpButton": "Show Help",
-    "toggleHelpButtonHide": "Hide Help"
+    "toggleHelpButtonHide": "Hide Help",
+    "alertDbOpenError": "Error opening local database for audio storage.",
+    "alertSaveAudioDbError": "Error saving audio to local database.",
+    "alertGetAudioDbError": "Error retrieving audio from local database.",
+    "alertDeleteAudioDbError": "Error deleting audio from local database.",
+    "alertClearAllAudioDbError": "Error clearing all audio from local database."
   },
   "it": {
     "title": "Soundboard QWERTY",
@@ -125,8 +133,8 @@
     "deleteSoundHelp": "<strong>Elimina Suono:</strong> Clicca sulla <span style=\"font-size:1.1em;\">❌</span> nell'angolo in alto a destra di una cella per svuotarla. *Un clic rapido elimina; un clic lungo (>0.5s) esegue il fade out.*",
     "replaceSoundHelp": "<strong>Sostituisci Suono:</strong> Clicca su <span class=\"material-symbols-outlined\" style=\"vertical-align: middle; font-size: 1.1em;\">upload_file</span> per caricare un nuovo suono nella cella.",
     "renameHelp": "<strong>Rinomina Suono:</strong> Clicca sul nome del suono per modificarlo.",
-    "fadeInHelp": "<strong>Controlla Fade In:</strong> Usa lo slider Fade In, o premi <kbd>Ctrl</kbd> + tasti numerici <kbd>0</kbd>-<kbd>9</kbd> per impostare la durata do fade-in em segundos.",
-    "fadeOutControlHelp": "<strong>Controlla Fade Out:</strong> Usa lo slider Fade Out, o premi i tasti numerici <kbd>0</kbd>-<kbd>9</kbd> para definir a duração do fade-out em segundos.",
+    "fadeInHelp": "<strong>Controlla Fade In:</strong> Usa lo slider Fade In, ou premi <kbd>Ctrl</kbd> + tasti numerici <kbd>0</kbd>-<kbd>9</kbd> per impostare la durata do fade-in em segundos.",
+    "fadeOutControlHelp": "<strong>Controlla Fade Out:</strong> Usa lo slider Fade Out, ou premi i tasti numerici <kbd>0</kbd>-<kbd>9</kbd> para definir a duração do fade-out em segundos.",
     "playMultipleModeHelp": "<strong>Modalità Riproduci Multipli:</strong> Permette a più suoni di essere riprodotti contemporaneamente se la casella è selezionata.",
     "autokillModeHelp": "<strong>Modalità Auto-Stop Precedente:</strong> Quando viene riprodotto un nuovo suono, il suono precedentemente attivo (se presente) verrà fermato con un rapido fade out.",
     "alertInvalidFile": "Tipo de file non valido. Si prega di trascinare file audio (MP3, WAV, OGG).",
@@ -140,7 +148,6 @@
     "cueHelp": "<strong>CUE / GO:</strong> Premi <kbd>Ctrl</kbd> + <kbd>Invio</kbd> per 'cue' (segnare) un suono. Premi <kbd>Invio</kbd> per riprodurre tutti i suoni in 'cue' con fade-in. Premi <kbd>Shift</kbd> + <kbd>Invio</kbd> per fermare tutti i suoni in 'cue' con fade-out.",
     "cueSingleHelp": "<strong>CUE Individuale:</strong> Premi <kbd>Ctrl</kbd> + clic sulla cella per aggiungere/rimuovere un suono dal 'cue'.",
     "removeCueHelp": "<strong>Rimuovi CUE:</strong> Premi <kbd>Alt</kbd> + <kbd>Invio</kbd> per rimuovere tutti i suoni in cue senza fermarli.",
-    
     "confirmStopAll": "Sei sicuro di voler fermare tutti i suoni?",
     "yesButton": "Sì",
     "noButton": "No",
@@ -153,6 +160,11 @@
     "clearAllCellsButton": "Cancella Tutte le Celle",
     "confirmClearAllCells": "Sei sicuro di voler cancellare TUTTE le celle? Questa azione non può essere annullata.",
     "toggleHelpButton": "Mostra Aiuto",
-    "toggleHelpButtonHide": "Nascondi Aiuto"
+    "toggleHelpButtonHide": "Nascondi Aiuto",
+    "alertDbOpenError": "Errore durante l'apertura del database locale per l'archiviazione audio.",
+    "alertSaveAudioDbError": "Errore durante il salvataggio dell'audio nel database locale.",
+    "alertGetAudioDbError": "Errore durante il recupero dell'audio dal database locale.",
+    "alertDeleteAudioDbError": "Errore durante l'eliminazione dell'audio dal database locale.",
+    "alertClearAllAudioDbError": "Errore durante la cancellazione di tutto l'audio dal database locale."
   }
 }
