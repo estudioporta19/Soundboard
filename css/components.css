@@ -162,7 +162,7 @@ input[type="checkbox"]:checked::after {
     box-sizing: border-box;
     cursor: pointer;
     position: relative;
-    transition: transform 0.1s, box-shadow 0.1s, background-color 0.3s, border-color 0.3s;
+    transition: transform 0.1s, box-shadow 0.1s, background-color 0.2s ease-in, border-color 0.3s;
     user-select: none;
     overflow: hidden;
     flex-shrink: 0;
@@ -173,14 +173,14 @@ input[type="checkbox"]:checked::after {
     box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
 }
 
-/* Feedback Visual de Reprodução - NOVO/ATUALIZADO */
+/* Feedback Visual de Reprodução - ATUALIZADO PARA VERDE E PULSANTE */
 .sound-cell.playing-feedback {
-    /* Usando a cor de destaque da sua paleta, que é o #00bcd4 */
-    border-color: #00FFFF; /* Ciano mais brilhante para feedback de reprodução */
-    box-shadow: 0 0 20px rgba(0, 255, 255, 0.8), 0 0 30px rgba(0, 255, 255, 0.6); /* Sombra mais intensa */
-    background-color: rgba(0, 255, 255, 0.2); /* Fundo translúcido */
-    transform: scale(1.02); /* Pequena expansão para destaque */
-    /* Garante transição suave apenas para as propriedades modificadas */
+    background-color: #4CAF50; /* Verde vibrante */
+    border-color: #8BC34A; /* Uma tonalidade de verde ligeiramente diferente para a borda */
+    box-shadow: 0 0 20px rgba(76, 175, 80, 0.8), 0 0 30px rgba(76, 175, 80, 0.6); /* Sombra intensa verde */
+    transform: scale(1.05); /* Um pouco mais de aumento */
+    z-index: 2; /* Garante que a célula a tocar esteja acima de outras */
+    position: relative; /* Necessário para o pseudo-elemento ::after */
     transition: background-color 0.1s ease-out, box-shadow 0.1s ease-out, transform 0.1s ease-out, border-color 0.1s ease-out;
 }
 
@@ -192,30 +192,32 @@ input[type="checkbox"]:checked::after {
     left: -5px;
     right: -5px;
     bottom: -5px;
-    border: 3px solid rgba(0, 255, 255, 0.5); /* Borda pulsante com a cor de playing-feedback */
-    border-radius: 5px;
-    animation: pulse 1.5s infinite;
+    border: 3px solid rgba(76, 175, 80, 0.5); /* Borda pulsante com a cor verde */
+    border-radius: 10px; /* Adapta-se ao border-radius da célula */
+    animation: pulse-green 1.5s infinite ease-out; /* Animação de pulsação */
     z-index: -1; /* Garante que a pulsação fique atrás do conteúdo da célula */
 }
 
-@keyframes pulse {
+@keyframes pulse-green { /* Renomeada para ser específica do verde */
     0% {
         transform: scale(1);
         opacity: 1;
+        border-width: 3px;
     }
     50% {
-        transform: scale(1.05);
+        transform: scale(1.08); /* Pulsa um pouco mais */
         opacity: 0.7;
+        border-width: 5px; /* Aumenta a espessura da borda na pulsação */
     }
     100% {
         transform: scale(1);
         opacity: 1;
+        border-width: 3px;
     }
 }
 
 /* Estilo para quando a célula está ativa (pressionada) */
 .sound-cell.active {
-    /* Mantém seus estilos originais de .active, mas com !important se houver conflito */
     transform: scale(1.05);
     box-shadow: 0 0 20px rgba(0, 188, 212, 0.8), 0 0 30px rgba(0, 188, 212, 0.6);
     background-color: #00bcd4; /* Cor de destaque para o estado ativo */
@@ -223,11 +225,11 @@ input[type="checkbox"]:checked::after {
     z-index: 1;
 }
 
-/* Se um som estiver a tocar E cued */
+/* Se um som estiver a tocar E cued (prioriza o verde sobre o amarelo) */
 .sound-cell.playing-feedback.cued {
-    border-color: #00FFFF; /* Prioriza a cor de playing-feedback */
-    box-shadow: 0 0 15px rgba(0, 255, 255, 0.7), 0 0 15px #ffeb3b; /* Combina sombras de playing e cued */
-    background-color: rgba(0, 255, 255, 0.2); /* Prioriza o fundo de playing */
+    border-color: #4CAF50; /* Prioriza a cor verde de playing-feedback */
+    box-shadow: 0 0 15px rgba(76, 175, 80, 0.7), 0 0 15px #ffeb3b; /* Combina sombras de playing (verde) e cued (amarelo) */
+    background-color: #4CAF50; /* Prioriza o fundo verde de playing */
 }
 
 /* Se um som estiver a tocar E em loop (pode precisar de uma nuance visual extra se desejar) */
