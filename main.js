@@ -283,10 +283,10 @@ document.addEventListener('DOMContentLoaded', () => {
             // mas para um único som "GO", basta o último tocado)
              const lastPlayed = sb.audioManager.getLastPlayedSoundIndex();
              if (lastPlayed !== null) {
-                const cell = document.querySelector(`.sound-cell[data-index="${lastPlayed}"]`);
-                if (cell) {
-                    cell.classList.remove('playing-feedback');
-                }
+                 const cell = document.querySelector(`.sound-cell[data-index="${lastPlayed}"]`);
+                 if (cell) {
+                     cell.classList.remove('playing-feedback');
+                 }
              }
         }
     });
@@ -298,11 +298,19 @@ document.addEventListener('DOMContentLoaded', () => {
         sb.utils.updateFadeInDisplay(sb.fadeInRange, sb.fadeInDisplay, sb.i18n.getTranslationsObject(), sb.i18n.getCurrentLanguage());
         sb.settingsManager.saveSettings(sb.soundData, sb.volumeRange, sb.playMultipleCheckbox, sb.autokillModeCheckbox, sb.fadeOutRange, sb.fadeInRange, sb.isHelpVisible);
     });
+    // Adição para retirar o foco após interação
+    sb.fadeInRange.addEventListener('mouseup', () => {
+        sb.fadeInRange.blur(); // Remove o foco do elemento
+    });
 
     sb.fadeOutRange.addEventListener('input', () => {
         sb.currentFadeOutDuration = parseFloat(sb.fadeOutRange.value);
         sb.utils.updateFadeOutDisplay(sb.fadeOutRange, sb.fadeOutDisplay, sb.i18n.getTranslationsObject(), sb.i18n.getCurrentLanguage());
         sb.settingsManager.saveSettings(sb.soundData, sb.volumeRange, sb.playMultipleCheckbox, sb.autokillModeCheckbox, sb.fadeOutRange, sb.fadeInRange, sb.isHelpVisible);
+    });
+    // Adição para retirar o foco após interação
+    sb.fadeOutRange.addEventListener('mouseup', () => {
+        sb.fadeOutRange.blur(); // Remove o foco do elemento
     });
 
     sb.volumeRange.addEventListener('input', () => {
@@ -312,13 +320,26 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         sb.settingsManager.saveSettings(sb.soundData, sb.volumeRange, sb.playMultipleCheckbox, sb.autokillModeCheckbox, sb.fadeOutRange, sb.fadeInRange, sb.isHelpVisible);
     });
+    // Adição para retirar o foco após interação
+    sb.volumeRange.addEventListener('mouseup', () => {
+        sb.volumeRange.blur(); // Remove o foco do elemento
+    });
 
     sb.playMultipleCheckbox.addEventListener('change', () => {
         sb.settingsManager.saveSettings(sb.soundData, sb.volumeRange, sb.playMultipleCheckbox, sb.autokillModeCheckbox, sb.fadeOutRange, sb.fadeInRange, sb.isHelpVisible);
     });
+    // Adição para retirar o foco após interação
+    sb.playMultipleCheckbox.addEventListener('change', () => {
+        sb.playMultipleCheckbox.blur(); // Remove o foco do elemento
+    });
+
 
     sb.autokillModeCheckbox.addEventListener('change', () => {
         sb.settingsManager.saveSettings(sb.soundData, sb.volumeRange, sb.playMultipleCheckbox, sb.autokillModeCheckbox, sb.fadeOutRange, sb.fadeInRange, sb.isHelpVisible);
+    });
+    // Adição para retirar o foco após interação
+    sb.autokillModeCheckbox.addEventListener('change', () => {
+        sb.autokillModeCheckbox.blur(); // Remove o foco do elemento
     });
 
     // Botão Parar Todos os Sons (AGORA SEM CONFIRMAÇÃO DO POPUP)
