@@ -50,6 +50,8 @@
                 <button id="load-sounds-button-general" data-key="loadMultipleSoundsButton">Carregar Múltiplos Sons</button>
                 <button id="stop-all-sounds" data-key="stopAllSoundsButton">Parar Todos os Sons (ESC)</button>
                 <button id="clear-all-cells" data-key="clearAllCellsButton">Limpar Todas as Células</button>
+                <button id="save-session-button" data-key="saveSessionButton">Guardar Sessão</button>
+                <button id="load-session-button" data-key="loadSessionButton">Carregar Sessão</button>
             </div>
         </div>
         <div class="soundboard-grid">
@@ -91,12 +93,25 @@
             </div>
         </div>
     </div>
+
+    <div id="load-session-popup" class="popup-overlay">
+        <div class="popup-content">
+            <h3 data-key="loadSessionTitle">Carregar Sessão</h3>
+            <ul id="session-list">
+                <li data-key="noSessionFound">Nenhuma sessão encontrada.</li>
+            </ul>
+            <div class="popup-buttons">
+                <button id="cancel-load-session" data-key="cancelButton">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
     <script src="utils.js"></script>
     <script src="i18n.js"></script>
     <script src="settingsManager.js"></script>
     <script src="audioManager.js"></script>
     <script src="cellManager.js"></script>
     <script src="cueGoSystem.js"></script>
-    <script src="main.js"></script>
+    <script src="sessionManager.js"></script> <script src="main.js"></script>
 </body>
 </html>
