@@ -134,6 +134,12 @@ input[type="checkbox"]:checked::after {
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
     width: 100%; /* Faz os botões ocuparem a largura total da coluna */
     box-sizing: border-box;
+    margin-bottom: 10px; /* Adicionado para espaçamento entre os botões */
+}
+
+/* Ajusta o margin-bottom do último botão na coluna direita para evitar espaçamento excessivo */
+.right-column button:last-of-type {
+    margin-bottom: 0;
 }
 
 .right-column button:hover {
@@ -283,8 +289,7 @@ input[type="checkbox"]:checked::after {
 
 /* Nome do Som */
 .sound-name {
-    /* ALTERAÇÕES AQUI: */
-    font-size: 0.6em; /* 
+    font-size: 0.6em; /* Já ajustado para 0.6em */
     font-weight: bold;
     color: #fff;
     white-space: nowrap;
@@ -296,7 +301,7 @@ input[type="checkbox"]:checked::after {
     flex-grow: 1;
     display: flex;
     align-items: center;
-    /* REMOVIDO: justify-content: center; para permitir alinhamento à esquerda */
+    /* justify-content: center; REMOVIDO */
 }
 
 .sound-name:focus {
@@ -468,4 +473,58 @@ input[type="checkbox"]:checked::after {
     font-size: 0.9em;
     color: #eee;
     white-space: nowrap;
+}
+
+/* NOVOS ESTILOS PARA GESTÃO DE SESSÕES AQUI */
+/* Estilos para a lista de sessões dentro do popup */
+#session-list {
+    list-style: none;
+    padding: 0;
+    margin-top: 20px;
+    max-height: 200px; /* Limita a altura da lista e adiciona scroll */
+    overflow-y: auto;
+    border: 1px solid #555;
+    border-radius: 5px;
+    background-color: #444;
+}
+
+#session-list li {
+    padding: 10px 15px;
+    cursor: pointer;
+    border-bottom: 1px solid #555;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: background-color 0.2s;
+    color: #eee; /* Cor do texto padrão da lista */
+}
+
+#session-list li:last-child {
+    border-bottom: none;
+}
+
+#session-list li:hover {
+    background-color: #666;
+}
+
+#session-list li.selected {
+    background-color: #00bcd4;
+    color: #fff;
+}
+
+.delete-session-button {
+    background-color: #dc3545; /* Cor vermelha para apagar */
+    color: #fff;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.8em;
+    margin-left: 10px;
+    transition: background-color 0.2s;
+    flex-shrink: 0; /* Garante que o botão não encolha */
+}
+
+.delete-session-button:hover {
+    background-color: #c82333;
 }
