@@ -37,7 +37,8 @@ window.soundboardApp.sessionManager = (function() {
             localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(sessions));
         } catch (e) {
             console.error("Erro ao salvar sessões no localStorage:", e);
-            alert(window.soundboardApp.getTranslation('alertSessionSaveError') + `\nDetalhes: ${e.message}`);
+            // CORRIGIDO: Chamar i18n.getTranslation corretamente
+            alert(window.soundboardApp.i18n.getTranslation('alertSessionSaveError') + `\nDetalhes: ${e.message}`);
         }
     }
 
@@ -83,16 +84,20 @@ window.soundboardApp.sessionManager = (function() {
             return null; // Empty cell
         });
 
-        const sessionName = prompt(window.soundboardApp.getTranslation('promptSaveSessionName') + ` (e.g., MinhaSessao_${getTimestamp()})`);
+        // CORRIGIDO: Chamar i18n.getTranslation corretamente
+        const sessionName = prompt(window.soundboardApp.i18n.getTranslation('promptSaveSessionName') + ` (e.g., MinhaSessao_${getTimestamp()})`);
         if (!sessionName) {
-            alert(window.soundboardApp.getTranslation('alertSaveCancelled'));
+            // CORRIGIDO: Chamar i18n.getTranslation corretamente
+            alert(window.soundboardApp.i18n.getTranslation('alertSaveCancelled'));
             return;
         }
 
         const sessions = getAllSessions();
         if (sessions[sessionName]) {
-            if (!confirm(window.soundboardApp.getTranslation('confirmOverwriteSession').replace('{sessionName}', sessionName))) {
-                alert(window.soundboardApp.getTranslation('alertSaveCancelled'));
+            // CORRIGIDO: Chamar i18n.getTranslation corretamente
+            if (!confirm(window.soundboardApp.i18n.getTranslation('confirmOverwriteSession').replace('{sessionName}', sessionName))) {
+                // CORRIGIDO: Chamar i18n.getTranslation corretamente
+                alert(window.soundboardApp.i18n.getTranslation('alertSaveCancelled'));
                 return;
             }
         }
@@ -109,7 +114,8 @@ window.soundboardApp.sessionManager = (function() {
         };
 
         saveAllSessions(sessions);
-        alert(window.soundboardApp.getTranslation('alertSessionSaved').replace('{sessionName}', sessionName));
+        // CORRIGIDO: Chamar i18n.getTranslation corretamente
+        alert(window.soundboardApp.i18n.getTranslation('alertSessionSaved').replace('{sessionName}', sessionName));
     }
 
     /**
@@ -127,7 +133,8 @@ window.soundboardApp.sessionManager = (function() {
 
         if (sessionKeys.length === 0) {
             const li = document.createElement('li');
-            li.textContent = window.soundboardApp.getTranslation('noSessionsSaved');
+            // CORRIGIDO: Chamar i18n.getTranslation corretamente
+            li.textContent = window.soundboardApp.i18n.getTranslation('noSessionsSaved');
             li.style.fontStyle = 'italic';
             li.style.color = '#aaa';
             sessionListElement.appendChild(li);
@@ -143,16 +150,18 @@ window.soundboardApp.sessionManager = (function() {
             const li = document.createElement('li');
             li.dataset.sessionKey = key;
 
-            const date = session.timestamp ? new Date(session.timestamp).toLocaleString() : window.soundboardApp.getTranslation('unknownDate');
+            // CORRIGIDO: Chamar i18n.getTranslation corretamente
+            const date = session.timestamp ? new Date(session.timestamp).toLocaleString() : window.soundboardApp.i18n.getTranslation('unknownDate');
             li.innerHTML = `<span>${key} <small>(${date})</small></span>`;
 
             const deleteButton = document.createElement('button');
             deleteButton.classList.add('delete-session-button');
             deleteButton.innerHTML = '<span class="material-symbols-outlined">delete</span>';
-            deleteButton.title = window.soundboardApp.getTranslation('deleteSession');
+            // CORRIGIDO: Chamar i18n.getTranslation corretamente
+            deleteButton.title = window.soundboardApp.i18n.getTranslation('deleteSession');
             deleteButton.addEventListener('click', (event) => {
                 event.stopPropagation(); // Prevent li click event
-                deleteSession(key); // Não precisa passar getTranslation aqui
+                deleteSession(key);
             });
             li.appendChild(deleteButton);
 
@@ -236,7 +245,7 @@ window.soundboardApp.sessionManager = (function() {
         // 3. Load global settings
         if (sessionToLoad.globalVolume !== undefined) {
             appState.volumeRange.value = sessionToLoad.globalVolume;
-            appState.utils.updateVolumeDisplay(appState.volumeRange, appState.volumeDisplay); // Use appState.utils
+            appState.utils.updateVolumeDisplay(appState.volumeRange, appState.volumeDisplay);
             if (appState.masterGainNode) {
                 appState.masterGainNode.gain.value = sessionToLoad.globalVolume;
             }
@@ -249,15 +258,25 @@ window.soundboardApp.sessionManager = (function() {
         }
         if (sessionToLoad.fadeOutDuration !== undefined) {
             appState.fadeOutRange.value = sessionToLoad.fadeOutDuration;
-            appState.utils.updateFadeOutDisplay(appState.fadeOutRange, appState.fadeOutDisplay, appState.i18n.getTranslationsObject(), appState.i18n.getCurrentLanguage()); // Use appState.utils
+            appState.utils.updateFadeOutDisplay(appState.fadeOutRange, appState.fadeOutDisplay, appState.i18n.getTranslationsObject(), appState.i18n.getCurrentLanguage());
         }
         if (sessionToLoad.fadeInDuration !== undefined) {
             appState.fadeInRange.value = sessionToLoad.fadeInDuration;
-            appState.utils.updateFadeInDisplay(appState.fadeInRange, appState.fadeInDisplay, appState.i18n.getTranslationsObject(), appState.i18n.getCurrentLanguage()); // Use appState.utils
+            appState.utils.updateFadeInDisplay(appState.fadeInRange, appState.fadeInDisplay, appState.i18n.getTranslationsObject(), appState.i18n.getCurrentLanguage());
         }
         if (sessionToLoad.isHelpVisible !== undefined) {
             appState.isHelpVisible = sessionToLoad.isHelpVisible; // Update the state
-            appState.toggleHelp(sessionToLoad.isHelpVisible); // Directly set visibility by calling the toggle function
+            // It seems 'toggleHelp' is not directly exposed or used in main.js
+            // Instead, update the class on helpTextContent directly based on isHelpVisible
+            if (appState.isHelpVisible) {
+                appState.helpTextContent.classList.add('visible');
+                // Ensure the button text also updates
+                appState.toggleHelpButton.textContent = appState.i18n.getTranslation('toggleHelpButton').replace('Mostrar', 'Esconder');
+            } else {
+                appState.helpTextContent.classList.remove('visible');
+                // Ensure the button text also updates
+                appState.toggleHelpButton.textContent = appState.i18n.getTranslation('toggleHelpButton');
+            }
         }
 
 
@@ -323,13 +342,15 @@ window.soundboardApp.sessionManager = (function() {
      * Deletes a session from localStorage.
      * @param {string} sessionKey - The key (name) of the session to delete.
      */
-    function deleteSession(sessionKey) { // Removed getTranslation from parameters
-        if (confirm(window.soundboardApp.getTranslation('confirmDeleteSession').replace('{sessionName}', sessionKey))) {
+    function deleteSession(sessionKey) {
+        // CORRIGIDO: Chamar i18n.getTranslation corretamente
+        if (confirm(window.soundboardApp.i18n.getTranslation('confirmDeleteSession').replace('{sessionName}', sessionKey))) {
             const sessions = getAllSessions();
             delete sessions[sessionKey];
             saveAllSessions(sessions);
             populateSessionList(); // Refresh the list
-            alert(window.soundboardApp.getTranslation('alertSessionDeleted').replace('{sessionName}', sessionKey));
+            // CORRIGIDO: Chamar i18n.getTranslation corretamente
+            alert(window.soundboardApp.i18n.getTranslation('alertSessionDeleted').replace('{sessionName}', sessionKey));
         }
     }
 
@@ -344,17 +365,13 @@ window.soundboardApp.sessionManager = (function() {
         loadSessionModal = loadSessionModalElement;
         sessionListElement = sessionListElem;
         confirmLoadButton = confirmButton;
-        cancelLoadButton = cancelButton;
+        cancelButton = cancelButton;
 
         if (confirmLoadButton) {
-            // Note: The actual loadSelectedSession is triggered from main.js's click listener
-            // on this button, passing the necessary appState. This listener might not strictly
-            // be needed here if main.js handles the click, but it's fine as a placeholder.
-            // For clarity, the logic is in main.js
-            confirmLoadButton.addEventListener('click', () => { /* Logic in main.js */ });
+            confirmButton.addEventListener('click', () => { /* Logic in main.js */ });
         }
-        if (cancelLoadButton) {
-            cancelLoadButton.addEventListener('click', hideLoadSessionModal);
+        if (cancelButton) {
+            cancelButton.addEventListener('click', hideLoadSessionModal);
         }
 
         // Close modal when clicking outside (on the overlay)
@@ -371,7 +388,7 @@ window.soundboardApp.sessionManager = (function() {
         init: init,
         saveCurrentSession: saveCurrentSession,
         showLoadSessionModal: showLoadSessionModal,
-        loadSelectedSession: loadSelectedSession, // Expose for main.js to call with appState
-        deleteSession: deleteSession // Expose for testing or direct calls if needed
+        loadSelectedSession: loadSelectedSession,
+        deleteSession: deleteSession
     };
 })();
