@@ -44,7 +44,7 @@ document.addEventListener('DOMContentLoaded', async () => { // Adicione 'async' 
     sb.loadSessionModal = document.getElementById('load-session-modal'); // Modal container
     sb.sessionListElement = document.getElementById('session-list');    // UL element inside modal
     sb.confirmLoadButton = document.getElementById('confirm-load-session-btn'); // Confirm button in modal
-    sb.cancelLoadButton = document.getElementById('cancel-load-session-btn'); // Cancel button in modal
+    sb.cancelLoadButton = document = document.getElementById('cancel-load-session-btn'); // Cancel button in modal
 
 
     // Estado da Aplicação
@@ -316,16 +316,15 @@ document.addEventListener('DOMContentLoaded', async () => { // Adicione 'async' 
 
     sb.playMultipleCheckbox.addEventListener('change', () => {
         sb.settingsManager.saveSettings(sb.soundData, sb.volumeRange, sb.playMultipleCheckbox, sb.autokillModeCheckbox, sb.fadeOutRange, sb.fadeInRange, sb.isHelpVisible);
+        // ADICIONEI ESTA LINHA para que a checkbox perca o foco e não interfira com os atalhos de teclado.
+        sb.playMultipleCheckbox.blur();
     });
-    // Removed duplicate event listener for blur. It's often good to explicitly call blur if needed.
-    // sb.playMultipleCheckbox.addEventListener('change', () => { sb.playMultipleCheckbox.blur(); });
-
 
     sb.autokillModeCheckbox.addEventListener('change', () => {
         sb.settingsManager.saveSettings(sb.soundData, sb.volumeRange, sb.playMultipleCheckbox, sb.autokillModeCheckbox, sb.fadeOutRange, sb.fadeInRange, sb.isHelpVisible);
+        // ADICIONEI ESTA LINHA para que a checkbox perca o foco e não interfira com os atalhos de teclado.
+        sb.autokillModeCheckbox.blur();
     });
-    // Removed duplicate event listener for blur.
-    // sb.autokillModeCheckbox.addEventListener('change', () => { sb.autokillModeCheckbox.blur(); });
 
     // Botão Parar Todos os Sons (AGORA SEM CONFIRMAÇÃO DO POPUP)
     sb.stopAllSoundsBtn.addEventListener('click', () => {
