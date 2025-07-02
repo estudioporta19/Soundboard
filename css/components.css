@@ -1,4 +1,4 @@
-/* Estilos para componentes UI */
+/* components.css */
 
 /* Language Switcher */
 .language-switcher {
@@ -24,7 +24,7 @@
     transform: translateY(-1px);
 }
 
-.lang-button.active {
+.lang-button.active-lang { /* Renamed from .active to .active-lang to avoid conflict with .sound-cell.active */
     background-color: #00bcd4;
     color: #fff;
     box-shadow: 0 0 8px rgba(0, 188, 212, 0.5);
@@ -173,12 +173,83 @@ input[type="checkbox"]:checked::after {
     box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
 }
 
+/* Feedback Visual de Reprodução - NOVO/ATUALIZADO */
+.sound-cell.playing-feedback {
+    /* Usando a cor de destaque da sua paleta, que é o #00bcd4 */
+    border-color: #00FFFF; /* Ciano mais brilhante para feedback de reprodução */
+    box-shadow: 0 0 20px rgba(0, 255, 255, 0.8), 0 0 30px rgba(0, 255, 255, 0.6); /* Sombra mais intensa */
+    background-color: rgba(0, 255, 255, 0.2); /* Fundo translúcido */
+    transform: scale(1.02); /* Pequena expansão para destaque */
+    /* Garante transição suave apenas para as propriedades modificadas */
+    transition: background-color 0.1s ease-out, box-shadow 0.1s ease-out, transform 0.1s ease-out, border-color 0.1s ease-out;
+}
+
+/* Opcional: Efeito de pulsação para playing-feedback */
+.sound-cell.playing-feedback::after {
+    content: '';
+    position: absolute;
+    top: -5px;
+    left: -5px;
+    right: -5px;
+    bottom: -5px;
+    border: 3px solid rgba(0, 255, 255, 0.5); /* Borda pulsante com a cor de playing-feedback */
+    border-radius: 5px;
+    animation: pulse 1.5s infinite;
+    z-index: -1; /* Garante que a pulsação fique atrás do conteúdo da célula */
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.05);
+        opacity: 0.7;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* Estilo para quando a célula está ativa (pressionada) */
 .sound-cell.active {
+    /* Mantém seus estilos originais de .active, mas com !important se houver conflito */
     transform: scale(1.05);
     box-shadow: 0 0 20px rgba(0, 188, 212, 0.8), 0 0 30px rgba(0, 188, 212, 0.6);
-    background-color: #00bcd4;
+    background-color: #00bcd4; /* Cor de destaque para o estado ativo */
     border-color: #00bcd4;
     z-index: 1;
+}
+
+/* Se um som estiver a tocar E cued */
+.sound-cell.playing-feedback.cued {
+    border-color: #00FFFF; /* Prioriza a cor de playing-feedback */
+    box-shadow: 0 0 15px rgba(0, 255, 255, 0.7), 0 0 15px #ffeb3b; /* Combina sombras de playing e cued */
+    background-color: rgba(0, 255, 255, 0.2); /* Prioriza o fundo de playing */
+}
+
+/* Se um som estiver a tocar E em loop (pode precisar de uma nuance visual extra se desejar) */
+.sound-cell.playing-feedback.looping {
+    /* Adicione estilos específicos aqui se quiser uma indicação visual extra para sons em loop que estão a tocar */
+    /* Ex: text-shadow: 0 0 5px #FFD700; */
+}
+
+
+.sound-cell.empty {
+    background-color: #1a1a1a;
+    border-style: dashed;
+    border-color: #555;
+    color: #777;
+    cursor: default;
+    transform: none; /* Remove transform hover from empty cells */
+    box-shadow: none; /* Remove box-shadow hover from empty cells */
+}
+
+.sound-cell.empty:hover {
+    transform: none;
+    box-shadow: none;
 }
 
 .sound-cell.filled {
@@ -353,7 +424,7 @@ input[type="checkbox"]:checked::after {
     opacity: 0;
     pointer-events: none;
 
-    /* **** ALTERAÇÃO AQUI: A duração da transição foi mudada de 0.0s para valores > 0 **** */
+    /* Transição para mostrar/esconder */
     transition: max-height 0.7s ease-in-out, opacity 0.5s ease-in-out, padding 0.7s ease-in-out, margin-top 0.7s ease-in-out;
 }
 
@@ -398,18 +469,4 @@ input[type="checkbox"]:checked::after {
     font-size: 0.9em;
     color: #eee;
     white-space: nowrap;
-}
-
----
-/* Feedback Visual para Células a Tocar */
-.sound-cell.playing-feedback {
-    background-color: #66ff66 !important; /* Um verde brilhante ou outra cor que goste */
-    box-shadow: 0 0 15px 5px rgba(102, 255, 102, 0.7); /* Efeito de brilho */
-    transform: scale(1.02); /* Pequena expansão para destaque */
-    transition: background-color 0.1s ease-out, box-shadow 0.1s ease-out, transform 0.1s ease-out; /* Transição suave */
-}
-
-/* Opcional: Efeito de retorno suave (já deve existir para .sound-cell, mas se não tiver, adicione) */
-.sound-cell {
-    transition: transform 0.1s, box-shadow 0.1s, background-color 0.2s ease-in, border-color 0.3s;
 }
