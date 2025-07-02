@@ -9,86 +9,37 @@ window.soundboardApp.audioManager = (function() {
     let masterGainNode; // Master gain node for global volume control
     let lastPlayedSoundIndex = null; // To manage autokill and QLab-style navigation
 
+    /**
+     * Inicializa o AudioContext e o Master Gain Node se ainda não o fez.
+     * @param {HTMLInputElement} volumeRange - O elemento input range para o volume global.
+     */
     function initAudioContext(volumeRange) {
         if (!audioContext) {
             audioContext = new (window.AudioContext || window.webkitAudioContext)();
             masterGainNode = audioContext.createGain();
             masterGainNode.connect(audioContext.destination);
-            masterGainNode.gain.value = volumeRange.value;
+            masterGainNode.gain.value = parseFloat(volumeRange.value); // Garante que é um número
             window.soundboardApp.audioContext = audioContext; // Make it globally accessible
             window.soundboardApp.masterGainNode = masterGainNode; // Make masterGainNode globally accessible
+            console.log("AudioContext inicializado.");
         }
     }
 
-    async function loadSoundFromDataURL(audioDataUrl, cell, index, name, key, color, isLooping, isCued, soundData, audioContextParam, updateCellDisplay, getTranslation, saveSettingsCallback) {
-        // Ensure audioContext is initialized and available
-        initAudioContext(window.soundboardApp.volumeRange);
-        const currentAudioContext = audioContextParam || window.soundboardApp.audioContext; // Use passed context or global
-
-        if (!currentAudioContext) {
-            console.error("AudioContext não inicializado ao tentar carregar som da Data URL.");
-            return;
-        }
-
-        if (!audioDataUrl || typeof audioDataUrl !== 'string' || !audioDataUrl.startsWith('data:audio')) {
-            console.error(`audioDataUrl inválida para célula ${index}:`, audioDataUrl);
-            // Treat as empty cell if data URL is invalid
-            if (soundData[index]) {
-                clearSoundData(index, soundData, currentAudioContext, window.soundboardApp.globalActivePlayingInstances);
-            }
-            updateCellDisplay(cell, { name: getTranslation('cellEmptyDefault'), key: key || '', isLooping: false, isCued: false }, true, getTranslation);
-            soundData[index] = null;
-            saveSettingsCallback(soundData, window.soundboardApp.volumeRange, window.soundboardApp.playMultipleCheckbox, window.soundboardApp.autokillModeCheckbox, window.soundboardApp.fadeOutRange, window.soundboardApp.fadeInRange, window.soundboardApp.isHelpVisible);
-            return; // Exit early
-        }
-
-        const arrayBuffer = base64ToArrayBuffer(audioDataUrl.split(',')[1]); // Decode base64 to ArrayBuffer
-
-        try {
-            console.log(`[loadSoundFromDataURL] Tentando decodificar Data URL para célula ${index}...`); // NOVO LOG
-            const audioBuffer = await currentAudioContext.decodeAudioData(arrayBuffer); // Use currentAudioContext
-            console.log(`[loadSoundFromDataURL] Sucesso na decodificação de Data URL para célula ${index}. Duração: ${audioBuffer.duration}s`); // NOVO LOG
-
-            if (soundData[index]) {
-                // Clear any existing instances for this cell before replacing
-                clearSoundData(index, soundData, currentAudioContext, window.soundboardApp.globalActivePlayingInstances);
-            }
-
-            soundData[index] = {
-                name: name,
-                key: key,
-                audioBuffer: audioBuffer,
-                audioDataUrl: audioDataUrl,
-                activePlayingInstances: new Set(),
-                color: color,
-                isLooping: isLooping,
-                isCued: isCued // Set cued status
-            };
-            updateCellDisplay(cell, soundData[index], false, getTranslation);
-            saveSettingsCallback(soundData, window.soundboardApp.volumeRange, window.soundboardApp.playMultipleCheckbox, window.soundboardApp.autokillModeCheckbox, window.soundboardApp.fadeOutRange, window.soundboardApp.fadeInRange, window.soundboardApp.isHelpVisible);
-        } catch (error) {
-            console.error(`[loadSoundFromDataURL] ERRO FATAL ao decodificar o áudio da Data URL para célula ${index}:`, error); // CRÍTICO: Este log
-            alert(getTranslation('alertDecodeError').replace('{soundName}', name || 'N/A') + `\nDetalhes: ${error.message}`); // Adicionado detalhes do erro
-            updateCellDisplay(cell, { name: getTranslation('cellEmptyDefault'), key: key || '', isLooping: false, isCued: false }, true, getTranslation);
-            soundData[index] = null;
-            saveSettingsCallback(soundData, window.soundboardApp.volumeRange, window.soundboardApp.playMultipleCheckbox, window.soundboardApp.autokillModeCheckbox, window.soundboardApp.fadeOutRange, window.soundboardApp.fadeInRange, window.soundboardApp.isHelpVisible);
-        }
-    }
-
-    function base64ToArrayBuffer(base64) {
-        const binaryString = atob(base64);
-        const len = binaryString.length;
-        const bytes = new Uint8Array(len);
-        for (let i = 0; i < len; i++) {
-            bytes[i] = binaryString.charCodeAt(i);
-        }
-        return bytes.buffer;
-    }
-
+    /**
+     * Carrega um ficheiro de áudio para uma célula e armazena-o no IndexedDB.
+     * Armazena apenas o ID do IndexedDB e metadados na soundData.
+     * @param {File} file - O objeto File a ser carregado.
+     * @param {HTMLElement} cell - O elemento DOM da célula de som.
+     * @param {number} index - O índice da célula.
+     * @param {Array} soundData - O array global de dados de som.
+     * @param {AudioContext} audioContextParam - O contexto de áudio.
+     * @param {Function} updateCellDisplay - Callback para atualizar o display da célula.
+     * @param {Function} getTranslation - Callback para obter traduções.
+     * @param {Function} saveSettingsCallback - Callback para salvar as configurações.
+     */
     async function loadFileIntoCell(file, cell, index, soundData, audioContextParam, updateCellDisplay, getTranslation, saveSettingsCallback) {
-        // Ensure audioContext is initialized and available
         initAudioContext(window.soundboardApp.volumeRange);
-        const currentAudioContext = audioContextParam || window.soundboardApp.audioContext; // Use passed context or global
+        const currentAudioContext = audioContextParam || window.soundboardApp.audioContext;
 
         if (!currentAudioContext) {
             console.error("[loadFileIntoCell] AudioContext não inicializado ao tentar carregar ficheiro.");
@@ -96,85 +47,167 @@ window.soundboardApp.audioManager = (function() {
             return;
         }
 
-        console.log(`[loadFileIntoCell] Iniciando carregamento para ficheiro: ${file.name}, Tipo: ${file.type}, Tamanho: ${file.size} bytes`); // NOVO LOG
+        console.log(`[loadFileIntoCell] Iniciando carregamento para ficheiro: ${file.name}, Tipo: ${file.type}, Tamanho: ${file.size} bytes`);
 
-        const reader = new FileReader();
-        reader.onload = async (e) => {
-            const audioDataUrl = e.target.result; // This will be a Data URL string
-            console.log(`[loadFileIntoCell] FileReader carregou Data URL para ${file.name}. Tamanho da Data URL: ${audioDataUrl.length} caracteres.`); // NOVO LOG
-            
-            try {
-                // Ensure arrayBuffer is derived correctly from the Data URL for decoding
-                const arrayBuffer = base64ToArrayBuffer(audioDataUrl.split(',')[1]);
-                console.log(`[loadFileIntoCell] ArrayBuffer criado para ${file.name}. Tamanho do buffer: ${arrayBuffer.byteLength} bytes.`); // NOVO LOG
-                
-                console.log(`[loadFileIntoCell] Tentando decodificar áudio para ${file.name}...`); // NOVO LOG
-                const audioBuffer = await currentAudioContext.decodeAudioData(arrayBuffer)
-                    .then(buffer => {
-                        console.log(`[loadFileIntoCell] Sucesso na decodificação de ${file.name}. Duração: ${buffer.duration} segundos.`); // NOVO LOG
-                        return buffer;
-                    })
-                    .catch(error => {
-                        console.error(`[loadFileIntoCell] ERRO NA DECODIFICAÇÃO para ${file.name}:`, error); // CRÍTICO: Este é o log que precisamos!
-                        alert(getTranslation('alertAudioDecodeError').replace('{fileName}', file.name) + `\nDetalhes: ${error.message}`);
-                        return null; // Retorna null para indicar falha
-                    });
+        // Gere um ID único para este som no IndexedDB
+        const soundId = `sound-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 
-                if (!audioBuffer) {
-                    console.warn(`[loadFileIntoCell] AudioBuffer não criado para ${file.name}. Abortando carregamento para célula ${index}.`); // NOVO LOG
-                    // If decoding failed, ensure cell is empty
-                    const fallbackKey = window.soundboardApp.defaultKeys[index] || '';
-                    updateCellDisplay(cell, { name: getTranslation('cellEmptyDefault'), key: fallbackKey, isLooping: false, isCued: false }, true, getTranslation);
-                    soundData[index] = null; // Ensure the slot is marked as empty
-                    saveSettingsCallback(soundData, window.soundboardApp.volumeRange, window.soundboardApp.playMultipleCheckbox, window.soundboardApp.autokillModeCheckbox, window.soundboardApp.fadeOutRange, window.soundboardApp.fadeInRange, window.soundboardApp.isHelpVisible);
-                    return;
+        try {
+            // 1. Salve o ficheiro (Blob) no IndexedDB
+            await window.soundboardApp.dbManager.saveSoundFile(soundId, file);
+            console.log(`[loadFileIntoCell] Ficheiro ${file.name} guardado no IndexedDB com ID: ${soundId}`);
+
+            // 2. Decodifique o áudio para o AudioBuffer para uso IMEDIATO (cache temporário)
+            const audioBlobUrl = URL.createObjectURL(file);
+            const response = await fetch(audioBlobUrl);
+            const arrayBuffer = await response.arrayBuffer();
+            URL.revokeObjectURL(audioBlobUrl); // Libere o URL do objeto assim que o buffer for lido
+
+            console.log(`[loadFileIntoCell] Tentando decodificar áudio para ${file.name} para o AudioBuffer...`);
+            const audioBuffer = await currentAudioContext.decodeAudioData(arrayBuffer)
+                .then(buffer => {
+                    console.log(`[loadFileIntoCell] Sucesso na decodificação de ${file.name}. Duração: ${buffer.duration} segundos.`);
+                    return buffer;
+                })
+                .catch(error => {
+                    console.error(`[loadFileIntoCell] ERRO NA DECODIFICAÇÃO para ${file.name}:`, error);
+                    alert(getTranslation('alertAudioDecodeError').replace('{fileName}', file.name) + `\nDetalhes: ${error.message}`);
+                    return null; // Retorna null para indicar falha
+                });
+
+            if (!audioBuffer) {
+                console.warn(`[loadFileIntoCell] AudioBuffer não criado para ${file.name}. Abortando carregamento para célula ${index}.`);
+                const fallbackKey = window.soundboardApp.defaultKeys[index] || '';
+                updateCellDisplay(cell, { name: getTranslation('cellEmptyDefault'), key: fallbackKey, isLooping: false, isCued: false }, true, getTranslation);
+                soundData[index] = null; // Garante que o slot está vazio
+                await window.soundboardApp.dbManager.deleteSoundFile(soundId); // Limpa do IndexedDB
+                saveSettingsCallback(soundData, window.soundboardApp.volumeRange, window.soundboardApp.playMultipleCheckbox, window.soundboardApp.autokillModeCheckbox, window.soundboardApp.fadeOutRange, window.soundboardApp.fadeInRange, window.soundboardApp.isHelpVisible);
+                return;
+            }
+
+            // Obter fixedKey do array global defaultKeys
+            const fixedKey = window.soundboardApp.defaultKeys[index];
+            const defaultName = file.name.replace(/\.[^/.]+$/, "");
+            const cellColor = window.soundboardApp.utils.getRandomHSLColor();
+
+            if (soundData[index]) {
+                // Se já havia um som, remova o antigo do IndexedDB
+                if (soundData[index].soundFileId) {
+                    await window.soundboardApp.dbManager.deleteSoundFile(soundData[index].soundFileId);
                 }
+                clearSoundData(index, soundData, currentAudioContext, window.soundboardApp.globalActivePlayingInstances);
+            }
 
-                // Obter fixedKey do array global defaultKeys
-                const fixedKey = window.soundboardApp.defaultKeys[index];
+            // 3. Armazene apenas os metadados e o ID do som na soundData
+            soundData[index] = {
+                name: defaultName,
+                key: fixedKey,
+                soundFileId: soundId, // Este é o único link persistente para o áudio
+                _audioBufferCache: audioBuffer, // Cache para reprodução imediata, não serializado
+                activePlayingInstances: new Set(),
+                color: cellColor,
+                isLooping: false,
+                isCued: false
+            };
+            updateCellDisplay(cell, soundData[index], false, getTranslation);
+            saveSettingsCallback(soundData, window.soundboardApp.volumeRange, window.soundboardApp.playMultipleCheckbox, window.soundboardApp.autokillModeCheckbox, window.soundboardApp.fadeOutRange, window.soundboardApp.fadeInRange, window.soundboardApp.isHelpVisible);
+            console.log(`[loadFileIntoCell] Ficheiro ${file.name} carregado com sucesso na célula ${index} (ID: ${soundId}).`);
+        } catch (error) {
+            console.error(`[loadFileIntoCell] ERRO GERAL no processamento do áudio para célula ${index} (${file.name}):`, error);
+            alert(getTranslation('alertLoadError').replace('{fileName}', file.name) + `\nDetalhes: ${error.message}`);
+            const fallbackKey = window.soundboardApp.defaultKeys[index] || '';
+            updateCellDisplay(cell, { name: getTranslation('cellEmptyDefault'), key: fallbackKey, isLooping: false, isCued: false }, true, getTranslation);
+            soundData[index] = null;
+            // Tenta remover do IndexedDB em caso de falha de carregamento também
+            await window.soundboardApp.dbManager.deleteSoundFile(soundId);
+            saveSettingsCallback(soundData, window.soundboardApp.volumeRange, window.soundboardApp.playMultipleCheckbox, window.soundboardApp.autokillModeCheckbox, window.soundboardApp.fadeOutRange, window.soundboardApp.fadeInRange, window.soundboardApp.isHelpVisible);
+        }
+    }
 
-                const defaultName = file.name.replace(/\.[^/.]+$/, "");
-                const cellColor = window.soundboardApp.utils.getRandomHSLColor();
+    /**
+     * Carrega um som a partir do IndexedDB para uma célula (usado para carregar sessões salvas).
+     * @param {string} soundId - O ID do som no IndexedDB.
+     * @param {HTMLElement} cell - O elemento DOM da célula de som.
+     * @param {number} index - O índice da célula.
+     * @param {string} name - O nome do som.
+     * @param {string} key - A tecla associada ao som.
+     * @param {string} color - A cor da célula.
+     * @param {boolean} isLooping - Se o som deve repetir.
+     * @param {boolean} isCued - Se o som está "cued" para a próxima reprodução.
+     * @param {Array} soundData - O array global de dados de som.
+     * @param {AudioContext} audioContextParam - O contexto de áudio.
+     * @param {Function} updateCellDisplay - Callback para atualizar o display da célula.
+     * @param {Function} getTranslation - Callback para obter traduções.
+     * @param {Function} saveSettingsCallback - Callback para salvar as configurações.
+     */
+    async function loadSoundFromIndexedDB(soundId, cell, index, name, key, color, isLooping, isCued, soundData, audioContextParam, updateCellDisplay, getTranslation, saveSettingsCallback) {
+        initAudioContext(window.soundboardApp.volumeRange);
+        const currentAudioContext = audioContextParam || window.soundboardApp.audioContext;
 
+        if (!currentAudioContext) {
+            console.error("AudioContext não inicializado ao tentar carregar som do IndexedDB.");
+            return;
+        }
+
+        if (!soundId) {
+            console.warn(`soundId inválido para célula ${index}. Limpando célula.`);
+            if (soundData[index]) {
+                clearSoundData(index, soundData, currentAudioContext, window.soundboardApp.globalActivePlayingInstances);
+            }
+            updateCellDisplay(cell, { name: getTranslation('cellEmptyDefault'), key: key || '', isLooping: false, isCued: false }, true, getTranslation);
+            soundData[index] = null;
+            // saveSettingsCallback não é chamado aqui, pois é parte de um loop de carregamento de sessão
+            return;
+        }
+
+        try {
+            console.log(`[loadSoundFromIndexedDB] Tentando obter ficheiro de áudio com ID: ${soundId} para célula ${index}...`);
+            const audioBlob = await window.soundboardApp.dbManager.getSoundFile(soundId);
+
+            if (!audioBlob) {
+                console.warn(`Ficheiro de áudio com ID ${soundId} não encontrado no IndexedDB para célula ${index}. Limpando célula.`);
                 if (soundData[index]) {
                     clearSoundData(index, soundData, currentAudioContext, window.soundboardApp.globalActivePlayingInstances);
                 }
-
-                soundData[index] = {
-                    name: defaultName,
-                    key: fixedKey, // Agora fixedKey está definido
-                    audioBuffer: audioBuffer,
-                    audioDataUrl: audioDataUrl, // Save the Data URL string here
-                    activePlayingInstances: new Set(),
-                    color: cellColor,
-                    isLooping: false,
-                    isCued: false
-                };
-                updateCellDisplay(cell, soundData[index], false, getTranslation);
-                saveSettingsCallback(soundData, window.soundboardApp.volumeRange, window.soundboardApp.playMultipleCheckbox, window.soundboardApp.autokillModeCheckbox, window.soundboardApp.fadeOutRange, window.soundboardApp.fadeInRange, window.soundboardApp.isHelpVisible);
-                console.log(`[loadFileIntoCell] Ficheiro ${file.name} carregado com sucesso na célula ${index}.`); // NOVO LOG FINAL
-            } catch (error) {
-                // Este catch pegaria erros antes ou fora do decodeAudioData().then().catch()
-                console.error(`[loadFileIntoCell] ERRO GERAL no processamento do áudio para célula ${index} (${file.name}):`, error); // CRÍTICO: Este log
-                alert(getTranslation('alertLoadError').replace('{fileName}', file.name) + `\nDetalhes: ${error.message}`);
-                // Use fixedKey aqui também
-                const fallbackKey = window.soundboardApp.defaultKeys[index] || '';
-                updateCellDisplay(cell, { name: getTranslation('cellEmptyDefault'), key: fallbackKey, isLooping: false, isCued: false }, true, getTranslation);
-                soundData[index] = null; // Ensure the slot is marked as empty
-                saveSettingsCallback(soundData, window.soundboardApp.volumeRange, window.soundboardApp.playMultipleCheckbox, window.soundboardApp.autokillModeCheckbox, window.soundboardApp.fadeOutRange, window.soundboardApp.fadeInRange, window.soundboardApp.isHelpVisible);
+                updateCellDisplay(cell, { name: getTranslation('cellEmptyDefault'), key: key || '', isLooping: false, isCued: false }, true, getTranslation);
+                soundData[index] = null;
+                return;
             }
-        };
-        reader.onerror = (error) => { // NOVO: Captura erros do FileReader
-            console.error(`[loadFileIntoCell] Erro no FileReader ao carregar ${file.name}:`, error);
-            alert(getTranslation('alertLoadError').replace('{fileName}', file.name) + `\nErro de leitura: ${error.message}`);
-            const fallbackKey = window.soundboardApp.defaultKeys[index] || '';
-            const cell = document.querySelector(`.sound-cell[data-index="${index}"]`);
-            if (cell) updateCellDisplay(cell, { name: getTranslation('cellEmptyDefault'), key: fallbackKey, isLooping: false, isCued: false }, true, getTranslation);
+
+            const audioBlobUrl = URL.createObjectURL(audioBlob);
+            const response = await fetch(audioBlobUrl);
+            const arrayBuffer = await response.arrayBuffer();
+            URL.revokeObjectURL(audioBlobUrl); // Liberar o URL do objeto
+
+            console.log(`[loadSoundFromIndexedDB] Sucesso ao obter ficheiro de áudio do IndexedDB para ${name || 'N/A'}. Decodificando...`);
+            const audioBuffer = await currentAudioContext.decodeAudioData(arrayBuffer);
+            console.log(`[loadSoundFromIndexedDB] Sucesso na decodificação de áudio para célula ${index}. Duração: ${audioBuffer.duration}s`);
+
+            if (soundData[index]) {
+                clearSoundData(index, soundData, currentAudioContext, window.soundboardApp.globalActivePlayingInstances);
+            }
+
+            soundData[index] = {
+                name: name,
+                key: key,
+                soundFileId: soundId,
+                _audioBufferCache: audioBuffer, // Cache do AudioBuffer para reprodução
+                activePlayingInstances: new Set(),
+                color: color,
+                isLooping: isLooping,
+                isCued: isCued
+            };
+            updateCellDisplay(cell, soundData[index], false, getTranslation);
+            // saveSettingsCallback não é chamado aqui, pois é parte de um loop de carregamento de sessão
+        } catch (error) {
+            console.error(`[loadSoundFromIndexedDB] ERRO FATAL ao decodificar o áudio do IndexedDB para célula ${index} (${soundId}):`, error);
+            alert(getTranslation('alertDecodeError').replace('{soundName}', name || 'N/A') + `\nDetalhes: ${error.message}`);
+            updateCellDisplay(cell, { name: getTranslation('cellEmptyDefault'), key: key || '', isLooping: false, isCued: false }, true, getTranslation);
             soundData[index] = null;
-            saveSettingsCallback(soundData, window.soundboardApp.volumeRange, window.soundboardApp.playMultipleCheckbox, window.soundboardApp.autokillModeCheckbox, window.soundboardApp.fadeOutRange, window.soundboardApp.fadeInRange, window.soundboardApp.isHelpVisible);
-        };
-        reader.readAsDataURL(file); // Changed to readAsDataURL to ensure audioDataUrl is a string Data URL
+            // saveSettingsCallback não é chamado aqui
+        }
     }
+
 
     /**
      * Carrega múltiplos ficheiros de áudio em células sequenciais a partir de um índice de início.
@@ -205,6 +238,7 @@ window.soundboardApp.audioManager = (function() {
 
             const cell = document.querySelector(`.sound-cell[data-index="${currentIndex}"]`);
             if (cell) {
+                // Passa o saveSettingsCallback para que cada carregamento individual salve
                 await loadFileIntoCell(file, cell, currentIndex, soundData, currentAudioContext, updateCellDisplay, getTranslation, saveSettingsCallback);
             } else {
                 console.warn(`Célula com índice ${currentIndex} não encontrada. Ignorando ficheiro ${file.name}.`);
@@ -213,19 +247,68 @@ window.soundboardApp.audioManager = (function() {
         }
     }
 
-    function playSound(index, soundData, audioContextParam, playMultipleCheckbox, autokillModeCheckbox, globalActivePlayingInstances, currentFadeInDuration, currentFadeOutDuration, volumeRange) {
+    /**
+     * Tenta reproduzir um som de uma célula específica. Primeiro verifica o cache, depois o IndexedDB.
+     * @param {number} index - O índice da célula de som.
+     * @param {Array} soundData - O array global de dados de som.
+     * @param {AudioContext} audioContextParam - O contexto de áudio.
+     * @param {HTMLInputElement} playMultipleCheckbox - O checkbox de reprodução múltipla.
+     * @param {HTMLInputElement} autokillModeCheckbox - O checkbox do modo autokill.
+     * @param {Set<Object>} globalActivePlayingInstances - O conjunto global de instâncias de som ativas.
+     * @param {number} currentFadeInDuration - Duração do fade-in em segundos.
+     * @param {number} currentFadeOutDuration - Duração do fade-out em segundos.
+     * @param {HTMLInputElement} volumeRange - O elemento input range para o volume global.
+     * @returns {Promise<boolean>} Retorna true se o som foi reproduzido, false caso contrário.
+     */
+    async function playSound(index, soundData, audioContextParam, playMultipleCheckbox, autokillModeCheckbox, globalActivePlayingInstances, currentFadeInDuration, currentFadeOutDuration, volumeRange) {
         initAudioContext(volumeRange);
         const currentAudioContext = audioContextParam || window.soundboardApp.audioContext;
 
         const sound = soundData[index];
-        if (!sound || !sound.audioBuffer) {
+        if (!sound || (!sound._audioBufferCache && !sound.soundFileId)) {
             const cell = document.querySelector(`.sound-cell[data-index="${index}"]`);
-            if (cell) cell.classList.remove('active', 'playing-feedback'); // Also remove playing-feedback if no sound
+            if (cell) cell.classList.remove('active', 'playing-feedback');
             console.log(`Célula ${index} vazia ou áudio não carregado.`);
-            return false; // Indicate that sound was not played
+            return false;
         }
 
-        const now = currentAudioContext.currentTime; // Use currentAudioContext
+        let audioBufferToPlay = sound._audioBufferCache;
+
+        // Se o cache estiver vazio (ex: após recarregar a página), recarregue do IndexedDB
+        if (!audioBufferToPlay && sound.soundFileId) {
+            try {
+                console.log(`[playSound] Recarregando áudio para ${sound.name} (ID: ${sound.soundFileId}) do IndexedDB.`);
+                const audioBlob = await window.soundboardApp.dbManager.getSoundFile(sound.soundFileId);
+                if (!audioBlob) {
+                    console.error(`[playSound] Ficheiro de áudio com ID ${sound.soundFileId} não encontrado no IndexedDB. Limpando célula.`);
+                    // Chame clearSoundCell de forma assíncrona, não espere por ela aqui
+                    // Nota: Passar callbacks para funções que não estão no mesmo escopo
+                    // requer que elas sejam passadas como parâmetros ou acessíveis globalmente
+                    window.soundboardApp.audioManager.clearSoundCell(index, 0, soundData, currentAudioContext, globalActivePlayingInstances, window.soundboardApp.cellManager.updateCellDisplay, window.soundboardApp.i18n.getTranslation, window.soundboardApp.settingsManager.saveSettings);
+                    return false;
+                }
+
+                const audioBlobUrl = URL.createObjectURL(audioBlob);
+                const response = await fetch(audioBlobUrl);
+                const arrayBuffer = await response.arrayBuffer();
+                URL.revokeObjectURL(audioBlobUrl);
+
+                audioBufferToPlay = await currentAudioContext.decodeAudioData(arrayBuffer);
+                sound._audioBufferCache = audioBufferToPlay; // Cache o buffer para usos futuros
+            } catch (error) {
+                console.error(`[playSound] Erro ao recarregar áudio do IndexedDB para ${sound.name}:`, error);
+                window.soundboardApp.audioManager.clearSoundCell(index, 0, soundData, currentAudioContext, globalActivePlayingInstances, window.soundboardApp.cellManager.updateCellDisplay, window.soundboardApp.i18n.getTranslation, window.soundboardApp.settingsManager.saveSettings);
+                return false;
+            }
+        }
+
+        // Se, mesmo após a tentativa de recarga, não houver audioBufferToPlay, algo falhou.
+        if (!audioBufferToPlay) {
+            console.error(`Não foi possível obter AudioBuffer para célula ${index} (${sound.name}).`);
+            return false;
+        }
+
+        const now = currentAudioContext.currentTime;
 
         // Get the cell element for visual feedback
         const cell = document.querySelector(`.sound-cell[data-index="${index}"]`);
@@ -235,15 +318,13 @@ window.soundboardApp.audioManager = (function() {
 
         // Auto-kill previous sound if enabled and not playing multiple
         if (autokillModeCheckbox.checked && lastPlayedSoundIndex !== null && lastPlayedSoundIndex !== index) {
-            // Stop specific instances of the previously played sound
             const prevSound = soundData[lastPlayedSoundIndex];
             if (prevSound && prevSound.activePlayingInstances.size > 0) {
-                 prevSound.activePlayingInstances.forEach(instance => {
-                     stopSoundInstance(instance, now, 0.1); // Quick fade out for previous sound
-                 });
-                 prevSound.activePlayingInstances.clear(); // Clear all instances from this sound
+                prevSound.activePlayingInstances.forEach(instance => {
+                    stopSoundInstance(instance, now, 0.1); // Quick fade out for previous sound
+                });
+                prevSound.activePlayingInstances.clear(); // Clear all instances from this sound
             }
-            // Ensure 'active' and 'playing-feedback' classes are removed from the previous cell
             const prevCell = document.querySelector(`.sound-cell[data-index="${lastPlayedSoundIndex}"]`);
             if (prevCell) {
                 prevCell.classList.remove('active', 'playing-feedback');
@@ -258,17 +339,17 @@ window.soundboardApp.audioManager = (function() {
             sound.activePlayingInstances.clear();
         }
 
-        const source = currentAudioContext.createBufferSource(); // Use currentAudioContext
-        source.buffer = sound.audioBuffer;
+        const source = currentAudioContext.createBufferSource();
+        source.buffer = audioBufferToPlay; // Usando o buffer obtido/cached
         source.loop = sound.isLooping;
 
-        const gainNode = currentAudioContext.createGain(); // Use currentAudioContext
+        const gainNode = currentAudioContext.createGain();
         gainNode.gain.value = 0.001; // Start from near silent for fade-in
 
         source.connect(gainNode);
         gainNode.connect(masterGainNode); // Connect to the master gain
 
-        const initialVolume = window.soundboardApp.volumeRange.value; // Get current global volume from appState
+        const initialVolume = parseFloat(window.soundboardApp.volumeRange.value); // Garante que é um número
 
         if (currentFadeInDuration > 0) {
             gainNode.gain.linearRampToValueAtTime(initialVolume, now + currentFadeInDuration);
@@ -278,67 +359,63 @@ window.soundboardApp.audioManager = (function() {
 
         source.start(now);
 
-        const activeInstance = { source: source, gain: gainNode, startTime: now, soundDataEntry: sound, cellIndex: index }; // Added soundDataEntry and cellIndex for easier lookup
+        const activeInstance = { source: source, gain: gainNode, startTime: now, soundDataEntry: sound, cellIndex: index };
         sound.activePlayingInstances.add(activeInstance);
         globalActivePlayingInstances.add(activeInstance);
 
         source.onended = () => {
             sound.activePlayingInstances.delete(activeInstance);
             globalActivePlayingInstances.delete(activeInstance);
-            // Only remove 'active' and 'playing-feedback' classes if no other instances of this sound are playing
             if (cell && sound.activePlayingInstances.size === 0) {
-                cell.classList.remove('active', 'playing-feedback'); // Remove both classes
+                cell.classList.remove('active', 'playing-feedback');
             }
         };
 
         if (cell) {
             cell.classList.add('active');
-            // Remove active class after sound finishes if not looping
             if (!sound.isLooping) {
                 setTimeout(() => {
-                    // This timeout only removes 'active' and 'playing-feedback' if the sound truly finished
-                    // and no other instances are playing (important for 'play multiple' scenarios).
                     if (!sound.isLooping && sound.activePlayingInstances.size === 0) {
-                         cell.classList.remove('active', 'playing-feedback');
+                        cell.classList.remove('active', 'playing-feedback');
                     }
-                }, (sound.audioBuffer.duration + currentFadeInDuration) * 1000 + 50); // Add a small buffer
+                }, (audioBufferToPlay.duration + currentFadeInDuration) * 1000 + 50);
             }
         }
 
-        lastPlayedSoundIndex = index; // Update cursor after a successful play
-        return true; // Indicate that sound was played
+        lastPlayedSoundIndex = index;
+        return true;
     }
 
+    /**
+     * Para uma instância de som específica com um fade-out.
+     * @param {Object} instance - A instância do som a ser parado.
+     * @param {number} now - O tempo atual do AudioContext.
+     * @param {number} fadeDuration - A duração do fade-out em segundos.
+     */
     function stopSoundInstance(instance, now, fadeDuration) {
         if (instance && instance.source && instance.gain && typeof instance.gain.gain === 'object') {
             try {
-                // Cancel any pending automations on the gain node
                 instance.gain.gain.cancelScheduledValues(now);
-                // Set the current value as the base for the ramp
                 instance.gain.gain.setValueAtTime(instance.gain.gain.value, now);
-                // Ramp down to near silence
                 instance.gain.gain.linearRampToValueAtTime(0.0001, now + fadeDuration);
 
-                // Stop the source after the fade duration plus a small buffer
                 instance.source.stop(now + fadeDuration + 0.05);
-                instance.source.onended = null; // Clear onended to prevent re-triggering logic
+                instance.source.onended = null;
 
-                // Remove the 'playing-feedback' class from the associated cell after the fade
                 if (instance.cellIndex !== undefined) {
                     const cell = document.querySelector(`.sound-cell[data-index="${instance.cellIndex}"]`);
                     setTimeout(() => {
+                        // Só remove as classes se não houver mais instâncias ativas para aquele som
                         if (cell && instance.soundDataEntry && instance.soundDataEntry.activePlayingInstances.size === 0) {
                             cell.classList.remove('active', 'playing-feedback');
                         }
-                    }, (fadeDuration * 1000) + 100); // Wait a bit more than the fade duration
+                    }, (fadeDuration * 1000) + 100);
                 }
 
             } catch (error) {
                 console.warn("Erro ao parar instância de som ou aplicar fade-out:", error);
-                // Fallback to immediate stop if scheduled fade fails
                 if (instance.source && typeof instance.source.stop === 'function') {
                     instance.source.stop();
-                    // Immediate removal of class if stop was immediate
                     if (instance.cellIndex !== undefined) {
                         const cell = document.querySelector(`.sound-cell[data-index="${instance.cellIndex}"]`);
                         if (cell) {
@@ -347,7 +424,6 @@ window.soundboardApp.audioManager = (function() {
                     }
                 }
             }
-            // Disconnect nodes after a short delay to allow the fade to start
             setTimeout(() => {
                 try {
                     if (instance.source && instance.source.disconnect) {
@@ -359,13 +435,20 @@ window.soundboardApp.audioManager = (function() {
                 } catch (disconnectError) {
                     console.warn("Erro ao desconectar nós de áudio:", disconnectError);
                 }
-            }, (fadeDuration * 1000) + 100); // Wait a bit more than the fade duration
+            }, (fadeDuration * 1000) + 100);
         } else {
-             console.warn("Instância de som inválida ou incompleta:", instance);
+            console.warn("Instância de som inválida ou incompleta:", instance);
         }
     }
 
-
+    /**
+     * Aplica fade-out e para todos os sons ativos numa célula específica.
+     * @param {number} index - O índice da célula.
+     * @param {number} duration - Duração do fade-out em segundos.
+     * @param {Array} soundData - O array global de dados de som.
+     * @param {AudioContext} audioContextParam - O contexto de áudio.
+     * @param {Set<Object>} globalActivePlayingInstances - O conjunto global de instâncias de som ativas.
+     */
     function fadeoutSound(index, duration, soundData, audioContextParam, globalActivePlayingInstances) {
         const currentAudioContext = audioContextParam || window.soundboardApp.audioContext;
         if (!currentAudioContext) return;
@@ -373,18 +456,13 @@ window.soundboardApp.audioManager = (function() {
         if (!sound || sound.activePlayingInstances.size === 0) return;
 
         const now = currentAudioContext.currentTime;
-        // Clone set to iterate safely, as instances might be removed during iteration
         const instancesToFade = new Set(sound.activePlayingInstances);
 
         instancesToFade.forEach(instance => {
             stopSoundInstance(instance, now, duration);
-            sound.activePlayingInstances.delete(instance); // Remove from sound's specific instances
-            globalActivePlayingInstances.delete(instance); // Remove from global instances
+            sound.activePlayingInstances.delete(instance);
+            globalActivePlayingInstances.delete(instance);
         });
-
-        // The class removal for the cell will be handled by stopSoundInstance's timeout
-        // once the last instance of that sound finishes fading.
-        // So, we don't need to do `cell.classList.remove` directly here.
     }
 
     /**
@@ -394,7 +472,7 @@ window.soundboardApp.audioManager = (function() {
      * @param {Array} soundData - O array de dados de som global.
      * @param {number} [fadeDuration=0] - A duração do fade out em segundos. Padrão é 0 (paragem imediata).
      */
-    function stopAllSounds(audioContextParam, globalActivePlayingInstances, soundData, fadeDuration = 0) { // <--- ALTERAÇÃO AQUI: Adicionado fadeDuration com valor padrão
+    function stopAllSounds(audioContextParam, globalActivePlayingInstances, soundData, fadeDuration = 0) {
         const currentAudioContext = audioContextParam || window.soundboardApp.audioContext;
         if (!currentAudioContext) {
             console.warn("AudioContext não disponível para parar todos os sons.");
@@ -402,92 +480,129 @@ window.soundboardApp.audioManager = (function() {
         }
 
         const now = currentAudioContext.currentTime;
-        // A fadeDuration é agora um parâmetro, não mais uma constante fixa aqui.
-
-        // Clone set to iterate safely, as instances might be removed during iteration
         const instancesToStop = new Set(globalActivePlayingInstances);
 
         instancesToStop.forEach(instance => {
-            stopSoundInstance(instance, now, fadeDuration); // <--- Usando o fadeDuration do parâmetro
+            stopSoundInstance(instance, now, fadeDuration);
         });
 
-        // Ensure the global set is cleared after all attempts to stop
         globalActivePlayingInstances.clear();
 
-        // Also remove 'active' and 'playing-feedback' classes from all cells
         document.querySelectorAll('.sound-cell.active, .sound-cell.playing-feedback').forEach(cell => {
             cell.classList.remove('active', 'playing-feedback');
         });
 
-        // Ensure individual sound active instances are also cleared
         soundData.forEach(sound => {
             if (sound && sound.activePlayingInstances) {
                 sound.activePlayingInstances.clear();
             }
         });
-        lastPlayedSoundIndex = null; // Reset last played index
+        lastPlayedSoundIndex = null;
         console.log("Todos os sons parados e instâncias limpas.");
     }
 
-    function clearSoundCell(index, fadeDuration, soundData, audioContextParam, globalActivePlayingInstances, updateCellDisplay, getTranslation, saveSettingsCallback) {
+    /**
+     * Limpa uma célula de som específica, parando os sons e removendo os dados.
+     * @param {number} index - O índice da célula a ser limpa.
+     * @param {number} fadeDuration - Duração do fade-out em segundos para os sons a parar.
+     * @param {Array} soundData - O array global de dados de som.
+     * @param {AudioContext} audioContextParam - O contexto de áudio.
+     * @param {Set<Object>} globalActivePlayingInstances - O conjunto global de instâncias de som ativas.
+     * @param {Function} updateCellDisplay - Callback para atualizar o display da célula.
+     * @param {Function} getTranslation - Callback para obter traduções.
+     * @param {Function} saveSettingsCallback - Callback para salvar as configurações.
+     */
+    async function clearSoundCell(index, fadeDuration, soundData, audioContextParam, globalActivePlayingInstances, updateCellDisplay, getTranslation, saveSettingsCallback) {
         const currentAudioContext = audioContextParam || window.soundboardApp.audioContext;
         if (!soundData[index]) return;
 
+        // Primeiro, pare o som com fade-out
         fadeoutSound(index, fadeDuration, soundData, currentAudioContext, globalActivePlayingInstances);
 
-        // Clear sound data after fade out (or immediately if no fade)
-        const cell = document.querySelector(`.sound-cell[data-index="${index}"]`);
-        if (cell) {
-            // Use window.soundboardApp.defaultKeys[index] for the key
-            updateCellDisplay(cell, { name: getTranslation('cellEmptyDefault'), key: window.soundboardApp.defaultKeys[index] || '', isLooping: false, isCued: false }, true, getTranslation);
-            cell.classList.remove('active', 'playing-feedback'); // Ensure visual state is clean
+        // Se houver um soundFileId, exclua o ficheiro de áudio do IndexedDB
+        if (soundData[index].soundFileId) {
+            try {
+                await window.soundboardApp.dbManager.deleteSoundFile(soundData[index].soundFileId);
+                console.log(`Ficheiro de áudio com ID ${soundData[index].soundFileId} excluído do IndexedDB.`);
+            } catch (error) {
+                console.error(`Erro ao excluir ficheiro do IndexedDB para célula ${index}:`, error);
+            }
         }
 
+        // Limpar dados da célula
         clearSoundData(index, soundData, currentAudioContext, globalActivePlayingInstances);
+
+        // Atualizar display da célula
+        const cell = document.querySelector(`.sound-cell[data-index="${index}"]`);
+        if (cell) {
+            updateCellDisplay(cell, { name: getTranslation('cellEmptyDefault'), key: window.soundboardApp.defaultKeys[index] || '', isLooping: false, isCued: false }, true, getTranslation);
+            cell.classList.remove('active', 'playing-feedback');
+        }
+
         saveSettingsCallback(soundData, window.soundboardApp.volumeRange, window.soundboardApp.playMultipleCheckbox, window.soundboardApp.autokillModeCheckbox, window.soundboardApp.fadeOutRange, window.soundboardApp.fadeInRange, window.soundboardApp.isHelpVisible);
     }
 
-    function clearAllSoundCells(soundData, audioContextParam, globalActivePlayingInstances, NUM_CELLS, updateCellDisplay, getTranslation, saveSettingsCallback) {
+    /**
+     * Limpa todas as células de som, parando os sons e removendo todos os dados.
+     * @param {Array} soundData - O array global de dados de som.
+     * @param {AudioContext} audioContextParam - O contexto de áudio.
+     * @param {Set<Object>} globalActivePlayingInstances - O conjunto global de instâncias de som ativas.
+     * @param {number} NUM_CELLS - O número total de células.
+     * @param {Function} updateCellDisplay - Callback para atualizar o display da célula.
+     * @param {Function} getTranslation - Callback para obter traduções.
+     * @param {Function} saveSettingsCallback - Callback para salvar as configurações.
+     */
+    async function clearAllSoundCells(soundData, audioContextParam, globalActivePlayingInstances, NUM_CELLS, updateCellDisplay, getTranslation, saveSettingsCallback) {
         const currentAudioContext = audioContextParam || window.soundboardApp.audioContext;
-        // const fadeDuration = 0.2; // Esta constante não é mais usada aqui, pois stopAllSounds recebe a sua própria duração
 
-        // Stop all currently playing sounds (agora com um fade de 0.2s padrão para esta função)
-        stopAllSounds(currentAudioContext, globalActivePlayingInstances, soundData, 0.2); // Passa 0.2s para fade out aqui
+        // Pare todos os sons atualmente a tocar com um fade de 0.2s
+        stopAllSounds(currentAudioContext, globalActivePlayingInstances, soundData, 0.2);
 
-        // Then clear the data for each cell
+        // Limpar os dados de cada célula e do IndexedDB
         for (let i = 0; i < NUM_CELLS; i++) {
-            if (soundData[i]) { // Only process if there's actually data
-                const cell = document.querySelector(`.sound-cell[data-index="${i}"]`);
-                // Clear the sound data for the cell
+            if (soundData[i]) {
+                if (soundData[i].soundFileId) {
+                    try {
+                        await window.soundboardApp.dbManager.deleteSoundFile(soundData[i].soundFileId);
+                        console.log(`Ficheiro de áudio com ID ${soundData[i].soundFileId} excluído do IndexedDB durante o clearAll.`);
+                    } catch (error) {
+                        console.error(`Erro ao excluir ficheiro do IndexedDB para célula ${i} durante o clearAll:`, error);
+                    }
+                }
                 clearSoundData(i, soundData, currentAudioContext, globalActivePlayingInstances);
-                // Update the cell's display to empty
+                const cell = document.querySelector(`.sound-cell[data-index="${i}"]`);
                 if (cell) {
                     updateCellDisplay(cell, { name: getTranslation('cellEmptyDefault'), key: window.soundboardApp.defaultKeys[i] || '', isLooping: false, isCued: false }, true, getTranslation);
-                    cell.classList.remove('active', 'playing-feedback'); // Ensure visual state is clean for cleared cells
+                    cell.classList.remove('active', 'playing-feedback');
                 }
             }
         }
-        // Also clear all cues
+        // Também limpa todos os cues
         window.soundboardApp.cueGoSystem.removeAllCues(soundData);
-        // Save settings after all cells are cleared
+        // Salva as configurações após todas as células serem limpas
         saveSettingsCallback(soundData, window.soundboardApp.volumeRange, window.soundboardApp.playMultipleCheckbox, window.soundboardApp.autokillModeCheckbox, window.soundboardApp.fadeOutRange, window.soundboardApp.fadeInRange, window.soundboardApp.isHelpVisible);
         console.log("Todas as células limpas.");
     }
 
-
+    /**
+     * Limpa apenas os dados internos de uma célula (não lida com a UI ou IndexedDB).
+     * @param {number} index - O índice da célula.
+     * @param {Array} soundData - O array global de dados de som.
+     * @param {AudioContext} audioContextParam - O contexto de áudio.
+     * @param {Set<Object>} globalActivePlayingInstances - O conjunto global de instâncias de som ativas.
+     */
     function clearSoundData(index, soundData, audioContextParam, globalActivePlayingInstances) {
         const currentAudioContext = audioContextParam || window.soundboardApp.audioContext;
         if (soundData[index]) {
-            // Ensure any remaining active instances are properly stopped and disconnected
             if (soundData[index].activePlayingInstances.size > 0) {
                 const now = currentAudioContext.currentTime;
                 soundData[index].activePlayingInstances.forEach(instance => {
-                    stopSoundInstance(instance, now, 0.05); // Quick stop for cleanup
+                    stopSoundInstance(instance, now, 0.05);
                     globalActivePlayingInstances.delete(instance);
                 });
                 soundData[index].activePlayingInstances.clear();
             }
-            soundData[index] = null;
+            soundData[index] = null; // Zera a entrada
         }
     }
 
@@ -503,11 +618,11 @@ window.soundboardApp.audioManager = (function() {
     return {
         initAudioContext: initAudioContext,
         loadFileIntoCell: loadFileIntoCell,
-        loadSoundFromDataURL: loadSoundFromDataURL,
+        loadSoundFromIndexedDB: loadSoundFromIndexedDB, // Nome da função alterado
         loadMultipleFilesIntoCells: loadMultipleFilesIntoCells,
         playSound: playSound,
         fadeoutSound: fadeoutSound,
-        stopAllSounds: stopAllSounds, // Agora aceita um fadeDuration
+        stopAllSounds: stopAllSounds,
         clearSoundCell: clearSoundCell,
         clearAllSoundCells: clearAllSoundCells,
         clearSoundData: clearSoundData,
