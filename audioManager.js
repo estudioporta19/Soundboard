@@ -213,13 +213,27 @@ window.soundboardApp.audioManager = (function() {
         }
     }
 
-    function playSound(index, soundData, audioContextParam, playMultipleCheckbox, autokillModeCheckbox, globalActivePlayingInstances, currentFadeInDuration, currentFadeOutDuration, volumeRange) {
+    /**
+     * Reproduz um som na célula especificada, gerenciando feedback visual e lógica de autokill.
+     * @param {number} index - O índice do som a ser reproduzido.
+     * @param {Array} soundData - O array de dados de som.
+     * @param {AudioContext} audioContextParam - O contexto de áudio.
+     * @param {HTMLInputElement} playMultipleCheckbox - Checkbox de "Reproduzir Múltiplos".
+     * @param {HTMLInputElement} autokillModeCheckbox - Checkbox de "Modo Autokill".
+     * @param {Set<Object>} globalActivePlayingInstances - Conjunto global de instâncias de som ativas.
+     * @param {number} currentFadeInDuration - Duração do fade-in em segundos.
+     * @param {number} currentFadeOutDuration - Duração do fade-out em segundos.
+     * @param {HTMLInputElement} volumeRange - O controle deslizante de volume global.
+     * @param {HTMLElement} [soundCellElement=null] - Opcional: O elemento DOM da célula de som, passado para feedback visual.
+     * Se não for fornecido, a função tentará encontrá-lo.
+     */
+    function playSound(index, soundData, audioContextParam, playMultipleCheckbox, autokillModeCheckbox, globalActivePlayingInstances, currentFadeInDuration, currentFadeOutDuration, volumeRange, soundCellElement = null) {
         initAudioContext(volumeRange);
         const currentAudioContext = audioContextParam || window.soundboardApp.audioContext;
 
         const sound = soundData[index];
         if (!sound || !sound.audioBuffer) {
-            const cell = document.querySelector(`.sound-cell[data-index="${index}"]`);
+            const cell = soundCellElement || document.querySelector(`.sound-cell[data-index="${index}"]`);
             if (cell) cell.classList.remove('active', 'playing-feedback'); // Also remove playing-feedback if no sound
             console.log(`Célula ${index} vazia ou áudio não carregado.`);
             return false; // Indicate that sound was not played
@@ -227,8 +241,8 @@ window.soundboardApp.audioManager = (function() {
 
         const now = currentAudioContext.currentTime; // Use currentAudioContext
 
-        // Get the cell element for visual feedback
-        const cell = document.querySelector(`.sound-cell[data-index="${index}"]`);
+        // Get the cell element for visual feedback (if not already passed)
+        const cell = soundCellElement || document.querySelector(`.sound-cell[data-index="${index}"]`);
         if (cell) {
             cell.classList.add('playing-feedback'); // Add the class right at the start of playback
         }
@@ -238,10 +252,10 @@ window.soundboardApp.audioManager = (function() {
             // Stop specific instances of the previously played sound
             const prevSound = soundData[lastPlayedSoundIndex];
             if (prevSound && prevSound.activePlayingInstances.size > 0) {
-                 prevSound.activePlayingInstances.forEach(instance => {
-                     stopSoundInstance(instance, now, 0.1); // Quick fade out for previous sound
-                 });
-                 prevSound.activePlayingInstances.clear(); // Clear all instances from this sound
+                prevSound.activePlayingInstances.forEach(instance => {
+                    stopSoundInstance(instance, now, 0.1); // Quick fade out for previous sound
+                });
+                prevSound.activePlayingInstances.clear(); // Clear all instances from this sound
             }
             // Ensure 'active' and 'playing-feedback' classes are removed from the previous cell
             const prevCell = document.querySelector(`.sound-cell[data-index="${lastPlayedSoundIndex}"]`);
@@ -278,7 +292,7 @@ window.soundboardApp.audioManager = (function() {
 
         source.start(now);
 
-        const activeInstance = { source: source, gain: gainNode, startTime: now, soundDataEntry: sound, cellIndex: index }; // Added soundDataEntry and cellIndex for easier lookup
+        const activeInstance = { source: source, gain: gainNode, startTime: now, soundDataEntry: sound, cellElement: cell }; // Store cellElement directly
         sound.activePlayingInstances.add(activeInstance);
         globalActivePlayingInstances.add(activeInstance);
 
@@ -286,51 +300,51 @@ window.soundboardApp.audioManager = (function() {
             sound.activePlayingInstances.delete(activeInstance);
             globalActivePlayingInstances.delete(activeInstance);
             // Only remove 'active' and 'playing-feedback' classes if no other instances of this sound are playing
-            if (cell && sound.activePlayingInstances.size === 0) {
-                cell.classList.remove('active', 'playing-feedback'); // Remove both classes
+            if (activeInstance.cellElement && sound.activePlayingInstances.size === 0) {
+                activeInstance.cellElement.classList.remove('active', 'playing-feedback'); // Remove both classes
             }
         };
 
         if (cell) {
             cell.classList.add('active');
-            // Remove active class after sound finishes if not looping
-            if (!sound.isLooping) {
-                setTimeout(() => {
-                    // This timeout only removes 'active' and 'playing-feedback' if the sound truly finished
-                    // and no other instances are playing (important for 'play multiple' scenarios).
-                    if (!sound.isLooping && sound.activePlayingInstances.size === 0) {
-                         cell.classList.remove('active', 'playing-feedback');
-                    }
-                }, (sound.audioBuffer.duration + currentFadeInDuration) * 1000 + 50); // Add a small buffer
-            }
+            // No need for a setTimeout here. The onended handler will remove the class.
+            // For looping sounds, the 'active' class will remain until explicitly stopped.
         }
 
         lastPlayedSoundIndex = index; // Update cursor after a successful play
         return true; // Indicate that sound was played
     }
 
+    /**
+     * Para uma instância de som específica com um fade-out.
+     * @param {Object} instance - O objeto da instância de som contendo source, gain, soundDataEntry e cellElement.
+     * @param {number} now - O tempo atual do AudioContext.
+     * @param {number} fadeDuration - A duração do fade out em segundos.
+     */
     function stopSoundInstance(instance, now, fadeDuration) {
         if (instance && instance.source && instance.gain && typeof instance.gain.gain === 'object') {
             try {
-                // Cancel any pending automations on the gain node
                 instance.gain.gain.cancelScheduledValues(now);
-                // Set the current value as the base for the ramp
                 instance.gain.gain.setValueAtTime(instance.gain.gain.value, now);
-                // Ramp down to near silence
                 instance.gain.gain.linearRampToValueAtTime(0.0001, now + fadeDuration);
 
-                // Stop the source after the fade duration plus a small buffer
-                instance.source.stop(now + fadeDuration + 0.05);
+                instance.source.stop(now + fadeDuration + 0.05); // Stop after fade
                 instance.source.onended = null; // Clear onended to prevent re-triggering logic
 
-                // Remove the 'playing-feedback' class from the associated cell after the fade
-                if (instance.cellIndex !== undefined) {
-                    const cell = document.querySelector(`.sound-cell[data-index="${instance.cellIndex}"]`);
+                // Remove 'playing-feedback' class after fade duration
+                if (instance.cellElement) {
                     setTimeout(() => {
-                        if (cell && instance.soundDataEntry && instance.soundDataEntry.activePlayingInstances.size === 0) {
-                            cell.classList.remove('active', 'playing-feedback');
+                        // Check if this instance is still considered playing for the specific sound
+                        // This prevents removing the class if another instance of the same sound is still playing
+                        if (instance.soundDataEntry && !instance.soundDataEntry.activePlayingInstances.has(instance)) {
+                            // If this specific instance is no longer in the set, and no other instances are playing
+                            // for this sound, then it's safe to remove the classes from the cell.
+                            // We need to verify if there are ANY active instances for this sound.
+                            if (instance.soundDataEntry.activePlayingInstances.size === 0) {
+                                instance.cellElement.classList.remove('active', 'playing-feedback');
+                            }
                         }
-                    }, (fadeDuration * 1000) + 100); // Wait a bit more than the fade duration
+                    }, (fadeDuration * 1000) + 100);
                 }
 
             } catch (error) {
@@ -338,35 +352,41 @@ window.soundboardApp.audioManager = (function() {
                 // Fallback to immediate stop if scheduled fade fails
                 if (instance.source && typeof instance.source.stop === 'function') {
                     instance.source.stop();
-                    // Immediate removal of class if stop was immediate
-                    if (instance.cellIndex !== undefined) {
-                        const cell = document.querySelector(`.sound-cell[data-index="${instance.cellIndex}"]`);
-                        if (cell) {
-                            cell.classList.remove('active', 'playing-feedback');
+                    if (instance.cellElement) {
+                        instance.cellElement.classList.remove('active', 'playing-feedback');
+                    }
+                }
+            } finally {
+                // Disconnect nodes after a short delay to allow the fade to start/complete
+                setTimeout(() => {
+                    try {
+                        if (instance.source && instance.source.disconnect) {
+                            instance.source.disconnect();
                         }
+                        if (instance.gain && instance.gain.disconnect) {
+                            instance.gain.disconnect();
+                        }
+                    } catch (disconnectError) {
+                        console.warn("Erro ao desconectar nós de áudio:", disconnectError);
                     }
-                }
+                }, (fadeDuration * 1000) + 100); // Wait a bit more than the fade duration
             }
-            // Disconnect nodes after a short delay to allow the fade to start
-            setTimeout(() => {
-                try {
-                    if (instance.source && instance.source.disconnect) {
-                        instance.source.disconnect();
-                    }
-                    if (instance.gain && instance.gain.disconnect) {
-                        instance.gain.disconnect();
-                    }
-                } catch (disconnectError) {
-                    console.warn("Erro ao desconectar nós de áudio:", disconnectError);
-                }
-            }, (fadeDuration * 1000) + 100); // Wait a bit more than the fade duration
         } else {
-             console.warn("Instância de som inválida ou incompleta:", instance);
+            console.warn("Instância de som inválida ou incompleta:", instance);
         }
     }
 
 
-    function fadeoutSound(index, duration, soundData, audioContextParam, globalActivePlayingInstances) {
+    /**
+     * Aplica fade-out a todas as instâncias de um som específico.
+     * @param {number} index - O índice do som.
+     * @param {number} duration - Duração do fade-out.
+     * @param {Array} soundData - Array de dados do som.
+     * @param {AudioContext} audioContextParam - Contexto de áudio.
+     * @param {Set<Object>} globalActivePlayingInstances - Instâncias de reprodução globais.
+     * @param {HTMLElement} [soundCellElement=null] - Opcional: O elemento DOM da célula de som.
+     */
+    function fadeoutSound(index, duration, soundData, audioContextParam, globalActivePlayingInstances, soundCellElement = null) {
         const currentAudioContext = audioContextParam || window.soundboardApp.audioContext;
         if (!currentAudioContext) return;
         const sound = soundData[index];
@@ -415,6 +435,7 @@ window.soundboardApp.audioManager = (function() {
         globalActivePlayingInstances.clear();
 
         // Also remove 'active' and 'playing-feedback' classes from all cells
+        // This is a failsafe, as stopSoundInstance should handle individual cells
         document.querySelectorAll('.sound-cell.active, .sound-cell.playing-feedback').forEach(cell => {
             cell.classList.remove('active', 'playing-feedback');
         });
@@ -433,14 +454,15 @@ window.soundboardApp.audioManager = (function() {
         const currentAudioContext = audioContextParam || window.soundboardApp.audioContext;
         if (!soundData[index]) return;
 
-        fadeoutSound(index, fadeDuration, soundData, currentAudioContext, globalActivePlayingInstances);
+        // Pass the cell element to fadeoutSound to ensure proper class removal
+        const cell = document.querySelector(`.sound-cell[data-index="${index}"]`);
+        fadeoutSound(index, fadeDuration, soundData, currentAudioContext, globalActivePlayingInstances, cell);
 
         // Clear sound data after fade out (or immediately if no fade)
-        const cell = document.querySelector(`.sound-cell[data-index="${index}"]`);
         if (cell) {
             // Use window.soundboardApp.defaultKeys[index] for the key
             updateCellDisplay(cell, { name: getTranslation('cellEmptyDefault'), key: window.soundboardApp.defaultKeys[index] || '', isLooping: false, isCued: false }, true, getTranslation);
-            cell.classList.remove('active', 'playing-feedback'); // Ensure visual state is clean
+            // The classes will be removed by fadeoutSound's internal mechanism for safety
         }
 
         clearSoundData(index, soundData, currentAudioContext, globalActivePlayingInstances);
@@ -463,7 +485,8 @@ window.soundboardApp.audioManager = (function() {
                 // Update the cell's display to empty
                 if (cell) {
                     updateCellDisplay(cell, { name: getTranslation('cellEmptyDefault'), key: window.soundboardApp.defaultKeys[i] || '', isLooping: false, isCued: false }, true, getTranslation);
-                    cell.classList.remove('active', 'playing-feedback'); // Ensure visual state is clean for cleared cells
+                    // The classes are handled by stopAllSounds, but ensure consistency here for cleared cells
+                    cell.classList.remove('active', 'playing-feedback'); 
                 }
             }
         }
