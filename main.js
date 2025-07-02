@@ -39,10 +39,10 @@ document.addEventListener('DOMContentLoaded', () => {
     sb.confirmStopNoBtn = document.getElementById('confirm-stop-no');
 
     // NOVOS ELEMENTOS DOM PARA GESTÃO DE SESSÕES
-    sb.saveSessionBtn = document.getElementById('save-session-btn'); // Adicione este ID ao seu HTML
-    sb.loadSessionBtn = document.getElementById('load-session-btn'); // Adicione este ID ao seu HTML
-    sb.sessionNameInput = document.getElementById('session-name-input'); // Adicione este ID ao seu HTML (input para o nome da sessão)
-    sb.sessionSelect = document.getElementById('session-select'); // Adicione este ID ao seu HTML (select para carregar sessões)
+    sb.saveSessionBtn = document.getElementById('save-session-btn');
+    sb.loadSessionBtn = document.getElementById('load-session-btn');
+    sb.sessionNameInput = document.getElementById('session-name-input');
+    sb.sessionSelect = document.getElementById('session-select');
 
 
     // Estado da Aplicação
@@ -95,10 +95,14 @@ document.addEventListener('DOMContentLoaded', () => {
         );
 
         // Após todas as células serem criadas e potencialmente carregadas, atualiza os cues a partir das configurações salvas
+        // ESTA PARTE AGORA É GERENCIADA PELO sessionManager.loadSelectedSession quando uma sessão é carregada.
+        // Se esta linha for para o carregamento inicial ao iniciar a página, está correta.
+        // Para uma nova sessão, sb.soundData estará vazia ou preenchida por filesToLoad.
         const savedSettings = JSON.parse(localStorage.getItem('soundboardSettings')) || {};
         const savedSounds = savedSettings.sounds || [];
         const cuedIndicesFromSave = savedSounds.filter(s => s && s.isCued).map((s, idx) => idx);
         sb.cueGoSystem.setCuedSounds(cuedIndicesFromSave, sb.soundData); // Define o estado "cued" com base nos dados salvos
+
 
         // AJUSTE PARA O TEXTO DE AJUDA: Usa classes CSS para visibilidade inicial
         if (sb.isHelpVisible) {
@@ -122,13 +126,8 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Função auxiliar para remover feedback de TODAS as células
-    // (Útil para GO/GO- para limpar o anterior, mas o audioManager lida com o onended para cada som)
     const removeAllPlayingFeedback = () => {
         document.querySelectorAll('.sound-cell.playing-feedback').forEach(cell => {
-            // Apenas remove a classe se o som não estiver realmente a tocar.
-            // Para isso, precisamos de verificar o estado das instâncias de áudio
-            // Mas para o contexto de GO/GO- antes de tocar o próximo, é um bom reset visual.
-            // Deixaremos o audioManager lidar com a remoção quando o som termina.
             cell.classList.remove('playing-feedback');
         });
     };
@@ -145,8 +144,6 @@ document.addEventListener('DOMContentLoaded', () => {
         // Lógica para Espaço e Ctrl + Espaço (navegação estilo QLab)
         if (pressedKey === ' ' && !e.ctrlKey && !e.shiftKey && !e.altKey) { // Apenas Espaço (GO)
             e.preventDefault();
-            // removeAllPlayingFeedback(); // Removido: A classe 'playing-feedback' será gerenciada pelo audioManager.playSound e onended.
-
             let targetIndex;
             const lastPlayed = sb.audioManager.getLastPlayedSoundIndex();
 
@@ -159,8 +156,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (targetIndex !== null) {
                 const soundCellElement = document.querySelector(`.sound-cell[data-index="${targetIndex}"]`);
                 if (soundCellElement) {
-                    // Adiciona a classe 'playing-feedback' aqui ANTES de tocar
-                    // Pois o GO/GO- pode tocar um som que não tem a classe 'active' do clique
                     soundCellElement.classList.add('playing-feedback');
                 }
                 sb.audioManager.playSound(targetIndex, sb.soundData, sb.audioContext, sb.playMultipleCheckbox, sb.autokillModeCheckbox, sb.globalActivePlayingInstances, sb.currentFadeInDuration, sb.currentFadeOutDuration, sb.volumeRange, soundCellElement); // Passa a célula
@@ -179,8 +174,6 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         } else if (pressedKey === ' ' && e.ctrlKey) { // Ctrl + Espaço (GO-)
             e.preventDefault();
-            // removeAllPlayingFeedback(); // Removido: Gerenciado pelo audioManager.playSound
-
             let targetIndex;
             const lastPlayed = sb.audioManager.getLastPlayedSoundIndex();
 
@@ -220,12 +213,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     sb.cueGoSystem.toggleCue(lastPlayed, sb.soundData, sb.cueGoSystem.getCuedSounds());
                 }
             } else if (e.shiftKey) { // Shift + Enter: Para todos os sons em cue
-                // A função stopCuedSounds já deve remover o playing-feedback
                 sb.cueGoSystem.stopCuedSounds(sb.soundData, sb.audioContext, sb.audioManager.fadeoutSound, sb.globalActivePlayingInstances);
             } else if (e.altKey) { // Alt + Enter: Remove todos os cues sem parar
                 sb.cueGoSystem.removeAllCues(sb.soundData);
             } else { // Enter (sem modificadores): Toca todos os sons em cue
-                // MODIFICADO: playCuedSounds precisa agora adicionar a classe 'playing-feedback'
                 sb.cueGoSystem.playCuedSounds(sb.soundData, sb.audioContext, sb.audioManager.playSound, sb.globalActivePlayingInstances, sb.currentFadeInDuration, sb.currentFadeOutDuration, sb.volumeRange);
             }
             return;
@@ -275,9 +266,6 @@ document.addEventListener('DOMContentLoaded', () => {
             // Toca o som pela tecla QWERTY
             const indexToPlay = sb.defaultKeys.indexOf(pressedKey);
             if (indexToPlay !== -1 && sb.soundData[indexToPlay] && sb.soundData[indexToPlay].audioBuffer) {
-                // removeAllPlayingFeedback(); // Removido: Gerenciado pelo audioManager.playSound
-
-                // Adiciona a classe 'playing-feedback' aqui
                 const soundCellElement = document.querySelector(`.sound-cell[data-index="${indexToPlay}"]`);
                 if (soundCellElement) {
                     soundCellElement.classList.add('playing-feedback');
@@ -287,19 +275,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Removido o listener 'keyup' específico para 'playing-feedback' nas células QWERTY e GO/GO-
-    // O gerenciamento da classe 'playing-feedback' agora é inteiramente feito pelo audioManager.js
-    // para garantir que a classe seja removida apenas quando o som REALMENTE parar (onended, stop, autokill).
-
     // Ouvintes do painel de controlo
     sb.fadeInRange.addEventListener('input', () => {
         sb.currentFadeInDuration = parseFloat(sb.fadeInRange.value);
         sb.utils.updateFadeInDisplay(sb.fadeInRange, sb.fadeInDisplay, sb.i18n.getTranslationsObject(), sb.i18n.getCurrentLanguage());
         sb.settingsManager.saveSettings(sb.soundData, sb.volumeRange, sb.playMultipleCheckbox, sb.autokillModeCheckbox, sb.fadeOutRange, sb.fadeInRange, sb.isHelpVisible);
     });
-    // Adição para retirar o foco após interação
     sb.fadeInRange.addEventListener('mouseup', () => {
-        sb.fadeInRange.blur(); // Remove o foco do elemento
+        sb.fadeInRange.blur();
     });
 
     sb.fadeOutRange.addEventListener('input', () => {
@@ -307,9 +290,8 @@ document.addEventListener('DOMContentLoaded', () => {
         sb.utils.updateFadeOutDisplay(sb.fadeOutRange, sb.fadeOutDisplay, sb.i18n.getTranslationsObject(), sb.i18n.getCurrentLanguage());
         sb.settingsManager.saveSettings(sb.soundData, sb.volumeRange, sb.playMultipleCheckbox, sb.autokillModeCheckbox, sb.fadeOutRange, sb.fadeInRange, sb.isHelpVisible);
     });
-    // Adição para retirar o foco após interação
     sb.fadeOutRange.addEventListener('mouseup', () => {
-        sb.fadeOutRange.blur(); // Remove o foco do elemento
+        sb.fadeOutRange.blur();
     });
 
     sb.volumeRange.addEventListener('input', () => {
@@ -319,83 +301,65 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         sb.settingsManager.saveSettings(sb.soundData, sb.volumeRange, sb.playMultipleCheckbox, sb.autokillModeCheckbox, sb.fadeOutRange, sb.fadeInRange, sb.isHelpVisible);
     });
-    // Adição para retirar o foco após interação
     sb.volumeRange.addEventListener('mouseup', () => {
-        sb.volumeRange.blur(); // Remove o foco do elemento
+        sb.volumeRange.blur();
     });
 
     sb.playMultipleCheckbox.addEventListener('change', () => {
         sb.settingsManager.saveSettings(sb.soundData, sb.volumeRange, sb.playMultipleCheckbox, sb.autokillModeCheckbox, sb.fadeOutRange, sb.fadeInRange, sb.isHelpVisible);
     });
-    // Adição para retirar o foco após interação
     sb.playMultipleCheckbox.addEventListener('change', () => {
-        sb.playMultipleCheckbox.blur(); // Remove o foco do elemento
+        sb.playMultipleCheckbox.blur();
     });
 
 
     sb.autokillModeCheckbox.addEventListener('change', () => {
         sb.settingsManager.saveSettings(sb.soundData, sb.volumeRange, sb.playMultipleCheckbox, sb.autokillModeCheckbox, sb.fadeOutRange, sb.fadeInRange, sb.isHelpVisible);
     });
-    // Adição para retirar o foco após interação
     sb.autokillModeCheckbox.addEventListener('change', () => {
-        sb.autokillModeCheckbox.blur(); // Remove o foco do elemento
+        sb.autokillModeCheckbox.blur();
     });
 
     // Botão Parar Todos os Sons (AGORA SEM CONFIRMAÇÃO DO POPUP)
     sb.stopAllSoundsBtn.addEventListener('click', () => {
-        // CHAMA DIRETAMENTE A FUNÇÃO PARA PARAR TODOS OS SONS (sem fade)
         sb.audioManager.stopAllSounds(sb.audioContext, sb.globalActivePlayingInstances, sb.soundData);
-        console.log("Botão 'Parar Todos os Sons' clicado: Todos os sons parados diretamente."); // Mensagem de depuração
+        console.log("Botão 'Parar Todos os Sons' clicado: Todos os sons parados diretamente.");
     });
-
-    // Os listeners e a exibição do popup de confirmação não são mais necessários para a funcionalidade de parar sons.
-    // Pode remover o elemento popup do seu HTML se não for usado para mais nada.
-    // sb.confirmStopYesBtn.addEventListener('click', () => { ... });
-    // sb.confirmStopNoBtn.addEventListener('click', () => { ... });
-    // Para garantir que o popup não aparece, pode adicionar ao seu CSS: #stop-confirmation-popup { display: none !important; }
 
     // Botão Carregar Múltiplos Sons
     sb.loadSoundsButtonGeneral.addEventListener('click', () => {
         const input = document.createElement('input');
         input.type = 'file';
-        // FIX: Alterado 'audio/mp3' para 'audio/mpeg' para compatibilidade adequada
         input.accept = 'audio/mpeg, audio/wav, audio/ogg';
         input.multiple = true;
 
         input.onchange = async (e) => {
             const files = Array.from(e.target.files);
 
-            // --- INÍCIO: Adições para Depuração e Validação de Ficheiros ---
-            console.log("Ficheiros selecionados:", files); // Veja todos os ficheiros
+            console.log("Ficheiros selecionados:", files);
             files.forEach(file => {
                 console.log(`Nome do Ficheiro: ${file.name}, Tipo MIME detetado pelo navegador: ${file.type}`);
             });
-            // --- FIM: Adições para Depuração e Validação de Ficheiros ---
 
-            // Adiciona uma validação mais robusta do lado do cliente usando a propriedade file.type
             const allowedMimeTypes = ['audio/mpeg', 'audio/wav', 'audio/ogg'];
             const validFiles = files.filter(file => allowedMimeTypes.includes(file.type));
             const invalidFiles = files.filter(file => !allowedMimeTypes.includes(file.type));
 
             if (invalidFiles.length > 0) {
                 const invalidNames = invalidFiles.map(f => f.name).join(', ');
-                // alert(sb.i18n.getTranslation('alertInvalidFileType').replace('{fileNames}', invalidNames));
                 console.warn(`Ficheiros inválidos detectados: ${invalidNames}. Tipos MIME esperados: ${allowedMimeTypes.join(', ')}`);
-                // Se não houver ficheiros válidos, pára o processo
                 if (validFiles.length === 0) {
                     return;
                 }
             }
 
-            // Encontra o índice da primeira célula vazia disponível para começar a carregar
             let startIndex = sb.soundData.findIndex(s => s === null || (s && s.audioBuffer === null));
-            if (startIndex === -1) { // Se não encontrar nenhuma célula vazia, começa do 0
+            if (startIndex === -1) {
                 startIndex = 0;
             }
 
-            // Chama a nova função do audioManager para lidar com o carregamento de múltiplos ficheiros
             await sb.audioManager.loadMultipleFilesIntoCells(
-                validFiles, // Passa apenas os ficheiros válidos para o carregamento
+                validFiles,
                 startIndex,
                 sb.soundData,
                 sb.audioContext,
@@ -409,16 +373,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Botão Limpar Todas as Células
     sb.clearAllCellsBtn.addEventListener('click', () => {
-        sb.audioManager.stopAllSounds(sb.audioContext, sb.globalActivePlayingInstances, sb.soundData); // Parar sons antes de limpar
+        sb.audioManager.stopAllSounds(sb.audioContext, sb.globalActivePlayingInstances, sb.soundData);
         sb.audioManager.clearAllSoundCells(sb.soundData, sb.audioContext, sb.globalActivePlayingInstances, sb.NUM_CELLS, sb.cellManager.updateCellDisplay, sb.i18n.getTranslation, sb.settingsManager.saveSettings);
     });
 
     // Botões de Idioma
     sb.langButtons.forEach(button => {
         button.addEventListener('click', () => {
-            // Remove a classe 'active-lang' de todos os botões antes de adicionar ao selecionado
             sb.langButtons.forEach(btn => btn.classList.remove('active-lang'));
-            // Adiciona a classe 'active-lang' ao botão clicado
             button.classList.add('active-lang');
 
             sb.i18n.setLanguage(
@@ -431,7 +393,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     fadeInRange: sb.fadeInRange,
                     fadeInDisplay: sb.fadeInDisplay,
                     soundCells: document.querySelectorAll('.sound-cell'),
-                    langButtons: sb.langButtons // Já está aqui, mas reforçado.
+                    langButtons: sb.langButtons
                 },
                 sb.soundData,
                 sb.cellManager.updateCellDisplay,
@@ -440,14 +402,14 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Toggle Help Button - AJUSTADO PARA USAR CLASSES CSS
+    // Toggle Help Button
     sb.toggleHelpButton.addEventListener('click', () => {
         sb.isHelpVisible = !sb.isHelpVisible;
         if (sb.isHelpVisible) {
-            sb.helpTextContent.classList.add('visible'); // Adiciona a classe 'visible'
+            sb.helpTextContent.classList.add('visible');
             sb.toggleHelpButton.textContent = sb.i18n.getTranslation('toggleHelpButton').replace('Mostrar', 'Esconder');
         } else {
-            sb.helpTextContent.classList.remove('visible'); // Remove a classe 'visible'
+            sb.helpTextContent.classList.remove('visible');
             sb.toggleHelpButton.textContent = sb.i18n.getTranslation('toggleHelpButton');
         }
         sb.settingsManager.saveSettings(sb.soundData, sb.volumeRange, sb.playMultipleCheckbox, sb.autokillModeCheckbox, sb.fadeOutRange, sb.fadeInRange, sb.isHelpVisible);
@@ -458,26 +420,18 @@ document.addEventListener('DOMContentLoaded', () => {
         sb.saveSessionBtn.addEventListener('click', () => {
             const sessionName = sb.sessionNameInput.value.trim();
             if (sessionName) {
-                // Passa o estado atual para o sessionManager para guardar
                 const sessionState = {
-                    sounds: sb.soundData.map(sound => ({
-                        name: sound ? sound.name : null,
-                        key: sound ? sound.key : null,
-                        audioDataUrl: sound ? sound.audioDataUrl : null, // Guarda o Data URL
-                        color: sound ? sound.color : null,
-                        isLooping: sound ? sound.isLooping : false,
-                        isCued: sound ? sound.isCued : false
-                    })),
+                    sounds: sb.soundData, // CORRIGIDO: Passa diretamente sb.soundData
                     volume: parseFloat(sb.volumeRange.value),
                     playMultiple: sb.playMultipleCheckbox.checked,
                     autokillMode: sb.autokillModeCheckbox.checked,
                     fadeOutDuration: parseFloat(sb.fadeOutRange.value),
                     fadeInDuration: parseFloat(sb.fadeInRange.value),
                     isHelpVisible: sb.isHelpVisible,
-                    currentLanguage: sb.currentLanguage // Guarda a língua atual
+                    currentLanguage: sb.currentLanguage
                 };
                 sb.sessionManager.saveCurrentSession(sessionName, sessionState);
-                sb.sessionNameInput.value = ''; // Limpa o input após guardar
+                sb.sessionNameInput.value = '';
                 alert(sb.i18n.getTranslation('sessionSavedSuccess').replace('{sessionName}', sessionName));
             } else {
                 alert(sb.i18n.getTranslation('enterSessionNamePrompt'));
@@ -489,14 +443,13 @@ document.addEventListener('DOMContentLoaded', () => {
         sb.loadSessionBtn.addEventListener('click', async () => {
             const selectedSessionName = sb.sessionSelect.value;
             if (selectedSessionName) {
-                // Para todos os sons atuais antes de carregar uma nova sessão
                 sb.audioManager.stopAllSounds(sb.audioContext, sb.globalActivePlayingInstances, sb.soundData);
                 console.log(`A carregar sessão: ${selectedSessionName}`);
 
                 await sb.sessionManager.loadSelectedSession(
                     selectedSessionName,
                     sb.audioContext,
-                    sb.audioManager.loadMultipleFilesIntoCells, // Passa a função para carregar ficheiros
+                    sb.audioManager.loadMultipleFilesIntoCells,
                     sb.NUM_CELLS,
                     sb.soundData,
                     sb.cellManager.updateCellDisplay,
@@ -510,20 +463,18 @@ document.addEventListener('DOMContentLoaded', () => {
                     sb.fadeOutDisplay,
                     sb.fadeInRange,
                     sb.fadeInDisplay,
-                    sb.isHelpVisible, // Passa a referência para a variável
-                    sb.helpTextContent, // Passa a referência para o elemento
-                    sb.toggleHelpButton, // Passa o botão de toggle
-                    sb.i18n, // Passa o módulo i18n
-                    sb.utils, // Passa o módulo utils
-                    sb.langButtons // Passa os botões de idioma
+                    // REMOVIDOS: sb.isHelpVisible, sb.helpTextContent, sb.toggleHelpButton (acessíveis via sb)
+                    sb.i18n,
+                    sb.utils,
+                    sb.langButtons
                 );
 
-                // Após carregar, atualiza os cues (se a sessão os tiver)
-                const loadedSession = JSON.parse(localStorage.getItem(`session-${selectedSessionName}`));
-                if (loadedSession && loadedSession.sounds) {
-                    const cuedIndicesFromSession = loadedSession.sounds.filter(s => s && s.isCued).map((s, idx) => idx);
-                    sb.cueGoSystem.setCuedSounds(cuedIndicesFromSession, sb.soundData);
-                }
+                // REMOVIDO: O sessionManager.loadSelectedSession já trata de atualizar os cues
+                // const loadedSession = JSON.parse(localStorage.getItem(`session-${selectedSessionName}`));
+                // if (loadedSession && loadedSession.sounds) {
+                //     const cuedIndicesFromSession = loadedSession.sounds.filter(s => s && s.isCued).map((s, idx) => idx);
+                //     sb.cueGoSystem.setCuedSounds(cuedIndicesFromSession, sb.soundData);
+                // }
 
                 alert(sb.i18n.getTranslation('sessionLoadedSuccess').replace('{sessionName}', selectedSessionName));
             } else {
