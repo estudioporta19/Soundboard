@@ -175,9 +175,12 @@ input[type="checkbox"]:checked::after {
 
 /* Feedback Visual de Reprodução (Geral - para qualquer som tocando) */
 .sound-cell.playing-feedback {
-    /* Mantém a cor de fundo original da célula (definida por .sound-cell ou .sound-cell.filled) */
+    /* Mantenha a cor de fundo original da célula.
+       Se a célula for .filled, ela terá background-color: #4a4a4a;
+       Caso contrário, terá background-color: #555;
+       Não defina 'background-color' aqui para permitir que outras regras de fundo se apliquem. */
     border-color: #4CAF50; /* Verde vibrante para a borda */
-    border-width: 5px; /* Borda mais grossa para destaque */
+    border-width: 5px; /* Borda mais grossa para um destaque forte */
     box-shadow: 0 0 25px rgba(76, 175, 80, 0.9), 0 0 40px rgba(76, 175, 80, 0.7); /* Sombra intensa verde */
     transform: scale(1.05); /* Um pouco mais de aumento */
     z-index: 2; /* Garante que a célula a tocar esteja acima de outras */
@@ -230,7 +233,7 @@ input[type="checkbox"]:checked::after {
 .sound-cell.playing-feedback.cued {
     border-color: #4CAF50 !important; /* Prioriza a cor verde de playing-feedback */
     box-shadow: 0 0 15px rgba(76, 175, 80, 0.7), 0 0 15px #ffeb3b; /* Combina sombras de playing (verde) e cued (amarelo) */
-    /* Não altera o background-color aqui para manter o fundo original */
+    /* Mantenha o background-color original da célula */
 }
 
 /* Se um som estiver cued (Amarelo, como antes) */
