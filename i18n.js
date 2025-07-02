@@ -6,15 +6,20 @@ window.soundboardApp = window.soundboardApp || {};
 
 window.soundboardApp.i18n = (function() {
     let translations = {};
-    let currentLanguage = 'pt'; // Default language, will be overwritten by saved preference
+    // Não precisamos de inicializar currentLanguage aqui, pois será definido
+    // pelo loadTranslations ou setLanguage.
+    let currentLanguage; // Removido o valor inicial 'pt'
 
     async function loadTranslations(setLanguageCallback) {
         try {
             const response = await fetch('translations.json');
             translations = await response.json();
             console.log('Traduções carregadas:', translations);
-            const savedLang = localStorage.getItem('soundboardLanguage') || 'pt';
-            setLanguageCallback(savedLang); // Call the main setLanguage function
+
+            // A lógica de carregar o idioma guardado ou usar 'pt' será no main.js/settingsManager.
+            // Aqui, apenas garantimos que as traduções estão prontas para serem usadas.
+            // Não vamos chamar setLanguageCallback aqui. Essa chamada deve vir do main.js
+            // depois que o settingsManager carrega a preferência.
         } catch (error) {
             console.error('Erro ao carregar traduções:', error);
             // Fallback translations if file fails
@@ -32,7 +37,7 @@ window.soundboardApp.i18n = (function() {
                     noMoreSoundsForward: "Nessun altro suono da riprodurre in avanti.", noMoreSoundsBackward: "Nessun altro suono da riprodurre all'indietro."
                 }
             };
-            setLanguageCallback('pt');
+            // Se o fetch falhar, o fallback é definido e a lógica de idioma será acionada pelo main.js.
         }
     }
 
@@ -42,37 +47,40 @@ window.soundboardApp.i18n = (function() {
             lang = 'pt';
         }
         currentLanguage = lang;
-        localStorage.setItem('soundboardLanguage', lang);
+        localStorage.setItem('soundboardLanguage', lang); // Guarda a preferência
 
+        document.documentElement.lang = lang; // Define o atributo lang no <html>
+
+        // Atualiza o título da página
         domElements.titleElement.textContent = translations[lang].title;
 
-        // Update all elements with data-key
+        // Atualiza todos os elementos com data-key
         domElements.allDataKeyElements.forEach(element => {
             const key = element.dataset.key;
             if (translations[lang][key]) {
-                // Special handling for elements where text content is directly applied or HTML
                 if (element.tagName === 'LABEL' || element.tagName === 'BUTTON' || element.tagName === 'H1' || element.tagName === 'H3' || element.tagName === 'P') {
                     element.textContent = translations[lang][key];
                 } else if (element.tagName === 'LI') {
-                    element.innerHTML = translations[lang][key]; // For list items with inner HTML (like <kbd>)
+                    element.innerHTML = translations[lang][key];
                 }
-                // Input ranges and checkboxes are updated by specific functions
             }
         });
 
-        // Update display for ranges, as they have dynamic text based on value
+        // Atualiza display para sliders (Fade In/Out)
         utils.updateFadeOutDisplay(domElements.fadeOutRange, domElements.fadeOutDisplay, translations, currentLanguage);
         utils.updateFadeInDisplay(domElements.fadeInRange, domElements.fadeInDisplay, translations, currentLanguage);
 
-        // Update cell specific texts
+        // Atualiza textos específicos das células
         domElements.soundCells.forEach(cell => {
             const index = parseInt(cell.dataset.index);
             const data = soundData[index];
 
             const nameDisplay = cell.querySelector('.sound-name');
             if (nameDisplay) {
+                // Se a célula tiver dados, mantém o nome do som ou usa o fallback "Sem Nome"
+                // Se estiver vazia, usa o texto "Vazio"
                 nameDisplay.textContent = data && data.name ? data.name : translations[currentLanguage].cellEmptyDefault;
-                nameDisplay.title = (translations[currentLanguage].renameHelp || 'Renomear som').replace(/<[^>]*>/g, ''); // Fallback for title
+                nameDisplay.title = (translations[currentLanguage].renameHelp || 'Renomear som').replace(/<[^>]*>/g, '');
             }
 
             const deleteButton = cell.querySelector('.delete-button');
@@ -87,16 +95,17 @@ window.soundboardApp.i18n = (function() {
             if (loopButton) {
                 loopButton.title = translations[currentLanguage].loopButtonTitle || 'Loop (Toggle)';
             }
-            // Reapply visual state for cells if already loaded
+            // Reaplicar o estado visual das células se já estiverem carregadas
+            // Isso garante que o texto "Vazio" ou o nome do som seja atualizado.
+            // A função updateCellDisplay já lida com a chave no display bottom.
             if (data) {
                 updateCellDisplay(cell, data, false, getTranslation);
             } else {
-                // Pass default key correctly for empty cells
                 updateCellDisplay(cell, { name: translations[currentLanguage].cellEmptyDefault, key: window.soundboardApp.defaultKeys[index] || '' }, true, getTranslation);
             }
         });
 
-        // Update language buttons active state
+        // Atualiza o estado 'active' dos botões de idioma
         domElements.langButtons.forEach(button => {
             if (button.dataset.lang === lang) {
                 button.classList.add('active');
@@ -107,7 +116,7 @@ window.soundboardApp.i18n = (function() {
     }
 
     function getTranslation(key) {
-        return translations[currentLanguage] ? (translations[currentLanguage][key] || key) : key; // Return key if translation not found
+        return translations[currentLanguage] ? (translations[currentLanguage][key] || key) : key;
     }
 
     function getCurrentLanguage() {
