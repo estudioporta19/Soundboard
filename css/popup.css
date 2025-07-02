@@ -1,4 +1,4 @@
-/* Estilos para o Popup de Confirmação */
+/* Estilos para o Popup de Confirmação (existente no seu código) */
 .popup-overlay {
     position: fixed;
     top: 0;
@@ -79,4 +79,149 @@
 
 #confirm-stop-no:hover {
     background-color: #777;
+}
+
+/* --- Novos Estilos para o Modal de Carregamento de Sessões --- */
+/* Reutiliza .modal-overlay e .modal-content do seu CSS, mas adiciona especificidades */
+
+/* O modal de carregamento usará as mesmas propriedades básicas de visibilidade e posicionamento que .popup-overlay */
+#load-session-modal { /* Usa o ID específico para o modal de sessão */
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    display: none; /* Inicia oculto, será mostrado pelo JS com display: block */
+    /* Não precisa de visibility/opacity aqui se for usar display: none/block */
+}
+
+/* Conteúdo do modal, similar ao popup-content, mas com ajustes para a lista de sessões */
+#load-session-modal .modal-content { /* Usa uma classe mais genérica para o conteúdo do modal */
+    background-color: #333;
+    padding: 25px;
+    border-radius: 10px; /* Use o mesmo radius do seu popup */
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5); /* Use a mesma sombra do seu popup */
+    width: 90%;
+    max-width: 500px; /* Um pouco mais largo para a lista de sessões */
+    color: #eee;
+    text-align: center;
+    position: relative;
+}
+
+#load-session-modal h2 {
+    margin-top: 0;
+    color: #fff;
+    font-size: 1.5em;
+    margin-bottom: 20px;
+}
+
+#session-list {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 20px 0;
+    max-height: 300px; /* Limita a altura e adiciona scroll */
+    overflow-y: auto;
+    border: 1px solid #555;
+    border-radius: 5px;
+    background-color: #222;
+}
+
+#session-list li {
+    padding: 10px 15px;
+    cursor: pointer;
+    border-bottom: 1px solid #444;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: background-color 0.2s ease;
+}
+
+#session-list li:last-child {
+    border-bottom: none;
+}
+
+#session-list li:hover {
+    background-color: #444;
+}
+
+#session-list li.selected {
+    background-color: #007bff; /* Cor para a sessão selecionada */
+    color: white;
+}
+
+#session-list li.selected .delete-session-button {
+    background-color: #dc3545; /* Cor para o botão de apagar na sessão selecionada */
+    color: white; /* Garante que o ícone fique visível */
+}
+
+.modal-buttons {
+    margin-top: 20px;
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+}
+
+.modal-buttons button {
+    /* Reutiliza estilos básicos de botões do popup-buttons */
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px; /* Mantém o border-radius dos seus botões */
+    cursor: pointer;
+    font-size: 1em;
+    font-weight: bold; /* Mantém a boldness dos seus botões */
+    transition: background-color 0.2s, transform 0.1s, box-shadow 0.2s;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+}
+
+#confirm-load-session-btn {
+    background-color: #28a745; /* Cor verde para "Carregar" */
+    color: white;
+}
+
+#confirm-load-session-btn:hover:enabled {
+    background-color: #218838;
+    transform: translateY(-2px); /* Adiciona o efeito de hover do seu botão */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+}
+
+#confirm-load-session-btn:disabled {
+    background-color: #6c757d;
+    cursor: not-allowed;
+    transform: translateY(0); /* Remove o efeito de hover quando desativado */
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+}
+
+#cancel-load-session-btn {
+    background-color: #666; /* Cor cinza para "Cancelar", similar ao #confirm-stop-no */
+    color: white;
+}
+
+#cancel-load-session-btn:hover {
+    background-color: #777;
+    transform: translateY(-2px); /* Adiciona o efeito de hover do seu botão */
+    box_shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+}
+
+.delete-session-button {
+    background: none;
+    border: none;
+    color: #dc3545; /* Cor vermelha para o ícone de lixo */
+    cursor: pointer;
+    font-size: 1.2em;
+    padding: 5px;
+    border-radius: 3px;
+    transition: background-color 0.2s ease, color 0.2s ease;
+    display: flex; /* Para centralizar o ícone */
+    align-items: center;
+    justify-content: center;
+}
+
+.delete-session-button:hover {
+    background-color: rgba(220, 53, 69, 0.2); /* Fundo leve ao passar o mouse */
+    color: #ff4d4f;
 }
